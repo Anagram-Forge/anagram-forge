@@ -128,7 +128,11 @@ function authPopupPlugin(): Plugin {
 // opens a second dev-server port, which breaks the single-port preview.
 // The dev server starts once `src/router.tsx` and `src/routes/` exist — see
 // AGENTS.md § "First scaffold".
-export default defineConfig(({ command }) => ({
+export default defineConfig(({ command }) => {
+  if (process.env.CF_PAGES) {
+    process.env.VITE_AUTH_ENABLED = "false";
+  }
+  return {
   server: {
     host: "0.0.0.0",
     port: 8080,
@@ -156,4 +160,5 @@ export default defineConfig(({ command }) => ({
       : []),
     viteReact(),
   ],
-}));
+  };
+});
