@@ -1,5 +1,6 @@
-import { useMemo, useRef, useState, type FormEvent } from "react";
+import { useEffect, useMemo, useRef, useState, type FormEvent, type KeyboardEvent } from "react";
 import { toast } from "sonner";
+import { TypewriterClerk } from "@/components/typewriter-clerk";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 
@@ -18,9 +19,27 @@ export function BugForm() {
   const [challenge, setChallenge] = useState(newChallenge);
   const [answer, setAnswer] = useState("");
   const [kind, setKind] = useState("bug");
+  const [draft, setDraft] = useState("");
+  const [tapping, setTapping] = useState(false);
+  const tapTimer = useRef<number | null>(null);
   const [fileName, setFileName] = useState("");
   const [fileError, setFileError] = useState("");
   const [image, setImage] = useState<{ name: string; type: string; data: string } | null>(null);
+
+  useEffect(() => {
+    return () => {
+      if (tapTimer.current) window.clearTimeout(tapTimer.current);
+    };
+  }, []);
+
+  function onTypeKey(e: KeyboardEvent<HTMLFormElement>) {
+    if (kind !== "feature") return;
+    if (e.metaKey || e.ctrlKey || e.altKey) return;
+    if (e.key === "Tab" || e.key === "Shift" || e.key === "Escape") return;
+    setTapping(true);
+    if (tapTimer.current) window.clearTimeout(tapTimer.current);
+    tapTimer.current = window.setTimeout(() => setTapping(false), 140);
+  }
 
   const canSend = useMemo(() => Number(answer) === challenge.sum, [answer, challenge.sum]);
 
@@ -70,7 +89,7 @@ export function BugForm() {
       setAnswer("");
       return;
     }
-    const message = String(data.get("message") || "").trim();
+    const message = draft.trim();
     if (!message) {
       toast("Describe what happened.");
       return;
@@ -93,6 +112,7 @@ export function BugForm() {
         }),
       });
       if (!res.ok) throw new Error("send failed");
+      if (kind === "feature") await new Promise((r) => window.setTimeout(r, 1100));
       setStatus("sent");
       form.reset();
       setAnswer("");
@@ -100,6 +120,7 @@ export function BugForm() {
       setImage(null);
       setFileName("");
       setFileError("");
+      setDraft("");
     } catch {
       setStatus("error");
       toast("Could not send. Try again in a moment.");
@@ -111,8 +132,11 @@ export function BugForm() {
   }
 
   return (
-    <form onSubmit={onSubmit} className="space-y-3 text-left">
+    <form onSubmit={onSubmit} onKeyDown={onTypeKey} className="space-y-3 text-left">
       <p className="text-sm text-muted">Bug or idea. Screenshot optional.</p>
+      {kind === "feature" ? (
+        <TypewriterClerk text={draft} tapping={tapping} shredding={status === "sending"} />
+      ) : null}
       <label className="block">
         <span className="text-xs text-subtle">This is a</span>
         <select
@@ -133,6 +157,8 @@ export function BugForm() {
           name="message"
           required
           rows={4}
+          value={draft}
+          onChange={(e) => setDraft(e.target.value)}
           className="mt-1 w-full rounded-md border border-border bg-raised px-3 py-2 text-sm text-fg"
         />
       </label>
