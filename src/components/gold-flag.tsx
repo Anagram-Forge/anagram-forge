@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import { cn } from "@/lib/utils";
+import { Tip } from "@/components/tip";
 
 const MESSAGE =
   "Turn from your sin and come to Christ. Nothing else in this life outranks that.";
@@ -124,21 +125,37 @@ export function GoldFlag() {
         >
           <p className="font-display text-sm leading-relaxed text-fg">{MESSAGE}</p>
         </aside>
-        <button
-          type="button"
-          aria-expanded={mode === "open"}
-          aria-controls="gold-flag-panel"
-          aria-label={
-            mode === "open" ? "Hide the message" : mode === "hair" ? "Show the gold tab" : "A short message"
-          }
-          onPointerDown={onPointerDown}
-          onPointerMove={onPointerMove}
-          onPointerUp={onPointerUp}
-          onPointerCancel={onPointerUp}
-          className="flex h-11 w-9 shrink-0 touch-none select-none items-center justify-center bg-transparent font-display text-lg leading-none text-accent hover:bg-accent/5"
-        >
-          <span aria-hidden>†</span>
-        </button>
+        {mode === "open" ? (
+          <button
+            type="button"
+            aria-expanded
+            aria-controls="gold-flag-panel"
+            aria-label="Hide the message"
+            onPointerDown={onPointerDown}
+            onPointerMove={onPointerMove}
+            onPointerUp={onPointerUp}
+            onPointerCancel={onPointerUp}
+            className="flex h-11 w-9 shrink-0 touch-none select-none items-center justify-center bg-transparent font-display text-lg leading-none text-accent hover:bg-accent/5"
+          >
+            <span aria-hidden>†</span>
+          </button>
+        ) : (
+          <Tip label={mode === "hair" ? "Show the gold tab" : "A short message"} side="left">
+            <button
+              type="button"
+              aria-expanded={false}
+              aria-controls="gold-flag-panel"
+              aria-label={mode === "hair" ? "Show the gold tab" : "A short message"}
+              onPointerDown={onPointerDown}
+              onPointerMove={onPointerMove}
+              onPointerUp={onPointerUp}
+              onPointerCancel={onPointerUp}
+              className="flex h-11 w-9 shrink-0 touch-none select-none items-center justify-center bg-transparent font-display text-lg leading-none text-accent hover:bg-accent/5"
+            >
+              <span aria-hidden>†</span>
+            </button>
+          </Tip>
+        )}
       </div>
     </div>
   );

@@ -5,6 +5,7 @@ import { SignedIn, SignedOut, UserButton } from "@/lib/auth/gates";
 import { useCurrentUserState } from "@/lib/auth/use-current-user";
 import { useTypeMode } from "@/lib/type-mode";
 import { NotesPanel } from "@/components/notes-panel";
+import { Tip } from "@/components/tip";
 import { VerseBanner } from "@/components/verse-banner";
 import { cn } from "@/lib/utils";
 
@@ -32,27 +33,31 @@ export function AppHeader({ onTwoLetter }: { onTwoLetter: () => void }) {
           </button>
         </div>
         <nav className="flex items-center gap-1 sm:gap-2">
-          <button
-            type="button"
-            onClick={toggle}
-            aria-pressed={easy}
-            aria-label={easy ? "Use default type" : "Easier reading type"}
-            title={easy ? "Default type" : "Easier reading"}
-            className={cn(
-              "inline-flex h-11 min-w-11 items-center justify-center rounded-md px-2 text-sm hover:bg-raised",
-              easy ? "bg-raised text-fg" : "text-muted hover:text-fg",
-            )}
-          >
-            <span className="font-[family-name:var(--font-easy)] text-[15px] tracking-wide">Aa</span>
-          </button>
-          <button
-            type="button"
-            onClick={onTwoLetter}
-            className="inline-flex h-11 items-center gap-2 rounded-md px-2 text-sm text-muted hover:bg-raised hover:text-fg sm:px-3"
-          >
-            <BookOpen className="size-4" />
-            <span className="hidden sm:inline">Two-letter</span>
-          </button>
+          <Tip label={easy ? "Default type" : "Easier reading"}>
+            <button
+              type="button"
+              onClick={toggle}
+              aria-pressed={easy}
+              aria-label={easy ? "Use default type" : "Easier reading type"}
+              className={cn(
+                "inline-flex h-11 min-w-11 items-center justify-center rounded-md px-2 text-sm hover:bg-raised",
+                easy ? "bg-raised text-fg" : "text-muted hover:text-fg",
+              )}
+            >
+              <span className="font-[family-name:var(--font-easy)] text-[15px] tracking-wide">Aa</span>
+            </button>
+          </Tip>
+          <Tip label="Two-letter words" hideOnSm>
+            <button
+              type="button"
+              onClick={onTwoLetter}
+              className="inline-flex h-11 items-center gap-2 rounded-md px-2 text-sm text-muted hover:bg-raised hover:text-fg sm:px-3"
+              aria-label="Two-letter words"
+            >
+              <BookOpen className="size-4" />
+              <span className="hidden sm:inline">Two-letter</span>
+            </button>
+          </Tip>
           {authOn ? (
             <>
               <Link

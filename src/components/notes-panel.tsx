@@ -32,7 +32,7 @@ export function NotesPanel({ onClose }: { onClose: () => void }) {
           <p className="mt-2 text-sm leading-relaxed text-fg">
             Anagram Forge unscrambles letters in your browser. Long racks work your machine, not
             ours. That’s a feature. Use it for puzzles, names, and jokes. Don’t use it to cheat
-            people.
+            people. Absolutely no blaspheming.
           </p>
         </section>
 

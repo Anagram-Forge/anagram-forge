@@ -11,12 +11,14 @@ import { Input } from "@/components/ui/input";
 import { AnagramCardButton, PickChips } from "@/components/anagram-card";
 import { SpellLine } from "@/components/spell-line";
 import { SupportSlot } from "@/components/support-slot";
+import { ThemePicker } from "@/components/theme-picker";
+import { Tip } from "@/components/tip";
 import { dictStats, loadDictionary, wordsForTier, type DictWord, type Loaded } from "@/lib/anagram/dict";
 import { consumePicks, countsOf, canSpell, normalizeLetters, onlyLetters } from "@/lib/anagram/letters";
 import { scrabbleScore } from "@/lib/anagram/scores";
 import { groupByLength, parseMustInclude, solvePhrases, solveWords } from "@/lib/anagram/solver";
 import { tokenizeField } from "@/lib/anagram/spell";
-import { THEMES, isThemeId, type ThemeId } from "@/lib/anagram/themes";
+import { isThemeId, type ThemeId } from "@/lib/anagram/themes";
 import {
   defaultFilters,
   type DictTier,
@@ -336,19 +338,33 @@ function Home() {
           <p className="mt-3 text-sm text-subtle">{activeHint}</p>
 
           <label className="mt-5 block">
-            <span className="text-xs font-medium uppercase tracking-wide text-subtle">Letters</span>
+            <span className="flex items-baseline justify-between gap-3">
+              <span className="text-xs font-medium uppercase tracking-wide text-subtle">Letters</span>
+              <button
+                type="button"
+                disabled={onlyLetters(letters).length < 2}
+                onClick={() => {
+                  void navigator.clipboard.writeText(window.location.href);
+                  toast("Link copied");
+                }}
+                className="text-[11px] text-subtle hover:text-muted disabled:cursor-not-allowed disabled:opacity-40"
+              >
+                Copy this solve
+              </button>
+            </span>
             <Input
               value={letters}
               onChange={(e) => {
                 setLetters(e.target.value);
                 pushSearch({ q: e.target.value });
               }}
-              placeholder="listen  or  c?t  —  ? . _ are blanks"
+              placeholder={mode === "phrase" ? "Yeshua is King" : "psalm"}
               autoCapitalize="none"
               autoCorrect="off"
               spellCheck={false}
               className="mt-1.5 font-mono text-base uppercase tracking-widest"
             />
+            <p className="mt-1.5 text-xs text-subtle">A rack of letters. Use ? for a blank tile.</p>
           </label>
           <SpellLine
             raw={letters}
@@ -361,7 +377,7 @@ function Home() {
 
           <label className="mt-4 block">
             <span className="text-xs font-medium uppercase tracking-wide text-subtle">
-              Must include
+              Must contain
             </span>
             <Input
               value={mustRaw}
@@ -369,7 +385,7 @@ function Home() {
                 setMustRaw(e.target.value);
                 pushSearch({ inc: e.target.value });
               }}
-              placeholder="even — lock a word, or a chunk that must appear"
+              placeholder="map"
               autoCapitalize="none"
               autoCorrect="off"
               spellCheck={false}
@@ -377,8 +393,8 @@ function Home() {
             />
             <p className="mt-1.5 text-xs text-subtle">
               {mode === "phrase"
-                ? "Locked as a phrase word when it fits the rack; leftover letters are solved around it."
-                : "Only keep results that contain this string (eleven matches even)."}
+                ? "Lock this as a word in the phrase; leftover letters are solved around it."
+                : "Only keep results that contain this."}
             </p>
           </label>
 
@@ -393,63 +409,26 @@ function Home() {
                   setPattern(e.target.value);
                   pushSearch({ pattern: e.target.value });
                 }}
-                placeholder="c?t   *ing   ??a??"
+                placeholder="gr?ce"
                 autoCapitalize="none"
                 autoCorrect="off"
                 spellCheck={false}
                 className="mt-1.5 font-mono text-base"
               />
+              <p className="mt-1.5 text-xs text-subtle">? is any one letter. * is a longer chunk.</p>
             </label>
           )}
 
-          <div className="mt-5">
-            <div className="flex flex-wrap items-center gap-2">
-              <span className="text-xs uppercase tracking-wide text-subtle">Theme</span>
-              <button
-                type="button"
-                onClick={() => {
-                  setTheme(null);
-                  pushSearch({ theme: "" });
-                }}
-                className={cn(
-                  "h-9 rounded-sm px-3 text-xs",
-                  theme === null ? "bg-raised text-fg" : "text-muted hover:text-fg",
-                )}
-              >
-                Any
-              </button>
-              {THEMES.map((t) => (
-                <button
-                  key={t.id}
-                  type="button"
-                  title={t.hint}
-                  onClick={() => {
-                    const next = theme === t.id ? null : t.id;
-                    setTheme(next);
-                    pushSearch({ theme: next ?? "" });
-                    if (next && sort === "length") setSort("theme");
-                  }}
-                  className={cn(
-                    "h-9 rounded-sm px-3 text-xs",
-                    theme === t.id ? "bg-raised text-fg" : "text-muted hover:text-fg",
-                  )}
-                >
-                  {t.label}
-                </button>
-              ))}
-            </div>
-            {theme && (
-              <label className="mt-2 flex items-center gap-2 text-xs text-muted">
-                <input
-                  type="checkbox"
-                  checked={themeOnly}
-                  onChange={(e) => setThemeOnly(e.target.checked)}
-                  className="size-3.5 accent-primary"
-                />
-                Only show {THEMES.find((t) => t.id === theme)?.label.toLowerCase()} matches
-              </label>
-            )}
-          </div>
+          <ThemePicker
+            theme={theme}
+            themeOnly={themeOnly}
+            onTheme={(next) => {
+              setTheme(next);
+              pushSearch({ theme: next ?? "" });
+              if (next && sort === "length") setSort("theme");
+            }}
+            onThemeOnly={setThemeOnly}
+          />
 
           <div className="mt-5">
             <LetterRack letters={parsed.letters} blanks={parsed.blanks} />
@@ -742,13 +721,17 @@ function Home() {
           {result?.kind === "empty" && poolReady && (
             <Empty
               title="Waiting on a rack"
-              body="Enter at least two letters. Add ? for a blank. Try listen, or a longer phrase like eleven plus two."
+              body={
+                mode === "phrase"
+                  ? "Enter a phrase to reshuffle. Try “Yeshua is King”."
+                  : "Enter at least two letters. Use ? for a blank. Try “psalm”."
+              }
             />
           )}
           {result?.kind === "need-pattern" && (
             <Empty
               title="Need a pattern"
-              body="Use ? for one unknown letter and * for any sequence. Example: c?t or *tion."
+              body="Use ? for one unknown letter and * for any sequence. Example: gr?ce."
             />
           )}
           {result?.kind === "complete" && (
@@ -1012,14 +995,16 @@ function WordRow({
       <span title="Scrabble score" className="tabular-nums text-xs text-subtle">
         {hit.score}
       </span>
-      <button
-        type="button"
-        className="grid size-10 place-items-center rounded-sm text-muted hover:text-fg"
-        onClick={onCopy}
-        aria-label="Copy word"
-      >
-        <Copy className="size-4" />
-      </button>
+      <Tip label="Copy">
+        <button
+          type="button"
+          className="grid size-10 place-items-center rounded-sm text-muted hover:text-fg"
+          onClick={onCopy}
+          aria-label="Copy word"
+        >
+          <Copy className="size-4" />
+        </button>
+      </Tip>
     </li>
   );
 }
@@ -1050,14 +1035,16 @@ function PhraseRow({ hit, onCopy }: { hit: PhraseHit; onCopy: () => void }) {
         </span>
       ) : null}
       <span className="tabular-nums text-xs text-subtle">{hit.score}</span>
-      <button
-        type="button"
-        className="grid size-10 place-items-center rounded-sm text-muted hover:text-fg"
-        onClick={onCopy}
-        aria-label="Copy phrase"
-      >
-        <Copy className="size-4" />
-      </button>
+      <Tip label="Copy">
+        <button
+          type="button"
+          className="grid size-10 place-items-center rounded-sm text-muted hover:text-fg"
+          onClick={onCopy}
+          aria-label="Copy phrase"
+        >
+          <Copy className="size-4" />
+        </button>
+      </Tip>
     </li>
   );
 }
