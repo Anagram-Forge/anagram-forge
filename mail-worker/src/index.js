@@ -1,7 +1,7 @@
 import { EmailMessage } from "cloudflare:email";
 
-const FROM = "Anagram Forge <sponsors@anagramforge.com>";
-const TO = "sponsors@anagramforge.com";
+const FROM_ADDR = "sponsors@anagramforge.com";
+const FROM = `Anagram Forge <${FROM_ADDR}>`;
 
 function allowedOrigins(env) {
   const raw =
@@ -29,10 +29,10 @@ function json(body, status, request, env) {
   });
 }
 
-function rfc822(replyTo, subject, text) {
+function rfc822(to, replyTo, subject, text) {
   return [
     `From: ${FROM}`,
-    `To: ${TO}`,
+    `To: ${to}`,
     `Reply-To: ${replyTo}`,
     `Subject: ${subject.replace(/[\r\n]+/g, " ")}`,
     "MIME-Version: 1.0",
@@ -65,6 +65,8 @@ export default {
     const email = String(data.email || "").trim();
     if (!name || !email.includes("@")) return json({ ok: false }, 400, request, env);
     if (!env.EMAIL) return json({ ok: false, reason: "no binding" }, 503, request, env);
+    const to = String(env.MAIL_TO || "").trim();
+    if (!to) return json({ ok: false, reason: "no MAIL_TO" }, 503, request, env);
 
     const text = [
       `Name: ${name}`,
@@ -77,7 +79,7 @@ export default {
     const subject = `Sponsor application — ${String(data.company || name).trim()}`;
 
     try {
-      await env.EMAIL.send(new EmailMessage("sponsors@anagramforge.com", TO, rfc822(email, subject, text)));
+      await env.EMAIL.send(new EmailMessage(FROM_ADDR, to, rfc822(to, email, subject, text)));
       return json({ ok: true }, 200, request, env);
     } catch (err) {
       return json({ ok: false, error: String(err) }, 502, request, env);
