@@ -18,6 +18,7 @@ export function BugForm() {
   const [challenge, setChallenge] = useState(newChallenge);
   const [answer, setAnswer] = useState("");
   const [fileName, setFileName] = useState("");
+  const [fileError, setFileError] = useState("");
   const [image, setImage] = useState<{ name: string; type: string; data: string } | null>(null);
 
   const canSend = useMemo(() => Number(answer) === challenge.sum, [answer, challenge.sum]);
@@ -26,14 +27,20 @@ export function BugForm() {
     if (!file) {
       setImage(null);
       setFileName("");
+      setFileError("");
       return;
     }
     if (!file.type.startsWith("image/")) {
-      toast("Please drop an image (png, jpg, webp).");
+      setImage(null);
+      setFileName(file.name);
+      setFileError("Use a PNG, JPG, WebP, or GIF.");
       return;
     }
     if (file.size > MAX) {
-      toast("Keep screenshots under 5 MB.");
+      const mb = (file.size / (1024 * 1024)).toFixed(1);
+      setImage(null);
+      setFileName(file.name);
+      setFileError(`${mb} MB — please pick one under 5 MB.`);
       return;
     }
     const data = await new Promise<string>((resolve, reject) => {
@@ -44,6 +51,7 @@ export function BugForm() {
     });
     setImage({ name: file.name, type: file.type, data });
     setFileName(file.name);
+    setFileError("");
   }
 
   async function onSubmit(e: FormEvent<HTMLFormElement>) {
@@ -66,6 +74,10 @@ export function BugForm() {
       toast("Describe what happened.");
       return;
     }
+    if (fileError) {
+      toast("Fix the screenshot size first, or clear it.");
+      return;
+    }
     setStatus("sending");
     try {
       const res = await fetch("/api/report", {
@@ -86,6 +98,7 @@ export function BugForm() {
       setChallenge(newChallenge());
       setImage(null);
       setFileName("");
+      setFileError("");
     } catch {
       setStatus("error");
       toast("Could not send. Try again in a moment.");
@@ -120,14 +133,20 @@ export function BugForm() {
         />
       </label>
       <label className="block">
-        <span className="text-xs text-subtle">Screenshot</span>
+        <span className="text-xs text-subtle">Screenshot · optional · 5 MB max</span>
         <input
           type="file"
           accept="image/png,image/jpeg,image/webp,image/gif"
           className="mt-1 block w-full text-sm text-muted file:mr-3 file:rounded-md file:border file:border-border file:bg-raised file:px-3 file:py-1.5 file:text-sm file:text-fg"
           onChange={(e) => void onFile(e.target.files?.[0])}
         />
-        {fileName ? <span className="mt-1 block text-xs text-subtle">{fileName}</span> : null}
+        {fileError ? (
+          <span className="mt-1 block text-xs text-danger">{fileError}</span>
+        ) : fileName ? (
+          <span className="mt-1 block text-xs text-subtle">{fileName} attached</span>
+        ) : (
+          <span className="mt-1 block text-xs text-subtle">PNG, JPG, WebP, or GIF.</span>
+        )}
       </label>
       <div className="grid gap-3 sm:grid-cols-2">
         <label className="block">
@@ -156,7 +175,7 @@ export function BugForm() {
         />
       </label>
       <div className="flex flex-wrap items-center gap-3 pt-1">
-        <Button type="submit" size="sm" disabled={!canSend || status === "sending"}>
+        <Button type="submit" size="sm" disabled={!canSend || Boolean(fileError) || status === "sending"}>
           {status === "sending" ? "Sending…" : "Send report"}
         </Button>
         {status === "error" ? <span className="text-xs text-danger">Didn’t go through.</span> : null}
