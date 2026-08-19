@@ -16,6 +16,10 @@ A very small swipeable tab on the right edge, same gold as the verse theme label
 
 Keep it pull-to-reveal, not a popup.
 
+## Copy this solve
+
+A obvious button that copies a shareable link for the current rack (`?q=listen` and friends). Search params already exist; make “send this one to someone” one click.
+
 ## Background music
 
 A small music-note toggle. Inspiration only — do **not** rip artists from YouTube playlists. See notes in chat: free/CC or a paid web license, hosted by us.

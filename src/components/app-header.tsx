@@ -1,8 +1,10 @@
+import { useState } from "react";
 import { Link } from "@tanstack/react-router";
 import { Bookmark, BookOpen } from "lucide-react";
 import { SignedIn, SignedOut, UserButton } from "@/lib/auth/gates";
 import { useCurrentUserState } from "@/lib/auth/use-current-user";
 import { useTypeMode } from "@/lib/type-mode";
+import { NotesPanel } from "@/components/notes-panel";
 import { VerseBanner } from "@/components/verse-banner";
 import { cn } from "@/lib/utils";
 
@@ -10,14 +12,25 @@ export function AppHeader({ onTwoLetter }: { onTwoLetter: () => void }) {
   const { user, isPending } = useCurrentUserState();
   const authOn = import.meta.env.VITE_AUTH_ENABLED === "true";
   const { easy, toggle } = useTypeMode();
+  const [notes, setNotes] = useState(false);
 
   return (
     <div>
       <header className="flex items-center justify-between gap-3 border-b border-border px-4 py-3 sm:px-6">
-        <Link to="/" className="min-w-0">
-          <p className="font-display text-lg font-medium tracking-tight text-fg">Anagram Forge</p>
-          <p className="hidden text-xs text-muted sm:block">unscramble anything. maybe.</p>
-        </Link>
+        <div className="min-w-0">
+          <Link to="/">
+            <p className="font-display text-lg font-medium tracking-tight text-fg">Anagram Forge</p>
+            <p className="hidden text-xs text-muted sm:block">unscramble anything. maybe.</p>
+          </Link>
+          <button
+            type="button"
+            onClick={() => setNotes(true)}
+            className="mt-0.5 text-[11px] tracking-wide text-subtle hover:text-muted"
+          >
+            <span className="sm:hidden">notes</span>
+            <span className="hidden sm:inline">usage · privacy · ethics</span>
+          </button>
+        </div>
         <nav className="flex items-center gap-1 sm:gap-2">
           <button
             type="button"
@@ -70,6 +83,7 @@ export function AppHeader({ onTwoLetter }: { onTwoLetter: () => void }) {
         </nav>
       </header>
       <VerseBanner />
+      {notes ? <NotesPanel onClose={() => setNotes(false)} /> : null}
     </div>
   );
 }
