@@ -17,6 +17,7 @@ export function BugForm() {
   const [status, setStatus] = useState<Status>("idle");
   const [challenge, setChallenge] = useState(newChallenge);
   const [answer, setAnswer] = useState("");
+  const [kind, setKind] = useState("bug");
   const [fileName, setFileName] = useState("");
   const [fileError, setFileError] = useState("");
   const [image, setImage] = useState<{ name: string; type: string; data: string } | null>(null);
@@ -84,7 +85,7 @@ export function BugForm() {
         method: "POST",
         headers: { "content-type": "application/json", accept: "application/json" },
         body: JSON.stringify({
-          kind: String(data.get("kind") || "bug"),
+          kind,
           name: String(data.get("name") || "").trim(),
           email: String(data.get("email") || "").trim(),
           message,
@@ -117,14 +118,17 @@ export function BugForm() {
         <select
           name="kind"
           className="mt-1 h-11 w-full rounded-md border border-border bg-raised px-3 text-sm text-fg"
-          defaultValue="bug"
+          value={kind}
+          onChange={(e) => setKind(e.target.value)}
         >
           <option value="bug">Bug</option>
           <option value="feature">Feature request</option>
         </select>
       </label>
       <label className="block">
-        <span className="text-xs text-subtle">What happened</span>
+        <span className="text-xs text-subtle">
+          {kind === "feature" ? "What'cha got?" : "What happened"}
+        </span>
         <textarea
           name="message"
           required
