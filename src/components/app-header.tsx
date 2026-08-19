@@ -13,7 +13,7 @@ export function AppHeader({ onTwoLetter }: { onTwoLetter: () => void }) {
       <header className="flex items-center justify-between gap-3 border-b border-border px-4 py-3 sm:px-6">
         <Link to="/" className="min-w-0">
           <p className="font-display text-lg font-medium tracking-tight text-fg">Anagram Forge</p>
-          <p className="hidden text-xs text-muted sm:block">Unscramble anything</p>
+          <p className="hidden text-xs text-muted sm:block">unscramble anything. maybe.</p>
         </Link>
         <nav className="flex items-center gap-1 sm:gap-2">
           <button
