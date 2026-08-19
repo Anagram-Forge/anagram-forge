@@ -141,7 +141,7 @@ export function BugForm() {
         <span className="text-xs text-subtle">This is a</span>
         <select
           name="kind"
-          className="mt-1 h-11 w-full rounded-md border border-border bg-raised px-3 text-sm text-fg"
+          className="mt-1 h-11 w-full rounded-md border border-field-border bg-field px-3 text-sm text-fg"
           value={kind}
           onChange={(e) => setKind(e.target.value)}
         >
@@ -159,7 +159,7 @@ export function BugForm() {
           rows={4}
           value={draft}
           onChange={(e) => setDraft(e.target.value)}
-          className="mt-1 w-full rounded-md border border-border bg-raised px-3 py-2 text-sm text-fg"
+          className="mt-1 w-full rounded-md border border-field-border bg-field px-3 py-2 text-sm text-fg"
         />
       </label>
       <label className="block">

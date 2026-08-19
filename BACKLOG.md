@@ -20,6 +20,14 @@ Keep it pull-to-reveal, not a popup.
 
 A small music-note toggle. Inspiration only — do **not** rip artists from YouTube playlists. See notes in chat: free/CC or a paid web license, hosted by us.
 
+## Accessibility (ADA)
+
+Design for more than average vision and reading.
+
+- Dyslexia-friendly type (Lexend, Atkinson Hyperlegible, or OpenDyslexic) as an **option**, not a force-replace of the current display font
+- Contrast, focus rings, keyboard, screen readers
+- Discuss as its own pass so we don’t bolt a font on and call it done
+
 ## Later (already mentioned)
 
 - Visitor / anagram stats widget

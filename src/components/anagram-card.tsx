@@ -214,7 +214,7 @@ export function AnagramCardButton({
                 <select
                   value={style.font}
                   onChange={(e) => patch({ font: e.target.value as CardStyle["font"] })}
-                  className="mt-1 h-10 w-full rounded-md border border-border bg-raised px-2 text-sm text-fg"
+                  className="mt-1 h-10 w-full rounded-md border border-field-border bg-field px-2 text-sm text-fg"
                 >
                   {CARD_FONTS.map((f) => (
                     <option key={f.id} value={f.id}>
@@ -228,7 +228,7 @@ export function AnagramCardButton({
                 <select
                   value={style.weight}
                   onChange={(e) => patch({ weight: Number(e.target.value) as CardStyle["weight"] })}
-                  className="mt-1 h-10 w-full rounded-md border border-border bg-raised px-2 text-sm text-fg"
+                  className="mt-1 h-10 w-full rounded-md border border-field-border bg-field px-2 text-sm text-fg"
                 >
                   {WEIGHTS.filter((w) => face.weights.includes(w.value)).map((w) => (
                     <option key={w.value} value={w.value}>
