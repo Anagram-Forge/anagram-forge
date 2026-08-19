@@ -20,6 +20,10 @@ Keep it pull-to-reveal, not a popup.
 
 A small music-note toggle. Inspiration only — do **not** rip artists from YouTube playlists. See notes in chat: free/CC or a paid web license, hosted by us.
 
+## Learn SEO
+
+Walk through what actually matters for a small site like this (title, description, share card, sitemap, speed) without turning it into a marketing class. Do this before chasing rankings.
+
 ## Custom 404
 
 Need a real “this page does not exist” page. Make it unique — brainstorm in chat before building. Should still be kind, not a jump-scare.
