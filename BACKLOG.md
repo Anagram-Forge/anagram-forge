@@ -20,6 +20,18 @@ Keep it pull-to-reveal, not a popup.
 
 A small music-note toggle. Inspiration only — do **not** rip artists from YouTube playlists. See notes in chat: free/CC or a paid web license, hosted by us.
 
+## Security checkup
+
+Do this on a cadence, not in a panic.
+
+- The mail worker still has Cloudflare’s default `*.workers.dev` URL. Optional: custom domain + refuse that Host. Visitors never see it today.
+- Rotate any token that was ever pasted in chat
+- Confirm WHOIS privacy still on (Cloudflare Registrar — already obfuscated)
+- GitHub org profile stays boring (no legal name / personal email)
+- Quick grep of the public repo for mail addresses, keys, tokens
+
+First pass when we feel like it. Then maybe every 90 days, same as the GitHub token reminder.
+
 ## Site stats / humans vs bots
 
 Quiet dashboard near the ad/support slot: visitors, anagrams forged, a few other numbers.
