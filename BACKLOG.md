@@ -1,0 +1,27 @@
+# Backlog
+
+Not started. Pick one when we want it.
+
+## Disclaimers — usage, privacy, ethics
+
+Want them findable without a cookie-wall or a lecture on first paint.
+
+Leaning: quiet links in the top bar (`usage · privacy · ethics`) that open a single short panel, not three legal PDFs. Open to other shapes.
+
+## Repentance flag
+
+A very small swipeable tab on the right edge, same gold as the verse theme labels (`#d4a24c`). Pull it and it reads:
+
+> The most important thing for you to do in life is to repent of your sins and give your life to Christ
+
+Keep it pull-to-reveal, not a popup.
+
+## Background music
+
+A small music-note toggle. Inspiration only — do **not** rip artists from YouTube playlists. See notes in chat: free/CC or a paid web license, hosted by us.
+
+## Later (already mentioned)
+
+- Visitor / anagram stats widget
+- Voting / ranking of favorite finds (needs a database)
+- Sign-in when we actually need it
