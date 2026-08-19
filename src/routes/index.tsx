@@ -1,5 +1,5 @@
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
-import { Check, ChevronDown, Copy, Save, Search } from "lucide-react";
+import { Check, ChevronDown, Copy, Search } from "lucide-react";
 import { useEffect, useMemo, useState, type ReactNode } from "react";
 import { toast } from "sonner";
 import { AppHeader } from "@/components/app-header";
@@ -26,8 +26,6 @@ import {
   type SortKey,
   type WordHit,
 } from "@/lib/anagram/types";
-import { useCurrentUserState } from "@/lib/auth/use-current-user";
-import { addSavedQuery } from "@/lib/saved";
 import { cn } from "@/lib/utils";
 
 type Search = {
@@ -97,7 +95,6 @@ function totalLeft(p: { leftover: string }): number {
 function Home() {
   const search = Route.useSearch();
   const navigate = useNavigate({ from: "/" });
-  const { user } = useCurrentUserState();
 
   const [letters, setLetters] = useState(search.q ?? "");
   const [mode, setMode] = useState<SolveMode>(asMode(search.mode ?? "from-rack"));
@@ -278,22 +275,6 @@ function Home() {
   async function copyWords(words: string[]) {
     await navigator.clipboard.writeText(words.join("\n"));
     toast("Copied to clipboard");
-  }
-
-  async function saveQuery() {
-    if (!user) {
-      toast("Sign in to save queries");
-      return;
-    }
-    const label = letters.trim() || pattern.trim() || "Untitled";
-    try {
-      await addSavedQuery({
-        data: { label, letters: letters.trim(), mode, pattern: pattern.trim(), dictTier: dict },
-      });
-      toast("Query saved");
-    } catch {
-      toast("Could not save — sign in and try again");
-    }
   }
 
   const activeHint = MODES.find((m) => m.id === mode)?.hint ?? "";
@@ -715,9 +696,6 @@ function Home() {
           )}
 
           <div className="mt-6 flex flex-wrap gap-2">
-            <Button type="button" variant="secondary" onClick={saveQuery}>
-              <Save /> Save query
-            </Button>
             {result?.kind === "words" && result.hits.length > 0 && (
               <Button
                 type="button"

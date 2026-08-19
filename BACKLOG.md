@@ -32,4 +32,5 @@ Design for more than average vision and reading.
 
 - Visitor / anagram stats widget
 - Voting / ranking of favorite finds (needs a database)
+- Save query / saved searches — after usage / ToS is in place
 - Sign-in when we actually need it
