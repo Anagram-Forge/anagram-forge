@@ -983,26 +983,29 @@ function WordRow({
       >
         {picked ? <Check className="size-4" /> : null}
       </button>
-      <span className="min-w-0 flex-1 font-mono text-sm uppercase tracking-wide text-fg">
-        <DefinedWord word={hit.word} className="font-mono text-sm uppercase tracking-wide text-fg" />
-      </span>
+      <div className="min-w-0 flex-1">
+        <DefinedWord
+          word={hit.word}
+          className="block truncate font-mono text-sm uppercase tracking-wide text-fg"
+        />
+        {!hit.leftover ? (
+          <span className="mt-0.5 inline-block rounded-sm bg-raised px-1.5 py-0.5 text-[10px] uppercase tracking-wide text-muted">
+            fills
+          </span>
+        ) : (
+          <span
+            title={`Letters left after this word: ${hit.leftover}`}
+            className="mt-0.5 block truncate font-mono text-[10px] uppercase tracking-wider text-subtle"
+          >
+            left {hit.leftover}
+          </span>
+        )}
+      </div>
       {hit.themeHit ? (
-        <span className="rounded-sm bg-raised px-1.5 py-0.5 text-[10px] uppercase tracking-wide text-muted">
+        <span className="shrink-0 rounded-sm bg-raised px-1.5 py-0.5 text-[10px] uppercase tracking-wide text-muted">
           theme
         </span>
       ) : null}
-      {!hit.leftover ? (
-        <span className="rounded-sm bg-raised px-1.5 py-0.5 text-[10px] uppercase tracking-wide text-muted">
-          fills
-        </span>
-      ) : (
-        <span
-          title={`Letters left after this word: ${hit.leftover}`}
-          className="hidden font-mono text-[10px] uppercase text-subtle sm:inline"
-        >
-          −{hit.leftover}
-        </span>
-      )}
       <span title="Scrabble score" className="tabular-nums text-xs text-subtle">
         {hit.score}
       </span>
