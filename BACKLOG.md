@@ -20,6 +20,12 @@ Keep it pull-to-reveal, not a popup.
 
 A small music-note toggle. Inspiration only — do **not** rip artists from YouTube playlists. See notes in chat: free/CC or a paid web license, hosted by us.
 
+## Site stats / humans vs bots
+
+Quiet dashboard near the ad/support slot: visitors, anagrams forged, a few other numbers.
+
+Use **Cloudflare Web Analytics with bot filtering** when we want “how many humans,” not raw requests. The account analytics chart (requests / visits / countries) counts crawlers. Don’t treat Germany-at-3am as a fan club.
+
 ## Learn SEO
 
 Walk through what actually matters for a small site like this (title, description, share card, sitemap, speed) without turning it into a marketing class. Do this before chasing rankings.
@@ -38,7 +44,6 @@ Design for more than average vision and reading.
 
 ## Later (already mentioned)
 
-- Visitor / anagram stats widget
 - Voting / ranking of favorite finds (needs a database)
 - Save query / saved searches — after usage / ToS is in place
 - Sign-in when we actually need it
