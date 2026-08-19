@@ -457,10 +457,16 @@ function Home() {
               {parsed.letters.length} letters
               {parsed.blanks ? ` · ${parsed.blanks} blank${parsed.blanks === 1 ? "" : "s"}` : ""}
               {picks.length > 0 ? ` · ${totalLeft(picked)} left` : ""}
-              {parsed.letters.length > 15
+              {parsed.letters.length > 15 && parsed.letters.length < 30
                 ? " · tournament list tops out at 15-letter words — use Phrases or pick leftovers"
                 : ""}
             </p>
+            {parsed.letters.length >= 30 ? (
+              <p className="mt-2 max-w-xl text-sm text-muted">
+                Your laptop is the kitchen. This rack is a lot of stove. Switch to Phrases, or start
+                picking.
+              </p>
+            ) : null}
           </div>
 
           {(picks.length > 0 || result?.kind === "words") && (
