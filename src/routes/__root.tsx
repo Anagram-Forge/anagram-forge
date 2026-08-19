@@ -1,5 +1,6 @@
 import { createRootRoute, HeadContent, Outlet, Scripts } from "@tanstack/react-router";
 import { AuthProvider } from "@/lib/auth/provider";
+import { MissingPage } from "@/components/missing-page";
 import { PreviewHostBridge } from "@/components/preview-host-bridge";
 import { Toaster } from "sonner";
 import appCss from "../styles.css?url";
@@ -9,6 +10,7 @@ const host = import.meta.env.VITE_PUBLIC_HOSTNAME;
 const ogImage = host ? `https://${host}/og.jpg` : undefined;
 
 export const Route = createRootRoute({
+  notFoundComponent: MissingPage,
   head: () => ({
     meta: [
       { charSet: "utf-8" },
