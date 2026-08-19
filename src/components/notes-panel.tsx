@@ -39,12 +39,14 @@ export function NotesPanel({ onClose }: { onClose: () => void }) {
         <section className="mt-5">
           <h3 className="text-[10px] font-medium uppercase tracking-[0.16em] text-accent">Privacy</h3>
           <p className="mt-2 text-sm leading-relaxed text-fg">
-            No account required. We don’t sell data. We don’t keep the words you type.
+            No account required to solve. We don’t sell data. We don’t keep the words you type
+            unless you save or post them.
           </p>
           <p className="mt-2 text-sm leading-relaxed text-fg">
-            We store two numbers: visits, and anagrams that returned a result. That’s it. No names,
-            no racks, no fingerprints. Forms (sponsor, bugs, screenshots you attach) come to us by
-            email. Cloudflare sees traffic the way a host does; when we look, we exclude bots.
+            We store two numbers: visits, and anagrams that returned a result. No racks unless you
+            save or post one. Handles and password hashes live here if you make an account. Forms
+            (sponsor, bugs, screenshots you attach) come to us by email. Cloudflare sees traffic the
+            way a host does; when we look, we exclude bots.
           </p>
         </section>
 

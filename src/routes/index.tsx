@@ -9,6 +9,7 @@ import { TwoLetterPanel } from "@/components/two-letter-panel";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { AnagramCardButton, PickChips } from "@/components/anagram-card";
+import { PostFindButton } from "@/components/post-find";
 import { SpellLine } from "@/components/spell-line";
 import { SupportSlot } from "@/components/support-slot";
 import { ThemePicker } from "@/components/theme-picker";
@@ -450,6 +451,7 @@ function Home() {
 
           {(picks.length > 0 || result?.kind === "words") && (
             <div
+              id="picked-tray"
               className={cn(
                 "mt-4 rounded-lg border px-3 py-3",
                 picks.length > 0 ? "border-accent/50 bg-accent-dim/40" : "border-border bg-raised",
@@ -545,7 +547,7 @@ function Home() {
                       {picks.join(" · ")}
                     </p>
                   )}
-                  <div className="mt-3">
+                  <div className="mt-3 flex flex-wrap items-center gap-2">
                     <AnagramCardButton
                       source={letters}
                       picks={picks}
@@ -555,6 +557,7 @@ function Home() {
                       onAdd={togglePick}
                       onRemove={(i) => setPicks((cur) => cur.filter((_, j) => j !== i))}
                     />
+                    <PostFindButton phrase={picks.join(" ")} />
                   </div>
                 </div>
               )}
@@ -831,6 +834,12 @@ function Home() {
                     key={hit.words.join("-")}
                     hit={hit}
                     onCopy={() => copyWords([hit.words.join(" ")])}
+                    onPick={() => {
+                      setPicks(hit.words);
+                      requestAnimationFrame(() => {
+                        document.getElementById("picked-tray")?.scrollIntoView({ block: "nearest", behavior: "smooth" });
+                      });
+                    }}
                   />
                 ))}
               </ul>
@@ -1009,7 +1018,15 @@ function WordRow({
   );
 }
 
-function PhraseRow({ hit, onCopy }: { hit: PhraseHit; onCopy: () => void }) {
+function PhraseRow({
+  hit,
+  onCopy,
+  onPick,
+}: {
+  hit: PhraseHit;
+  onCopy: () => void;
+  onPick: () => void;
+}) {
   return (
     <li className="flex items-center gap-3 rounded-lg border border-border bg-surface px-4 py-3">
       <p className="flex min-w-0 flex-1 flex-wrap items-center gap-x-2 gap-y-1 font-mono text-sm uppercase tracking-wide text-fg">
@@ -1045,6 +1062,14 @@ function PhraseRow({ hit, onCopy }: { hit: PhraseHit; onCopy: () => void }) {
           <Copy className="size-4" />
         </button>
       </Tip>
+      <button
+        type="button"
+        onClick={onPick}
+        className="shrink-0 text-xs text-subtle hover:text-muted"
+      >
+        Rearrange
+      </button>
+      <PostFindButton phrase={hit.words.join(" ")} quiet />
     </li>
   );
 }

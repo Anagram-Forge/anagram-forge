@@ -1,0 +1,233 @@
+import { FIND_CAP, WEEK, formatFind } from "@/lib/challenge";
+import { onlyLetters } from "@/lib/anagram/letters";
+import { handleAllowed } from "@/lib/handle-guard";
+
+export type User = { id: string; handle: string; passHash: string };
+export type Find = {
+  id: string;
+  weekId: string;
+  userId: string;
+  handle: string;
+  phrase: string;
+  votes: number;
+  created: number;
+};
+
+type Box = {
+  prepare: (q: string) => { bind: (...a: unknown[]) => { all: () => Promise<{ results: Record<string, unknown>[] }>; run: () => Promise<void>; first: () => Promise<Record<string, unknown> | null> } };
+};
+
+const ram = {
+  users: [] as User[],
+  sessions: new Map<string, { userId: string; expires: number }>(),
+  finds: [] as Find[],
+  votes: new Set<string>(),
+};
+
+async function d1(): Promise<Box | null> {
+  try {
+    const mod = await import("cloudflare:workers");
+    const db = (mod as { env?: { DB?: Box } }).env?.DB;
+    if (db && typeof db.prepare === "function") return db;
+  } catch {
+    /* preview */
+  }
+  return null;
+}
+
+function id(): string {
+  return crypto.randomUUID();
+}
+
+async function sha(pass: string, salt: string): Promise<string> {
+  const data = new TextEncoder().encode(`${salt}:${pass}`);
+  const buf = await crypto.subtle.digest("SHA-256", data);
+  return [...new Uint8Array(buf)].map((b) => b.toString(16).padStart(2, "0")).join("");
+}
+
+export async function register(handle: string, password: string): Promise<{ ok: true; token: string; handle: string } | { ok: false; reason: string }> {
+  const h = handle.trim().slice(0, 24);
+  if (!/^[a-zA-Z0-9_]{3,24}$/.test(h)) return { ok: false, reason: "Handle: 3–24 letters, numbers, underscore." };
+  if (!handleAllowed(h)) return { ok: false, reason: "That handle isn’t allowed." };
+  if (password.length < 8) return { ok: false, reason: "Password needs 8 characters." };
+  const db = await d1();
+  const uid = id();
+  const hash = await sha(password, uid);
+  if (db) {
+    const taken = await db.prepare("SELECT id FROM users WHERE handle = ?").bind(h).first();
+    if (taken) return { ok: false, reason: "That handle is taken." };
+    await db.prepare("INSERT INTO users (id, handle, pass_hash, created) VALUES (?, ?, ?, ?)").bind(uid, h, hash, Date.now()).run();
+  } else {
+    if (ram.users.some((u) => u.handle.toLowerCase() === h.toLowerCase())) return { ok: false, reason: "That handle is taken." };
+    ram.users.push({ id: uid, handle: h, passHash: hash });
+  }
+  const token = await makeSession(uid, db);
+  return { ok: true, token, handle: h };
+}
+
+export async function login(handle: string, password: string): Promise<{ ok: true; token: string; handle: string } | { ok: false; reason: string }> {
+  const h = handle.trim();
+  const db = await d1();
+  let user: User | null = null;
+  if (db) {
+    const row = await db.prepare("SELECT id, handle, pass_hash FROM users WHERE handle = ?").bind(h).first();
+    if (row) user = { id: String(row.id), handle: String(row.handle), passHash: String(row.pass_hash) };
+  } else {
+    user = ram.users.find((u) => u.handle.toLowerCase() === h.toLowerCase()) ?? null;
+  }
+  if (!user) return { ok: false, reason: "Handle or password is wrong." };
+  const hash = await sha(password, user.id);
+  if (hash !== user.passHash) return { ok: false, reason: "Handle or password is wrong." };
+  const token = await makeSession(user.id, db);
+  return { ok: true, token, handle: user.handle };
+}
+
+async function makeSession(userId: string, db: Box | null): Promise<string> {
+  const token = id();
+  const expires = Date.now() + 1000 * 60 * 60 * 24 * 30;
+  if (db) {
+    await db.prepare("INSERT INTO sessions (token, user_id, expires) VALUES (?, ?, ?)").bind(token, userId, expires).run();
+  } else {
+    ram.sessions.set(token, { userId, expires });
+  }
+  return token;
+}
+
+export async function userFromToken(token: string | null): Promise<{ id: string; handle: string } | null> {
+  if (!token) return null;
+  const db = await d1();
+  if (db) {
+    const row = await db
+      .prepare(
+        "SELECT u.id, u.handle FROM sessions s JOIN users u ON u.id = s.user_id WHERE s.token = ? AND s.expires > ?",
+      )
+      .bind(token, Date.now())
+      .first();
+    if (!row) return null;
+    return { id: String(row.id), handle: String(row.handle) };
+  }
+  const s = ram.sessions.get(token);
+  if (!s || s.expires < Date.now()) return null;
+  const u = ram.users.find((x) => x.id === s.userId);
+  return u ? { id: u.id, handle: u.handle } : null;
+}
+
+export async function dropSession(token: string | null) {
+  if (!token) return;
+  const db = await d1();
+  if (db) await db.prepare("DELETE FROM sessions WHERE token = ?").bind(token).run();
+  else ram.sessions.delete(token);
+}
+
+export function sameRack(phrase: string, rack: string): boolean {
+  const a = onlyLetters(phrase).split("").sort().join("");
+  const b = onlyLetters(rack).split("").sort().join("");
+  return a.length >= 4 && a === b;
+}
+
+export async function listFinds(weekId = WEEK.id): Promise<Find[]> {
+  const db = await d1();
+  if (db) {
+    const { results } = await db
+      .prepare(
+        "SELECT f.id, f.week_id, f.user_id, u.handle, f.phrase, f.votes, f.created FROM finds f JOIN users u ON u.id = f.user_id WHERE f.week_id = ? ORDER BY f.votes DESC, f.created ASC",
+      )
+      .bind(weekId)
+      .all();
+    return results.map((r) => ({
+      id: String(r.id),
+      weekId: String(r.week_id),
+      userId: String(r.user_id),
+      handle: String(r.handle),
+      phrase: String(r.phrase),
+      votes: Number(r.votes) || 0,
+      created: Number(r.created) || 0,
+    }));
+  }
+  return ram.finds.filter((f) => f.weekId === weekId).sort((a, b) => b.votes - a.votes || a.created - b.created);
+}
+
+export async function addFind(user: { id: string; handle: string }, phrase: string): Promise<{ ok: true; find: Find } | { ok: false; reason: string }> {
+  const clean = formatFind(phrase).slice(0, 80);
+  if (!sameRack(clean, WEEK.rack)) return { ok: false, reason: "Has to use this challenge’s letters, all of them." };
+  const db = await d1();
+  if (db) {
+    const n = await db
+      .prepare("SELECT COUNT(*) AS c FROM finds WHERE week_id = ? AND user_id = ?")
+      .bind(WEEK.id, user.id)
+      .first();
+    if (Number(n?.c) >= FIND_CAP) return { ok: false, reason: "That’s enough for this rack." };
+  } else if (ram.finds.filter((f) => f.weekId === WEEK.id && f.userId === user.id).length >= FIND_CAP) {
+    return { ok: false, reason: "That’s enough for this rack." };
+  }
+  const row: Find = {
+    id: id(),
+    weekId: WEEK.id,
+    userId: user.id,
+    handle: user.handle,
+    phrase: clean,
+    votes: 0,
+    created: Date.now(),
+  };
+  if (db) {
+    try {
+      await db
+        .prepare("INSERT INTO finds (id, week_id, user_id, phrase, votes, created) VALUES (?, ?, ?, ?, 0, ?)")
+        .bind(row.id, row.weekId, row.userId, row.phrase, row.created)
+        .run();
+    } catch {
+      return { ok: false, reason: "Someone already posted that." };
+    }
+  } else {
+    if (ram.finds.some((f) => f.weekId === WEEK.id && f.phrase.toLowerCase() === clean.toLowerCase())) {
+      return { ok: false, reason: "Someone already posted that." };
+    }
+    ram.finds.push(row);
+  }
+  return { ok: true, find: row };
+}
+
+export async function vote(userId: string, findId: string): Promise<{ ok: true; votes: number } | { ok: false; reason: string }> {
+  const db = await d1();
+  const key = `${userId}:${findId}`;
+  if (db) {
+    const exists = await db.prepare("SELECT find_id FROM votes WHERE find_id = ? AND user_id = ?").bind(findId, userId).first();
+    if (exists) {
+      await db.prepare("DELETE FROM votes WHERE find_id = ? AND user_id = ?").bind(findId, userId).run();
+      await db.prepare("UPDATE finds SET votes = MAX(0, votes - 1) WHERE id = ?").bind(findId).run();
+    } else {
+      await db.prepare("INSERT INTO votes (find_id, user_id) VALUES (?, ?)").bind(findId, userId).run();
+      await db.prepare("UPDATE finds SET votes = votes + 1 WHERE id = ?").bind(findId).run();
+    }
+    const row = await db.prepare("SELECT votes FROM finds WHERE id = ?").bind(findId).first();
+    return { ok: true, votes: Number(row?.votes) || 0 };
+  }
+  const f = ram.finds.find((x) => x.id === findId);
+  if (!f) return { ok: false, reason: "Missing." };
+  if (ram.votes.has(key)) {
+    ram.votes.delete(key);
+    f.votes = Math.max(0, f.votes - 1);
+  } else {
+    ram.votes.add(key);
+    f.votes += 1;
+  }
+  return { ok: true, votes: f.votes };
+}
+
+export async function deleteFind(userId: string, findId: string): Promise<{ ok: true } | { ok: false; reason: string }> {
+  const db = await d1();
+  if (db) {
+    const row = await db.prepare("SELECT user_id FROM finds WHERE id = ?").bind(findId).first();
+    if (!row) return { ok: false, reason: "Missing." };
+    if (String(row.user_id) !== userId) return { ok: false, reason: "That’s not yours." };
+    await db.prepare("DELETE FROM votes WHERE find_id = ?").bind(findId).run();
+    await db.prepare("DELETE FROM finds WHERE id = ? AND user_id = ?").bind(findId, userId).run();
+    return { ok: true };
+  }
+  const f = ram.finds.find((x) => x.id === findId);
+  if (!f) return { ok: false, reason: "Missing." };
+  if (f.userId !== userId) return { ok: false, reason: "That’s not yours." };
+  ram.finds = ram.finds.filter((x) => x.id !== findId);
+  ram.votes = new Set([...ram.votes].filter((k) => !k.endsWith(`:${findId}`)));
+  return { ok: true };
+}

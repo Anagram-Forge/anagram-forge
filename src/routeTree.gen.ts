@@ -11,12 +11,16 @@
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as SplatRouteImport } from './routes/$'
+import { Route as EnterRouteImport } from './routes/enter'
+import { Route as FindsRouteImport } from './routes/finds'
 import { Route as LoginRouteImport } from './routes/login'
 import { Route as SavedRouteImport } from './routes/saved'
 import { Route as ApiReportRouteImport } from './routes/api/report'
 import { Route as ApiSponsorRouteImport } from './routes/api/sponsor'
 import { Route as ApiStatsRouteImport } from './routes/api/stats'
 import { Route as ApiAuthSplatRouteImport } from './routes/api/auth/$'
+import { Route as ApiForgeFindsRouteImport } from './routes/api/forge/finds'
+import { Route as ApiForgeSessionRouteImport } from './routes/api/forge/session'
 
 const IndexRoute = IndexRouteImport.update({
   id: '/',
@@ -26,6 +30,16 @@ const IndexRoute = IndexRouteImport.update({
 const SplatRoute = SplatRouteImport.update({
   id: '/$',
   path: '/$',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const EnterRoute = EnterRouteImport.update({
+  id: '/enter',
+  path: '/enter',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const FindsRoute = FindsRouteImport.update({
+  id: '/finds',
+  path: '/finds',
   getParentRoute: () => rootRouteImport,
 } as any)
 const LoginRoute = LoginRouteImport.update({
@@ -58,80 +72,118 @@ const ApiAuthSplatRoute = ApiAuthSplatRouteImport.update({
   path: '/api/auth/$',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ApiForgeFindsRoute = ApiForgeFindsRouteImport.update({
+  id: '/api/forge/finds',
+  path: '/api/forge/finds',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiForgeSessionRoute = ApiForgeSessionRouteImport.update({
+  id: '/api/forge/session',
+  path: '/api/forge/session',
+  getParentRoute: () => rootRouteImport,
+} as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/$': typeof SplatRoute
+  '/enter': typeof EnterRoute
+  '/finds': typeof FindsRoute
   '/login': typeof LoginRoute
   '/saved': typeof SavedRoute
   '/api/report': typeof ApiReportRoute
   '/api/sponsor': typeof ApiSponsorRoute
   '/api/stats': typeof ApiStatsRoute
   '/api/auth/$': typeof ApiAuthSplatRoute
+  '/api/forge/finds': typeof ApiForgeFindsRoute
+  '/api/forge/session': typeof ApiForgeSessionRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/$': typeof SplatRoute
+  '/enter': typeof EnterRoute
+  '/finds': typeof FindsRoute
   '/login': typeof LoginRoute
   '/saved': typeof SavedRoute
   '/api/report': typeof ApiReportRoute
   '/api/sponsor': typeof ApiSponsorRoute
   '/api/stats': typeof ApiStatsRoute
   '/api/auth/$': typeof ApiAuthSplatRoute
+  '/api/forge/finds': typeof ApiForgeFindsRoute
+  '/api/forge/session': typeof ApiForgeSessionRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
   '/$': typeof SplatRoute
+  '/enter': typeof EnterRoute
+  '/finds': typeof FindsRoute
   '/login': typeof LoginRoute
   '/saved': typeof SavedRoute
   '/api/report': typeof ApiReportRoute
   '/api/sponsor': typeof ApiSponsorRoute
   '/api/stats': typeof ApiStatsRoute
   '/api/auth/$': typeof ApiAuthSplatRoute
+  '/api/forge/finds': typeof ApiForgeFindsRoute
+  '/api/forge/session': typeof ApiForgeSessionRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
   fullPaths:
     | '/'
     | '/$'
+    | '/enter'
+    | '/finds'
     | '/login'
     | '/saved'
     | '/api/report'
     | '/api/sponsor'
     | '/api/stats'
     | '/api/auth/$'
+    | '/api/forge/finds'
+    | '/api/forge/session'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
     | '/$'
+    | '/enter'
+    | '/finds'
     | '/login'
     | '/saved'
     | '/api/report'
     | '/api/sponsor'
     | '/api/stats'
     | '/api/auth/$'
+    | '/api/forge/finds'
+    | '/api/forge/session'
   id:
     | '__root__'
     | '/'
     | '/$'
+    | '/enter'
+    | '/finds'
     | '/login'
     | '/saved'
     | '/api/report'
     | '/api/sponsor'
     | '/api/stats'
     | '/api/auth/$'
+    | '/api/forge/finds'
+    | '/api/forge/session'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   SplatRoute: typeof SplatRoute
+  EnterRoute: typeof EnterRoute
+  FindsRoute: typeof FindsRoute
   LoginRoute: typeof LoginRoute
   SavedRoute: typeof SavedRoute
   ApiReportRoute: typeof ApiReportRoute
   ApiSponsorRoute: typeof ApiSponsorRoute
   ApiStatsRoute: typeof ApiStatsRoute
   ApiAuthSplatRoute: typeof ApiAuthSplatRoute
+  ApiForgeFindsRoute: typeof ApiForgeFindsRoute
+  ApiForgeSessionRoute: typeof ApiForgeSessionRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -148,6 +200,20 @@ declare module '@tanstack/react-router' {
       path: '/$'
       fullPath: '/$'
       preLoaderRoute: typeof SplatRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/enter': {
+      id: '/enter'
+      path: '/enter'
+      fullPath: '/enter'
+      preLoaderRoute: typeof EnterRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/finds': {
+      id: '/finds'
+      path: '/finds'
+      fullPath: '/finds'
+      preLoaderRoute: typeof FindsRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/login': {
@@ -192,18 +258,36 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiAuthSplatRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/api/forge/finds': {
+      id: '/api/forge/finds'
+      path: '/api/forge/finds'
+      fullPath: '/api/forge/finds'
+      preLoaderRoute: typeof ApiForgeFindsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/forge/session': {
+      id: '/api/forge/session'
+      path: '/api/forge/session'
+      fullPath: '/api/forge/session'
+      preLoaderRoute: typeof ApiForgeSessionRouteImport
+      parentRoute: typeof rootRouteImport
+    }
   }
 }
 
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   SplatRoute: SplatRoute,
+  EnterRoute: EnterRoute,
+  FindsRoute: FindsRoute,
   LoginRoute: LoginRoute,
   SavedRoute: SavedRoute,
   ApiReportRoute: ApiReportRoute,
   ApiSponsorRoute: ApiSponsorRoute,
   ApiStatsRoute: ApiStatsRoute,
   ApiAuthSplatRoute: ApiAuthSplatRoute,
+  ApiForgeFindsRoute: ApiForgeFindsRoute,
+  ApiForgeSessionRoute: ApiForgeSessionRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)

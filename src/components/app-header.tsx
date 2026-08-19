@@ -33,6 +33,12 @@ export function AppHeader({ onTwoLetter }: { onTwoLetter: () => void }) {
           </button>
         </div>
         <nav className="flex items-center gap-1 sm:gap-2">
+          <Link
+            to="/finds"
+            className="inline-flex h-11 items-center rounded-md px-2 text-sm text-muted hover:bg-raised hover:text-fg sm:px-3"
+          >
+            Finds
+          </Link>
           <Tip label={easy ? "Default type" : "Easier reading"}>
             <button
               type="button"
