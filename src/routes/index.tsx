@@ -1,5 +1,5 @@
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
-import { Check, ChevronDown, Copy, Heart, Save, Search } from "lucide-react";
+import { Check, ChevronDown, Copy, Save, Search } from "lucide-react";
 import { useEffect, useMemo, useState, type ReactNode } from "react";
 import { toast } from "sonner";
 import { AppHeader } from "@/components/app-header";
@@ -27,7 +27,7 @@ import {
   type WordHit,
 } from "@/lib/anagram/types";
 import { useCurrentUserState } from "@/lib/auth/use-current-user";
-import { addSavedQuery, listFavorites, toggleFavorite } from "@/lib/saved";
+import { addSavedQuery } from "@/lib/saved";
 import { cn } from "@/lib/utils";
 
 type Search = {
@@ -116,7 +116,6 @@ function Home() {
   const [pool, setPool] = useState<DictWord[]>([]);
   const [loaded, setLoaded] = useState<Loaded | null>(null);
   const [stats, setStats] = useState({ full: 0, common: 0 });
-  const [favs, setFavs] = useState<Set<string>>(new Set());
   const [loadError, setLoadError] = useState<string | null>(null);
   const [picks, setPicks] = useState<string[]>([]);
   const [collapsed, setCollapsed] = useState<Set<number>>(() => new Set());
@@ -143,16 +142,6 @@ function Home() {
     if (!poolReady) return;
     loadDictionary().then((next) => setPool(wordsForTier(next, dict)));
   }, [dict, poolReady]);
-
-  useEffect(() => {
-    if (!user) {
-      setFavs(new Set());
-      return;
-    }
-    listFavorites()
-      .then((rows) => setFavs(new Set(rows.map((r) => r.word))))
-      .catch(() => setFavs(new Set()));
-  }, [user]);
 
   const parsed = useMemo(() => normalizeLetters(letters), [letters]);
   const mustInclude = useMemo(() => parseMustInclude(mustRaw), [mustRaw]);
@@ -304,24 +293,6 @@ function Home() {
       toast("Query saved");
     } catch {
       toast("Could not save — sign in and try again");
-    }
-  }
-
-  async function star(word: string) {
-    if (!user) {
-      toast("Sign in to favorite words");
-      return;
-    }
-    try {
-      const r = await toggleFavorite({ data: word });
-      setFavs((cur) => {
-        const next = new Set(cur);
-        if (r.favorited) next.add(word);
-        else next.delete(word);
-        return next;
-      });
-    } catch {
-      toast("Could not update favorite");
     }
   }
 
@@ -840,9 +811,7 @@ function Home() {
                       key={hit.word}
                       hit={hit}
                       picked={picks.includes(hit.word) && !canAddPick(hit.word)}
-                      favorited={favs.has(hit.word)}
                       onToggle={() => togglePick(hit.word)}
-                      onStar={() => star(hit.word)}
                       onCopy={() => copyWords([hit.word])}
                     />
                   )}
@@ -854,9 +823,7 @@ function Home() {
                       key={hit.word}
                       hit={hit}
                       picked={picks.includes(hit.word) && !canAddPick(hit.word)}
-                      favorited={favs.has(hit.word)}
                       onToggle={() => togglePick(hit.word)}
-                      onStar={() => star(hit.word)}
                       onCopy={() => copyWords([hit.word])}
                     />
                   ))}
@@ -992,16 +959,12 @@ function Empty({ title, body }: { title: string; body: string }) {
 function WordRow({
   hit,
   picked,
-  favorited,
   onToggle,
-  onStar,
   onCopy,
 }: {
   hit: WordHit;
   picked: boolean;
-  favorited: boolean;
   onToggle: () => void;
-  onStar: () => void;
   onCopy: () => void;
 }) {
   return (
@@ -1033,19 +996,16 @@ function WordRow({
           fills
         </span>
       ) : (
-        <span className="hidden font-mono text-[10px] uppercase text-subtle sm:inline">
+        <span
+          title={`Letters left after this word: ${hit.leftover}`}
+          className="hidden font-mono text-[10px] uppercase text-subtle sm:inline"
+        >
           −{hit.leftover}
         </span>
       )}
-      <span className="tabular-nums text-xs text-subtle">{hit.score}</span>
-      <button
-        type="button"
-        className="grid size-10 place-items-center rounded-sm text-muted hover:text-fg"
-        onClick={onStar}
-        aria-label={favorited ? "Unfavorite" : "Favorite"}
-      >
-        <Heart className={cn("size-4", favorited && "fill-fg text-fg")} />
-      </button>
+      <span title="Scrabble score" className="tabular-nums text-xs text-subtle">
+        {hit.score}
+      </span>
       <button
         type="button"
         className="grid size-10 place-items-center rounded-sm text-muted hover:text-fg"
