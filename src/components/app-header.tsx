@@ -2,11 +2,14 @@ import { Link } from "@tanstack/react-router";
 import { Bookmark, BookOpen } from "lucide-react";
 import { SignedIn, SignedOut, UserButton } from "@/lib/auth/gates";
 import { useCurrentUserState } from "@/lib/auth/use-current-user";
+import { useTypeMode } from "@/lib/type-mode";
 import { VerseBanner } from "@/components/verse-banner";
+import { cn } from "@/lib/utils";
 
 export function AppHeader({ onTwoLetter }: { onTwoLetter: () => void }) {
   const { user, isPending } = useCurrentUserState();
   const authOn = import.meta.env.VITE_AUTH_ENABLED === "true";
+  const { easy, toggle } = useTypeMode();
 
   return (
     <div>
@@ -16,6 +19,19 @@ export function AppHeader({ onTwoLetter }: { onTwoLetter: () => void }) {
           <p className="hidden text-xs text-muted sm:block">unscramble anything. maybe.</p>
         </Link>
         <nav className="flex items-center gap-1 sm:gap-2">
+          <button
+            type="button"
+            onClick={toggle}
+            aria-pressed={easy}
+            aria-label={easy ? "Use default type" : "Easier reading type"}
+            title={easy ? "Default type" : "Easier reading"}
+            className={cn(
+              "inline-flex h-11 min-w-11 items-center justify-center rounded-md px-2 text-sm hover:bg-raised",
+              easy ? "bg-raised text-fg" : "text-muted hover:text-fg",
+            )}
+          >
+            <span className="font-[family-name:var(--font-easy)] text-[15px] tracking-wide">Aa</span>
+          </button>
           <button
             type="button"
             onClick={onTwoLetter}

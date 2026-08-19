@@ -1,4 +1,4 @@
-export type CardFontId = "oswald" | "playfair" | "fraunces";
+export type CardFontId = "fraunces" | "lexend" | "atkinson";
 
 export type CardStyle = {
   font: CardFontId;
@@ -20,22 +20,8 @@ export const CARD_FONTS: {
   weights: Array<CardStyle["weight"]>;
   italic?: boolean;
   href: string;
+  fallback: string;
 }[] = [
-  {
-    id: "oswald",
-    label: "Oswald",
-    family: "Oswald",
-    weights: [400, 500, 600, 700],
-    href: "https://fonts.googleapis.com/css2?family=Oswald:wght@400;500;600;700&display=swap",
-  },
-  {
-    id: "playfair",
-    label: "Playfair",
-    family: "Playfair Display",
-    weights: [400, 600, 700, 900],
-    italic: true,
-    href: "https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,600;0,700;0,900;1,400;1,700&display=swap",
-  },
   {
     id: "fraunces",
     label: "Fraunces",
@@ -43,11 +29,29 @@ export const CARD_FONTS: {
     weights: [500, 600, 700],
     italic: true,
     href: "https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,500;0,9..144,600;0,9..144,700;1,9..144,600&display=swap",
+    fallback: "serif",
+  },
+  {
+    id: "lexend",
+    label: "Lexend",
+    family: "Lexend",
+    weights: [400, 500, 600, 700, 800],
+    href: "https://fonts.googleapis.com/css2?family=Lexend:wght@400;500;600;700;800&display=swap",
+    fallback: "sans-serif",
+  },
+  {
+    id: "atkinson",
+    label: "Atkinson",
+    family: "Atkinson Hyperlegible",
+    weights: [400, 700],
+    italic: true,
+    href: "https://fonts.googleapis.com/css2?family=Atkinson+Hyperlegible:ital,wght@0,400;0,700;1,400;1,700&display=swap",
+    fallback: "sans-serif",
   },
 ];
 
 export const DEFAULT_CARD_STYLE: CardStyle = {
-  font: "oswald",
+  font: "fraunces",
   size: 92,
   weight: 700,
   italic: false,
@@ -77,7 +81,7 @@ function fontCss(style: CardStyle): string {
   const face = spec(style.font);
   const italic = style.italic && face.italic ? "italic " : "";
   const weight = clampWeight(style.font, style.weight);
-  return `${italic}${weight} ${style.size}px "${face.family}", "Times New Roman", serif`;
+  return `${italic}${weight} ${style.size}px "${face.family}", ${face.fallback}`;
 }
 
 async function ensureFont(style: CardStyle) {
