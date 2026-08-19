@@ -4,7 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { SUPPORT } from "@/lib/support";
 
-type Status = "idle" | "sending" | "sent" | "error";
+type Status = "idle" | "sending" | "sent" | "mailed" | "error";
 
 function newChallenge() {
   const a = 2 + Math.floor(Math.random() * 8);
@@ -99,6 +99,18 @@ export function SponsorForm() {
 
     setStatus("sending");
     try {
+      const api = await fetch("/api/sponsor", {
+        method: "POST",
+        headers: { "content-type": "application/json", accept: "application/json" },
+        body: JSON.stringify(payload),
+      });
+      if (api.ok) {
+        setStatus("sent");
+        form.reset();
+        setAnswer("");
+        setChallenge(newChallenge());
+        return;
+      }
       if (SUPPORT.formEndpoint) {
         const body = new FormData();
         for (const [k, v] of Object.entries(payload)) body.set(k, v);
@@ -109,7 +121,7 @@ export function SponsorForm() {
           headers: { Accept: "application/json" },
         });
         if (!res.ok) throw new Error("send failed");
-      } else {
+      } else if (SUPPORT.inbox) {
         const body = [
           `Name: ${payload.name}`,
           `Email: ${payload.email}`,
@@ -119,6 +131,13 @@ export function SponsorForm() {
           payload.message,
         ].join("\n");
         window.location.href = `mailto:${SUPPORT.inbox}?subject=${encodeURIComponent("Sponsor application")}&body=${encodeURIComponent(body)}`;
+        setStatus("mailed");
+        form.reset();
+        setAnswer("");
+        setChallenge(newChallenge());
+        return;
+      } else {
+        throw new Error("no inbox");
       }
       setStatus("sent");
       form.reset();
@@ -131,6 +150,11 @@ export function SponsorForm() {
   }
 
   if (status === "sent") {
+    return (
+      <p className="text-sm text-muted">Thank you. If this is a good fit, you will hear back.</p>
+    );
+  }
+  if (status === "mailed") {
     return (
       <div className="space-y-2 text-sm text-muted">
         <p>Your mail app should have opened with the application filled in. Hit send there.</p>
