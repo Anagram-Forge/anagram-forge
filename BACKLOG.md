@@ -20,6 +20,10 @@ Keep it pull-to-reveal, not a popup.
 
 A small music-note toggle. Inspiration only — do **not** rip artists from YouTube playlists. See notes in chat: free/CC or a paid web license, hosted by us.
 
+## Custom 404
+
+Need a real “this page does not exist” page. Make it unique — brainstorm in chat before building. Should still be kind, not a jump-scare.
+
 ## Accessibility (ADA)
 
 Design for more than average vision and reading.
