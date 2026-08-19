@@ -2,7 +2,3 @@ name = "anagram-forge"
 compatibility_date = "2026-08-18"
 compatibility_flags = ["nodejs_compat"]
 pages_build_output_dir = ".output/public"
-
-# Send Email binding. Destination is set in the Pages dashboard (not committed).
-[[send_email]]
-name = "EMAIL"
