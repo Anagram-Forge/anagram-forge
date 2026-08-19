@@ -1,0 +1,7 @@
+name = "anagram-forge-mail"
+main = "src/index.js"
+compatibility_date = "2026-08-18"
+
+[[send_email]]
+name = "EMAIL"
+destination_address = "sponsors@anagramforge.com"

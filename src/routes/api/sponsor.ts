@@ -8,27 +8,9 @@ type Payload = {
   message?: string;
 };
 
-function rfc822(from: string, to: string, replyTo: string, subject: string, text: string) {
-  return [
-    `From: ${from}`,
-    `To: ${to}`,
-    `Reply-To: ${replyTo}`,
-    `Subject: ${subject.replace(/[\r\n]+/g, " ")}`,
-    "MIME-Version: 1.0",
-    "Content-Type: text/plain; charset=utf-8",
-    "",
-    text,
-  ].join("\r\n");
-}
-
-async function deliver(to: string, replyTo: string, subject: string, text: string) {
-  const from = "sponsors@anagramforge.com";
-  const emailMod = await import(/* @vite-ignore */ "cloudflare:email");
-  const workersMod = await import(/* @vite-ignore */ "cloudflare:workers");
-  const EmailMessage = (emailMod as { EmailMessage: new (a: string, b: string, c: string) => unknown }).EmailMessage;
-  const env = (workersMod as { env: { EMAIL?: { send: (m: unknown) => Promise<void> } } }).env;
-  if (!env?.EMAIL) throw new Error("EMAIL binding missing");
-  await env.EMAIL.send(new EmailMessage(from, to, rfc822(`Anagram Forge <${from}>`, to, replyTo, subject, text)));
+function envGet(key: string): string {
+  const fromProcess = typeof process !== "undefined" ? process.env[key] : undefined;
+  return (fromProcess || "").trim();
 }
 
 export const Route = createFileRoute("/api/sponsor")({
@@ -46,19 +28,26 @@ export const Route = createFileRoute("/api/sponsor")({
         if (!name || !email || !email.includes("@")) {
           return Response.json({ ok: false }, { status: 400 });
         }
-        const to = "sponsors@anagramforge.com";
 
-        const text = [
-          `Name: ${name}`,
-          `Email: ${email}`,
-          `Company: ${String(data.company || "").trim()}`,
-          `Budget: ${String(data.budget || "").trim()}`,
-          "",
-          String(data.message || "").trim(),
-        ].join("\n");
+        const url = envGet("MAIL_WORKER_URL");
+        if (!url) return Response.json({ ok: false, reason: "mailto" }, { status: 503 });
 
         try {
-          await deliver(to, email, `Sponsor application — ${String(data.company || name).trim()}`, text);
+          const res = await fetch(url, {
+            method: "POST",
+            headers: {
+              "content-type": "application/json",
+              "x-mail-key": envGet("MAIL_KEY"),
+            },
+            body: JSON.stringify({
+              name,
+              email,
+              company: String(data.company || "").trim(),
+              budget: String(data.budget || "").trim(),
+              message: String(data.message || "").trim(),
+            }),
+          });
+          if (!res.ok) return Response.json({ ok: false, reason: "mailto" }, { status: 503 });
           return Response.json({ ok: true });
         } catch {
           return Response.json({ ok: false, reason: "mailto" }, { status: 503 });
