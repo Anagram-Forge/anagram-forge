@@ -17,8 +17,7 @@ export const SUPPORT = {
    * Leave blank until you have one — the form still validates and can mailto.
    */
   formEndpoint: "",
-  /** Used for mailto fallback, e.g. "you@domain.com". */
-  inbox: "",
+  inbox: "sponsors@anagramforge.com",
   /**
    * Cloudflare Turnstile site key (optional). Privacy-friendly captcha.
    * https://dash.cloudflare.com → Turnstile

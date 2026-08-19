@@ -132,9 +132,18 @@ export function SponsorForm() {
 
   if (status === "sent") {
     return (
-      <p className="text-sm text-muted">
-        Thank you. If this is a good fit, you will hear back.
-      </p>
+      <div className="space-y-2 text-sm text-muted">
+        <p>Your mail app should have opened with the application filled in. Hit send there.</p>
+        {SUPPORT.inbox ? (
+          <p className="text-xs text-subtle">
+            If nothing opened, write to{" "}
+            <a className="underline hover:text-fg" href={`mailto:${SUPPORT.inbox}`}>
+              {SUPPORT.inbox}
+            </a>
+            .
+          </p>
+        ) : null}
+      </div>
     );
   }
 
