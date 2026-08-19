@@ -26,6 +26,7 @@ import {
   type SortKey,
   type WordHit,
 } from "@/lib/anagram/types";
+import { pingStats } from "@/lib/stats";
 import { cn } from "@/lib/utils";
 
 type Search = {
@@ -225,6 +226,24 @@ function Home() {
     }
     return { kind: "words" as const, ...r };
   }, [poolReady, solvePool, parsed, mode, pattern, filters, sort, maxWords, phraseMinLen, dict, mustInclude, theme, themeOnly, picked, picks.length]);
+
+  useEffect(() => {
+    if (!result) return;
+    const found =
+      (result.kind === "words" && result.hits.length > 0) ||
+      (result.kind === "phrase" && result.hits.length > 0);
+    if (!found) return;
+    const key = `af-anagram:${mode}:${parsed.letters}`;
+    try {
+      if (sessionStorage.getItem(key)) return;
+      sessionStorage.setItem(key, "1");
+    } catch {
+      return;
+    }
+    void pingStats("anagram").then((s) => {
+      if (s) window.dispatchEvent(new CustomEvent("af-stats", { detail: s }));
+    });
+  }, [result, mode, parsed.letters]);
 
   const grouped = result?.kind === "words" && sort === "length" ? groupByLength(result.hits) : [];
   const flatWords = result?.kind === "words" && sort !== "length" ? result.hits : [];

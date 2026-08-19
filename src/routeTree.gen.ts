@@ -15,6 +15,7 @@ import { Route as LoginRouteImport } from './routes/login'
 import { Route as SavedRouteImport } from './routes/saved'
 import { Route as ApiReportRouteImport } from './routes/api/report'
 import { Route as ApiSponsorRouteImport } from './routes/api/sponsor'
+import { Route as ApiStatsRouteImport } from './routes/api/stats'
 import { Route as ApiAuthSplatRouteImport } from './routes/api/auth/$'
 
 const IndexRoute = IndexRouteImport.update({
@@ -47,6 +48,11 @@ const ApiSponsorRoute = ApiSponsorRouteImport.update({
   path: '/api/sponsor',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ApiStatsRoute = ApiStatsRouteImport.update({
+  id: '/api/stats',
+  path: '/api/stats',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const ApiAuthSplatRoute = ApiAuthSplatRouteImport.update({
   id: '/api/auth/$',
   path: '/api/auth/$',
@@ -60,6 +66,7 @@ export interface FileRoutesByFullPath {
   '/saved': typeof SavedRoute
   '/api/report': typeof ApiReportRoute
   '/api/sponsor': typeof ApiSponsorRoute
+  '/api/stats': typeof ApiStatsRoute
   '/api/auth/$': typeof ApiAuthSplatRoute
 }
 export interface FileRoutesByTo {
@@ -69,6 +76,7 @@ export interface FileRoutesByTo {
   '/saved': typeof SavedRoute
   '/api/report': typeof ApiReportRoute
   '/api/sponsor': typeof ApiSponsorRoute
+  '/api/stats': typeof ApiStatsRoute
   '/api/auth/$': typeof ApiAuthSplatRoute
 }
 export interface FileRoutesById {
@@ -79,6 +87,7 @@ export interface FileRoutesById {
   '/saved': typeof SavedRoute
   '/api/report': typeof ApiReportRoute
   '/api/sponsor': typeof ApiSponsorRoute
+  '/api/stats': typeof ApiStatsRoute
   '/api/auth/$': typeof ApiAuthSplatRoute
 }
 export interface FileRouteTypes {
@@ -90,6 +99,7 @@ export interface FileRouteTypes {
     | '/saved'
     | '/api/report'
     | '/api/sponsor'
+    | '/api/stats'
     | '/api/auth/$'
   fileRoutesByTo: FileRoutesByTo
   to:
@@ -99,6 +109,7 @@ export interface FileRouteTypes {
     | '/saved'
     | '/api/report'
     | '/api/sponsor'
+    | '/api/stats'
     | '/api/auth/$'
   id:
     | '__root__'
@@ -108,6 +119,7 @@ export interface FileRouteTypes {
     | '/saved'
     | '/api/report'
     | '/api/sponsor'
+    | '/api/stats'
     | '/api/auth/$'
   fileRoutesById: FileRoutesById
 }
@@ -118,6 +130,7 @@ export interface RootRouteChildren {
   SavedRoute: typeof SavedRoute
   ApiReportRoute: typeof ApiReportRoute
   ApiSponsorRoute: typeof ApiSponsorRoute
+  ApiStatsRoute: typeof ApiStatsRoute
   ApiAuthSplatRoute: typeof ApiAuthSplatRoute
 }
 
@@ -165,6 +178,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiSponsorRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/api/stats': {
+      id: '/api/stats'
+      path: '/api/stats'
+      fullPath: '/api/stats'
+      preLoaderRoute: typeof ApiStatsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/api/auth/$': {
       id: '/api/auth/$'
       path: '/api/auth/$'
@@ -182,6 +202,7 @@ const rootRouteChildren: RootRouteChildren = {
   SavedRoute: SavedRoute,
   ApiReportRoute: ApiReportRoute,
   ApiSponsorRoute: ApiSponsorRoute,
+  ApiStatsRoute: ApiStatsRoute,
   ApiAuthSplatRoute: ApiAuthSplatRoute,
 }
 export const routeTree = rootRouteImport

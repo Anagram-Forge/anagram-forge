@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { BugForm } from "@/components/bug-form";
+import { SiteStats } from "@/components/site-stats";
 import { SponsorForm } from "@/components/sponsor-form";
 import { SUPPORT } from "@/lib/support";
 
@@ -15,6 +16,7 @@ export function SupportSlot() {
       <div className="mx-auto max-w-xl text-center">
         {open === null ? (
           <div className="flex flex-col items-center gap-2">
+            <SiteStats />
             <button
               type="button"
               onClick={() => setOpen("sponsor")}
