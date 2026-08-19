@@ -46,13 +46,7 @@ export const Route = createFileRoute("/api/sponsor")({
         if (!name || !email || !email.includes("@")) {
           return Response.json({ ok: false }, { status: 400 });
         }
-        const workersMod = await import(/* @vite-ignore */ "cloudflare:workers").catch(() => null);
-        const envTo =
-          (workersMod && typeof (workersMod as { env?: { SPONSOR_TO?: string } }).env?.SPONSOR_TO === "string"
-            ? (workersMod as { env: { SPONSOR_TO: string } }).env.SPONSOR_TO
-            : "") || "";
-        const to = (typeof process !== "undefined" ? process.env.SPONSOR_TO : "")?.trim() || envTo.trim();
-        if (!to) return Response.json({ ok: false, reason: "mailto" }, { status: 503 });
+        const to = "sponsors@anagramforge.com";
 
         const text = [
           `Name: ${name}`,

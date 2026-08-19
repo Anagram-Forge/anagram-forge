@@ -2,3 +2,7 @@ name = "anagram-forge"
 compatibility_date = "2026-08-18"
 compatibility_flags = ["nodejs_compat"]
 pages_build_output_dir = ".output/public"
+
+[[send_email]]
+name = "EMAIL"
+destination_address = "sponsors@anagramforge.com"
