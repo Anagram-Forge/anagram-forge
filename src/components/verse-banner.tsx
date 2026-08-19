@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { GoldFlag } from "@/components/gold-flag";
 import { VERSES, type Verse } from "@/lib/verses";
 
 const HOLD_MS = 60_000;
@@ -36,7 +37,10 @@ export function VerseBanner() {
   const current = VERSES[i] ?? VERSES[0];
 
   return (
-    <div className="border-b border-border/70 bg-surface/40 px-4 py-2 sm:px-6">
+    <div
+      id="verse-banner"
+      className="relative min-h-16 border-b border-border/70 bg-surface/40 py-2 pl-4 pr-12 sm:pl-6"
+    >
       <div className="mx-auto grid max-w-3xl">
         {VERSES.map((v) => (
           <p
@@ -54,6 +58,7 @@ export function VerseBanner() {
           <Line v={current} />
         </p>
       </div>
+      <GoldFlag />
     </div>
   );
 }

@@ -12,7 +12,7 @@ Leaning: quiet links in the top bar (`usage · privacy · ethics`) that open a s
 
 A very small swipeable tab on the right edge, same gold as the verse theme labels (`#d4a24c`). Pull it and it reads:
 
-> The most important thing for you to do in life is to repent of your sins and give your life to Christ
+> Turn from your sin and come to Christ. Nothing else in this life outranks that.
 
 Keep it pull-to-reveal, not a popup.
 

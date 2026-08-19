@@ -41,8 +41,13 @@ export const Route = createRootRoute({
     ],
   }),
   component: () => (
-    <html lang="en" className="antialiased" suppressHydrationWarning>
+    <html lang="en" suppressHydrationWarning>
       <head>
+        <script
+          dangerouslySetInnerHTML={{
+            __html: `try{if(localStorage.getItem("af-type")==="easy")document.documentElement.classList.add("easy-read")}catch(e){}`,
+          }}
+        />
         <HeadContent />
       </head>
       <body className="min-h-dvh bg-bg text-fg">

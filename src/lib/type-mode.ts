@@ -12,7 +12,8 @@ export function useTypeMode() {
   const [mode, setMode] = useState<TypeMode>(read);
 
   useEffect(() => {
-    document.documentElement.classList.toggle("easy-read", mode === "easy");
+    const root = document.documentElement;
+    root.classList.toggle("easy-read", mode === "easy");
     try {
       window.localStorage.setItem(KEY, mode);
     } catch {
