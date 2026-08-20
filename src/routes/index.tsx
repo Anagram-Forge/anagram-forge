@@ -120,6 +120,7 @@ function Home() {
   const [stats, setStats] = useState({ full: 0, common: 0 });
   const [loadError, setLoadError] = useState<string | null>(null);
   const [picks, setPicks] = useState<string[]>([]);
+  const [joinLeft, setJoinLeft] = useState("");
   const [collapsed, setCollapsed] = useState<Set<number>>(() => new Set());
 
   useEffect(() => {
@@ -132,8 +133,8 @@ function Home() {
         setPool(wordsForTier(loadedDict, dict));
         setPoolReady(true);
       })
-      .catch(() => {
-        if (live) setLoadError("Dictionary failed to load.");
+      .catch((err) => {
+        if (live) setLoadError(err instanceof Error ? err.message : "Dictionary failed to load.");
       });
     return () => {
       live = false;
@@ -279,6 +280,17 @@ function Home() {
   function addLeftoverTiles() {
     if (!leftoverTiles.length) return;
     setPicks((cur) => [...cur, ...leftoverTiles]);
+  }
+
+  function addJoinedLeftover() {
+    const w = joinLeft.trim();
+    if (!w) return;
+    if (!canAddPick(w)) {
+      toast("Those letters aren’t left.");
+      return;
+    }
+    togglePick(w);
+    setJoinLeft("");
   }
 
   function canAddPick(word: string): boolean {
@@ -567,6 +579,33 @@ function Home() {
                             >
                               Add all
                             </button>
+                          )}
+                          {leftoverTiles.length > 1 && (
+                            <div className="flex items-center gap-1.5">
+                              <input
+                                value={joinLeft}
+                                onChange={(e) => setJoinLeft(e.target.value)}
+                                onKeyDown={(e) => {
+                                  if (e.key === "Enter") {
+                                    e.preventDefault();
+                                    addJoinedLeftover();
+                                  }
+                                }}
+                                placeholder={leftoverTiles.join("")}
+                                aria-label="Join leftover letters as one word"
+                                autoCapitalize="none"
+                                autoCorrect="off"
+                                spellCheck={false}
+                                className="h-9 w-28 rounded-sm border border-dashed border-accent/40 bg-transparent px-2 font-mono text-xs uppercase tracking-wide text-accent placeholder:text-accent/40"
+                              />
+                              <button
+                                type="button"
+                                onClick={addJoinedLeftover}
+                                className="inline-flex h-9 items-center rounded-sm px-2 text-xs text-muted hover:text-fg"
+                              >
+                                As one
+                              </button>
+                            </div>
                           )}
                         </div>
                       )}

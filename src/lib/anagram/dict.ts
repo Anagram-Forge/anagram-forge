@@ -42,8 +42,8 @@ export async function loadDictionary(): Promise<Loaded> {
     const { countsOf } = await import("./letters");
     const { scrabbleScore } = await import("./scores");
     const [fullRes, commonRes] = await Promise.all([
-      fetch("/dict/enable1.txt"),
-      fetch("/dict/common.txt"),
+      fetch("/dict/enable1.txt", { signal: AbortSignal.timeout(25_000) }),
+      fetch("/dict/common.txt", { signal: AbortSignal.timeout(25_000) }),
     ]);
     if (!fullRes.ok) throw new Error("Could not load dictionary");
     const fullText = await fullRes.text();
