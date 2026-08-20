@@ -42,3 +42,8 @@ CREATE TABLE IF NOT EXISTS votes (
   FOREIGN KEY (find_id) REFERENCES finds(id),
   FOREIGN KEY (user_id) REFERENCES users(id)
 );
+
+CREATE TABLE IF NOT EXISTS bans (
+  handle TEXT PRIMARY KEY COLLATE NOCASE,
+  created INTEGER NOT NULL
+);

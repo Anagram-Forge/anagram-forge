@@ -14,6 +14,7 @@ export const Route = createFileRoute("/finds")({ component: FindsPage });
 function FindsPage() {
   const [two, setTwo] = useState(false);
   const [handle, setHandle] = useState<string | null>(null);
+  const [admin, setAdmin] = useState(false);
   const [finds, setFinds] = useState<Find[]>([]);
   const [phrase, setPhrase] = useState("");
   const [err, setErr] = useState<string | null>(null);
@@ -21,9 +22,10 @@ function FindsPage() {
 
   async function refresh() {
     const [s, f] = await Promise.all([fetch("/api/forge/session"), fetch("/api/forge/finds")]);
-    const session = (await s.json()) as { handle: string | null };
+    const session = (await s.json()) as { handle: string | null; admin?: boolean };
     const list = (await f.json()) as { finds: Find[] };
     setHandle(session.handle);
+    setAdmin(Boolean(session.admin));
     setFinds(list.finds || []);
   }
 
@@ -84,6 +86,30 @@ function FindsPage() {
     });
     const data = (await res.json()) as { ok?: boolean; reason?: string };
     if (!res.ok || !data.ok) setErr(data.reason || "Couldn’t vote.");
+    else void refresh();
+  }
+
+  async function onReport(id: string) {
+    setErr(null);
+    const res = await fetch("/api/forge/finds", {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({ report: id }),
+    });
+    const data = (await res.json()) as { ok?: boolean; reason?: string };
+    if (!res.ok || !data.ok) setErr(data.reason || "Couldn’t report.");
+    else setMsg("Reported. Thanks.");
+  }
+
+  async function onBan(h: string) {
+    setErr(null);
+    const res = await fetch("/api/forge/finds", {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({ ban: h }),
+    });
+    const data = (await res.json()) as { ok?: boolean; reason?: string };
+    if (!res.ok || !data.ok) setErr(data.reason || "Couldn’t ban.");
     else void refresh();
   }
 
@@ -177,7 +203,7 @@ function FindsPage() {
                   ) : (
                     <span>updoots: {f.votes}</span>
                   )}
-                  {handle && f.handle === handle ? (
+                  {handle && (f.handle === handle || admin) ? (
                     <>
                       {" · "}
                       <button
@@ -186,6 +212,18 @@ function FindsPage() {
                         className="hover:text-muted"
                       >
                         remove
+                      </button>
+                    </>
+                  ) : null}
+                  {" · "}
+                  <button type="button" onClick={() => void onReport(f.id)} className="hover:text-muted">
+                    report
+                  </button>
+                  {admin && f.handle !== handle ? (
+                    <>
+                      {" · "}
+                      <button type="button" onClick={() => void onBan(f.handle)} className="hover:text-muted">
+                        ban
                       </button>
                     </>
                   ) : null}

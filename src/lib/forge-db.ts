@@ -22,7 +22,36 @@ const ram = {
   sessions: new Map<string, { userId: string; expires: number }>(),
   finds: [] as Find[],
   votes: new Set<string>(),
+  bans: new Set<string>(),
 };
+
+async function envAdmin(): Promise<string> {
+  const fromProcess = typeof process !== "undefined" ? process.env.FORGE_ADMIN?.trim() : "";
+  if (fromProcess) return fromProcess;
+  try {
+    const mod = await import("cloudflare:workers");
+    const v = (mod as { env?: { FORGE_ADMIN?: string } }).env?.FORGE_ADMIN;
+    if (typeof v === "string" && v.trim()) return v.trim();
+  } catch {
+    /* preview */
+  }
+  return "";
+}
+
+export async function isAdminHandle(handle: string | null | undefined): Promise<boolean> {
+  if (!handle) return false;
+  const admin = await envAdmin();
+  return !!admin && admin.toLowerCase() === handle.toLowerCase();
+}
+
+async function isBanned(handle: string, db: Box | null): Promise<boolean> {
+  const h = handle.toLowerCase();
+  if (db) {
+    const row = await db.prepare("SELECT handle FROM bans WHERE handle = ?").bind(handle).first();
+    return Boolean(row);
+  }
+  return ram.bans.has(h);
+}
 
 async function d1(): Promise<Box | null> {
   try {
@@ -51,6 +80,7 @@ export async function register(handle: string, password: string): Promise<{ ok: 
   if (!handleAllowed(h)) return { ok: false, reason: "That handle isn’t allowed." };
   if (password.length < 8) return { ok: false, reason: "Password needs 8 characters." };
   const db = await d1();
+  if (await isBanned(h, db)) return { ok: false, reason: "That handle isn’t allowed." };
   const uid = id();
   const hash = await sha(password, uid);
   if (db) {
@@ -76,6 +106,7 @@ export async function login(handle: string, password: string): Promise<{ ok: tru
     user = ram.users.find((u) => u.handle.toLowerCase() === h.toLowerCase()) ?? null;
   }
   if (!user) return { ok: false, reason: "Handle or password is wrong." };
+  if (await isBanned(user.handle, db)) return { ok: false, reason: "That handle isn’t allowed." };
   const hash = await sha(password, user.id);
   if (hash !== user.passHash) return { ok: false, reason: "Handle or password is wrong." };
   const token = await makeSession(user.id, db);
@@ -147,10 +178,34 @@ export async function listFinds(weekId = WEEK.id): Promise<Find[]> {
   return ram.finds.filter((f) => f.weekId === weekId).sort((a, b) => b.votes - a.votes || a.created - b.created);
 }
 
+export async function getFind(id: string): Promise<Find | null> {
+  const db = await d1();
+  if (db) {
+    const r = await db
+      .prepare(
+        "SELECT f.id, f.week_id, f.user_id, u.handle, f.phrase, f.votes, f.created FROM finds f JOIN users u ON u.id = f.user_id WHERE f.id = ?",
+      )
+      .bind(id)
+      .first();
+    if (!r) return null;
+    return {
+      id: String(r.id),
+      weekId: String(r.week_id),
+      userId: String(r.user_id),
+      handle: String(r.handle),
+      phrase: String(r.phrase),
+      votes: Number(r.votes) || 0,
+      created: Number(r.created) || 0,
+    };
+  }
+  return ram.finds.find((f) => f.id === id) ?? null;
+}
+
 export async function addFind(user: { id: string; handle: string }, phrase: string): Promise<{ ok: true; find: Find } | { ok: false; reason: string }> {
   const clean = formatFind(phrase).slice(0, 80);
   if (!sameRack(clean, WEEK.rack)) return { ok: false, reason: "Has to use this challenge’s letters, all of them." };
   const db = await d1();
+  if (await isBanned(user.handle, db)) return { ok: false, reason: "That handle isn’t allowed." };
   if (db) {
     const n = await db
       .prepare("SELECT COUNT(*) AS c FROM finds WHERE week_id = ? AND user_id = ?")
@@ -214,20 +269,59 @@ export async function vote(userId: string, findId: string): Promise<{ ok: true; 
   return { ok: true, votes: f.votes };
 }
 
-export async function deleteFind(userId: string, findId: string): Promise<{ ok: true } | { ok: false; reason: string }> {
+export async function deleteFind(userId: string, findId: string, asAdmin = false): Promise<{ ok: true } | { ok: false; reason: string }> {
   const db = await d1();
   if (db) {
     const row = await db.prepare("SELECT user_id FROM finds WHERE id = ?").bind(findId).first();
     if (!row) return { ok: false, reason: "Missing." };
-    if (String(row.user_id) !== userId) return { ok: false, reason: "That’s not yours." };
+    if (!asAdmin && String(row.user_id) !== userId) return { ok: false, reason: "That’s not yours." };
     await db.prepare("DELETE FROM votes WHERE find_id = ?").bind(findId).run();
-    await db.prepare("DELETE FROM finds WHERE id = ? AND user_id = ?").bind(findId, userId).run();
+    await db.prepare("DELETE FROM finds WHERE id = ?").bind(findId).run();
     return { ok: true };
   }
   const f = ram.finds.find((x) => x.id === findId);
   if (!f) return { ok: false, reason: "Missing." };
-  if (f.userId !== userId) return { ok: false, reason: "That’s not yours." };
+  if (!asAdmin && f.userId !== userId) return { ok: false, reason: "That’s not yours." };
   ram.finds = ram.finds.filter((x) => x.id !== findId);
   ram.votes = new Set([...ram.votes].filter((k) => !k.endsWith(`:${findId}`)));
+  return { ok: true };
+}
+
+export async function banHandle(adminId: string, targetHandle: string): Promise<{ ok: true } | { ok: false; reason: string }> {
+  const adminUser = ram.users.find((u) => u.id === adminId);
+  const db = await d1();
+  let adminHandle = adminUser?.handle || "";
+  if (db && !adminHandle) {
+    const row = await db.prepare("SELECT handle FROM users WHERE id = ?").bind(adminId).first();
+    adminHandle = row ? String(row.handle) : "";
+  }
+  if (!(await isAdminHandle(adminHandle))) return { ok: false, reason: "No." };
+  const h = targetHandle.trim();
+  if (!h) return { ok: false, reason: "Missing." };
+  if (await isAdminHandle(h)) return { ok: false, reason: "No." };
+  if (db) {
+    await db.prepare("INSERT OR IGNORE INTO bans (handle, created) VALUES (?, ?)").bind(h, Date.now()).run();
+    const u = await db.prepare("SELECT id FROM users WHERE handle = ?").bind(h).first();
+    if (u) {
+      const uid = String(u.id);
+      const { results } = await db.prepare("SELECT id FROM finds WHERE user_id = ?").bind(uid).all();
+      for (const r of results) {
+        await db.prepare("DELETE FROM votes WHERE find_id = ?").bind(r.id).run();
+      }
+      await db.prepare("DELETE FROM finds WHERE user_id = ?").bind(uid).run();
+      await db.prepare("DELETE FROM sessions WHERE user_id = ?").bind(uid).run();
+    }
+  } else {
+    ram.bans.add(h.toLowerCase());
+    const u = ram.users.find((x) => x.handle.toLowerCase() === h.toLowerCase());
+    if (u) {
+      const ids = new Set(ram.finds.filter((f) => f.userId === u.id).map((f) => f.id));
+      ram.finds = ram.finds.filter((f) => f.userId !== u.id);
+      ram.votes = new Set([...ram.votes].filter((k) => ![...ids].some((id) => k.endsWith(`:${id}`))));
+      for (const [tok, s] of ram.sessions) {
+        if (s.userId === u.id) ram.sessions.delete(tok);
+      }
+    }
+  }
   return { ok: true };
 }
