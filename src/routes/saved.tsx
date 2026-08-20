@@ -1,130 +1,100 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
-import { Trash2 } from "lucide-react";
-import { RedirectToSignIn } from "@/lib/auth/gates";
-import { useCurrentUserState } from "@/lib/auth/use-current-user";
-import {
-  deleteSavedQuery,
-  listFavorites,
-  listSavedQueries,
-  toggleFavorite,
-  type FavoriteWord,
-  type SavedQuery,
-} from "@/lib/saved";
 import { AppHeader } from "@/components/app-header";
 import { TwoLetterPanel } from "@/components/two-letter-panel";
-import { Button } from "@/components/ui/button";
 import { SupportSlot } from "@/components/support-slot";
+import { listLocalSaves, removeLocalSave, type LocalSave } from "@/lib/local-saves";
 
 export const Route = createFileRoute("/saved")({ component: SavedPage });
 
 function SavedPage() {
-  const { user, isPending } = useCurrentUserState();
   const navigate = useNavigate();
   const [two, setTwo] = useState(false);
-  const [queries, setQueries] = useState<SavedQuery[] | null>(null);
-  const [favs, setFavs] = useState<FavoriteWord[] | null>(null);
+  const [signedIn, setSignedIn] = useState(false);
+  const [rows, setRows] = useState<LocalSave[]>([]);
+
+  async function refresh() {
+    const res = await fetch("/api/forge/saves");
+    const data = (await res.json()) as { saves?: LocalSave[]; signedIn?: boolean };
+    if (data.signedIn) {
+      setSignedIn(true);
+      setRows(data.saves || []);
+    } else {
+      setSignedIn(false);
+      setRows(listLocalSaves());
+    }
+  }
 
   useEffect(() => {
-    if (!user) return;
-    listSavedQueries()
-      .then(setQueries)
-      .catch(() => setQueries([]));
-    listFavorites()
-      .then(setFavs)
-      .catch(() => setFavs([]));
-  }, [user]);
+    void refresh();
+  }, []);
 
-  if (isPending) {
-    return (
-      <div className="min-h-dvh bg-bg">
-        <div className="h-16 border-b border-border" />
-        <div className="mx-auto max-w-3xl p-6 text-sm text-muted">Loading…</div>
-      </div>
-    );
+  async function remove(id: string) {
+    if (signedIn) {
+      await fetch("/api/forge/saves", {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({ remove: id }),
+      });
+    } else removeLocalSave(id);
+    void refresh();
   }
-  if (!user) return <RedirectToSignIn />;
 
   return (
     <div className="min-h-dvh bg-bg">
       <AppHeader onTwoLetter={() => setTwo(true)} />
       <TwoLetterPanel open={two} onClose={() => setTwo(false)} />
-      <main className="mx-auto max-w-3xl px-4 py-8 sm:px-6">
+      <main className="mx-auto max-w-2xl px-4 py-10 sm:px-6">
         <h1 className="font-display text-3xl text-fg">Saved</h1>
-        <p className="mt-2 text-sm text-muted">Queries and favorite words on this account.</p>
-
-        <section className="mt-8">
-          <h2 className="text-sm font-medium uppercase tracking-wide text-subtle">Queries</h2>
-          <ul className="mt-3 space-y-2">
-            {queries === null && <li className="text-sm text-muted">Loading…</li>}
-            {queries?.length === 0 && (
-              <li className="rounded-lg border border-border bg-surface px-4 py-6 text-sm text-muted">
-                No saved searches yet. Run a solve and use Save query.
-              </li>
-            )}
-            {queries?.map((q) => (
+        <p className="mt-2 text-sm text-muted">
+          {signedIn
+            ? "Racks on this handle. Open one to drop it in the forge."
+            : "Not signed in. These racks live in this browser — another device, a cleared cache, they’re gone. Sign in to keep them on your handle."}
+        </p>
+        {!signedIn ? (
+          <p className="mt-3 text-xs text-subtle">
+            <Link to="/enter" className="hover:text-muted">
+              Sign in to keep them
+            </Link>
+          </p>
+        ) : null}
+        <ul className="mt-8 space-y-2">
+          {rows.length === 0 ? (
+            <li className="text-sm text-subtle">Nothing saved yet.</li>
+          ) : (
+            rows.map((s) => (
               <li
-                key={q.id}
-                className="flex items-center justify-between gap-3 rounded-lg border border-border bg-surface px-4 py-3"
+                key={s.id}
+                className="flex items-center gap-3 rounded-md border border-border bg-surface px-3 py-2"
               >
                 <button
                   type="button"
-                  className="min-w-0 text-left"
+                  className="min-w-0 flex-1 text-left"
                   onClick={() =>
-                    navigate({
+                    void navigate({
                       to: "/",
-                      search: { q: q.letters, mode: q.mode, pattern: q.pattern, dict: q.dictTier },
+                      search: { q: s.letters, mode: s.mode as "from-rack" | "exact" | "phrase" },
                     })
                   }
                 >
-                  <p className="truncate font-medium text-fg">{q.label}</p>
-                  <p className="truncate font-mono text-xs uppercase text-muted">
-                    {q.letters} · {q.mode}
-                  </p>
+                  <span className="block font-mono text-sm uppercase tracking-wide text-fg">{s.letters}</span>
+                  <span className="text-[11px] text-subtle">{s.mode}</span>
                 </button>
                 <button
                   type="button"
-                  className="grid size-11 shrink-0 place-items-center rounded-md text-muted hover:bg-raised hover:text-fg"
-                  aria-label="Delete query"
-                  onClick={async () => {
-                    await deleteSavedQuery({ data: q.id });
-                    setQueries((cur) => cur?.filter((x) => x.id !== q.id) ?? []);
-                  }}
+                  className="text-xs text-subtle hover:text-muted"
+                  onClick={() => void remove(s.id)}
                 >
-                  <Trash2 className="size-4" />
+                  remove
                 </button>
               </li>
-            ))}
-          </ul>
-        </section>
-
-        <section className="mt-10">
-          <h2 className="text-sm font-medium uppercase tracking-wide text-subtle">Favorite words</h2>
-          <div className="mt-3 flex flex-wrap gap-2">
-            {favs === null && <p className="text-sm text-muted">Loading…</p>}
-            {favs?.length === 0 && <p className="text-sm text-muted">Star a result to keep it here.</p>}
-            {favs?.map((f) => (
-              <button
-                key={f.id}
-                type="button"
-                className="rounded-sm bg-tile px-2.5 py-1.5 font-mono text-sm uppercase text-tile-ink"
-                onClick={async () => {
-                  await toggleFavorite({ data: f.word });
-                  setFavs((cur) => cur?.filter((x) => x.id !== f.id) ?? []);
-                }}
-                title="Remove favorite"
-              >
-                {f.word}
-              </button>
-            ))}
-          </div>
-        </section>
-
-        <Button asChild variant="secondary" className="mt-10">
-          <Link to="/">Back to solver</Link>
-        </Button>
-        <SupportSlot />
+            ))
+          )}
+        </ul>
       </main>
+      <div className="mx-auto max-w-5xl px-4">
+        <SupportSlot />
+      </div>
     </div>
   );
 }

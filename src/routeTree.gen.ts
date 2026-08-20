@@ -22,6 +22,7 @@ import { Route as ApiStatsRouteImport } from './routes/api/stats'
 import { Route as ApiAuthSplatRouteImport } from './routes/api/auth/$'
 import { Route as ApiForgeChallengeRouteImport } from './routes/api/forge/challenge'
 import { Route as ApiForgeFindsRouteImport } from './routes/api/forge/finds'
+import { Route as ApiForgeSavesRouteImport } from './routes/api/forge/saves'
 import { Route as ApiForgeSessionRouteImport } from './routes/api/forge/session'
 import { Route as ApiForgeStewardRouteImport } from './routes/api/forge/steward'
 
@@ -90,6 +91,11 @@ const ApiForgeFindsRoute = ApiForgeFindsRouteImport.update({
   path: '/api/forge/finds',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ApiForgeSavesRoute = ApiForgeSavesRouteImport.update({
+  id: '/api/forge/saves',
+  path: '/api/forge/saves',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const ApiForgeSessionRoute = ApiForgeSessionRouteImport.update({
   id: '/api/forge/session',
   path: '/api/forge/session',
@@ -115,6 +121,7 @@ export interface FileRoutesByFullPath {
   '/api/auth/$': typeof ApiAuthSplatRoute
   '/api/forge/challenge': typeof ApiForgeChallengeRoute
   '/api/forge/finds': typeof ApiForgeFindsRoute
+  '/api/forge/saves': typeof ApiForgeSavesRoute
   '/api/forge/session': typeof ApiForgeSessionRoute
   '/api/forge/steward': typeof ApiForgeStewardRoute
 }
@@ -132,6 +139,7 @@ export interface FileRoutesByTo {
   '/api/auth/$': typeof ApiAuthSplatRoute
   '/api/forge/challenge': typeof ApiForgeChallengeRoute
   '/api/forge/finds': typeof ApiForgeFindsRoute
+  '/api/forge/saves': typeof ApiForgeSavesRoute
   '/api/forge/session': typeof ApiForgeSessionRoute
   '/api/forge/steward': typeof ApiForgeStewardRoute
 }
@@ -150,6 +158,7 @@ export interface FileRoutesById {
   '/api/auth/$': typeof ApiAuthSplatRoute
   '/api/forge/challenge': typeof ApiForgeChallengeRoute
   '/api/forge/finds': typeof ApiForgeFindsRoute
+  '/api/forge/saves': typeof ApiForgeSavesRoute
   '/api/forge/session': typeof ApiForgeSessionRoute
   '/api/forge/steward': typeof ApiForgeStewardRoute
 }
@@ -169,6 +178,7 @@ export interface FileRouteTypes {
     | '/api/auth/$'
     | '/api/forge/challenge'
     | '/api/forge/finds'
+    | '/api/forge/saves'
     | '/api/forge/session'
     | '/api/forge/steward'
   fileRoutesByTo: FileRoutesByTo
@@ -186,6 +196,7 @@ export interface FileRouteTypes {
     | '/api/auth/$'
     | '/api/forge/challenge'
     | '/api/forge/finds'
+    | '/api/forge/saves'
     | '/api/forge/session'
     | '/api/forge/steward'
   id:
@@ -203,6 +214,7 @@ export interface FileRouteTypes {
     | '/api/auth/$'
     | '/api/forge/challenge'
     | '/api/forge/finds'
+    | '/api/forge/saves'
     | '/api/forge/session'
     | '/api/forge/steward'
   fileRoutesById: FileRoutesById
@@ -221,6 +233,7 @@ export interface RootRouteChildren {
   ApiAuthSplatRoute: typeof ApiAuthSplatRoute
   ApiForgeChallengeRoute: typeof ApiForgeChallengeRoute
   ApiForgeFindsRoute: typeof ApiForgeFindsRoute
+  ApiForgeSavesRoute: typeof ApiForgeSavesRoute
   ApiForgeSessionRoute: typeof ApiForgeSessionRoute
   ApiForgeStewardRoute: typeof ApiForgeStewardRoute
 }
@@ -318,6 +331,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiForgeFindsRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/api/forge/saves': {
+      id: '/api/forge/saves'
+      path: '/api/forge/saves'
+      fullPath: '/api/forge/saves'
+      preLoaderRoute: typeof ApiForgeSavesRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/api/forge/session': {
       id: '/api/forge/session'
       path: '/api/forge/session'
@@ -349,6 +369,7 @@ const rootRouteChildren: RootRouteChildren = {
   ApiAuthSplatRoute: ApiAuthSplatRoute,
   ApiForgeChallengeRoute: ApiForgeChallengeRoute,
   ApiForgeFindsRoute: ApiForgeFindsRoute,
+  ApiForgeSavesRoute: ApiForgeSavesRoute,
   ApiForgeSessionRoute: ApiForgeSessionRoute,
   ApiForgeStewardRoute: ApiForgeStewardRoute,
 }

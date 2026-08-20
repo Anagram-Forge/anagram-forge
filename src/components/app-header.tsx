@@ -46,6 +46,12 @@ export function AppHeader({ onTwoLetter }: { onTwoLetter: () => void }) {
           >
             Finds
           </Link>
+          <Link
+            to="/saved"
+            className="inline-flex h-11 items-center rounded-md px-2 text-sm text-muted hover:bg-raised hover:text-fg sm:px-3"
+          >
+            Saved
+          </Link>
           {steward ? (
             <Link
               to="/steward"

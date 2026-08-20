@@ -13,6 +13,7 @@ import { PostFindButton } from "@/components/post-find";
 import { SpellLine } from "@/components/spell-line";
 import { SupportSlot } from "@/components/support-slot";
 import { ThemePicker } from "@/components/theme-picker";
+import { addLocalSave } from "@/lib/local-saves";
 import { Tip } from "@/components/tip";
 import { dictStats, loadDictionary, wordsForTier, type DictWord, type Loaded } from "@/lib/anagram/dict";
 import { consumePicks, countsOf, canSpell, normalizeLetters, onlyLetters } from "@/lib/anagram/letters";
@@ -341,6 +342,7 @@ function Home() {
           <label className="mt-5 block">
             <span className="flex items-baseline justify-between gap-3">
               <span className="text-xs font-medium uppercase tracking-wide text-subtle">Letters</span>
+              <span className="flex items-baseline gap-3">
               <button
                 type="button"
                 disabled={onlyLetters(letters).length < 2}
@@ -352,6 +354,33 @@ function Home() {
               >
                 Copy this solve
               </button>
+              <button
+                type="button"
+                disabled={onlyLetters(letters).length < 2}
+                onClick={() => {
+                  void (async () => {
+                    const session = (await (await fetch("/api/forge/session")).json()) as { handle: string | null };
+                    if (session.handle) {
+                      const res = await fetch("/api/forge/saves", {
+                        method: "POST",
+                        headers: { "content-type": "application/json" },
+                        body: JSON.stringify({ letters, mode }),
+                      });
+                      const data = (await res.json()) as { ok?: boolean; reason?: string };
+                      if (!res.ok || !data.ok) toast(data.reason || "Couldn’t save.");
+                      else toast("Saved");
+                      return;
+                    }
+                    const local = addLocalSave({ letters, mode });
+                    if (!local.ok) toast(local.reason);
+                    else toast("Saved on this browser only — sign in to keep it.");
+                  })();
+                }}
+                className="text-[11px] text-subtle hover:text-muted disabled:cursor-not-allowed disabled:opacity-40"
+              >
+                Save this rack
+              </button>
+              </span>
             </span>
             <Input
               value={letters}

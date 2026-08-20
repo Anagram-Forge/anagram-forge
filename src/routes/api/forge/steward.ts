@@ -1,5 +1,5 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { isAdminHandle, setChallenge, stewardSnapshot, unbanHandle, userFromToken } from "@/lib/forge-db";
+import { isAdminHandle, setChallenge, stewardSnapshot, unbanHandle, userFromToken, wipeHandle } from "@/lib/forge-db";
 
 function cookieOf(request: Request): string | null {
   const raw = request.headers.get("cookie") || "";
@@ -17,19 +17,25 @@ export const Route = createFileRoute("/api/forge/steward")({
   server: {
     handlers: {
       GET: async ({ request }) => {
-        if (!(await gate(request))) return new Response("Not found", { status: 404 });
-        return Response.json(await stewardSnapshot());
+        const user = await gate(request);
+        if (!user) return new Response("Not found", { status: 404 });
+        return Response.json({ ...(await stewardSnapshot()), you: user.handle });
       },
       POST: async ({ request }) => {
-        if (!(await gate(request))) return new Response("Not found", { status: 404 });
-        let body: { unban?: string; challenge?: { label?: string; blurb?: string; rack?: string } };
+        const user = await gate(request);
+        if (!user) return new Response("Not found", { status: 404 });
+        let body: { unban?: string; wipe?: string; challenge?: { label?: string; blurb?: string; rack?: string } };
         try {
-          body = (await request.json()) as { unban?: string; challenge?: { label?: string; blurb?: string; rack?: string } };
+          body = (await request.json()) as { unban?: string; wipe?: string; challenge?: { label?: string; blurb?: string; rack?: string } };
         } catch {
           return Response.json({ ok: false }, { status: 400 });
         }
         if (body.unban) {
           const result = await unbanHandle(body.unban);
+          return Response.json(result, { status: result.ok ? 200 : 400 });
+        }
+        if (body.wipe) {
+          const result = await wipeHandle(user.id, body.wipe);
           return Response.json(result, { status: result.ok ? 200 : 400 });
         }
         if (body.challenge) {

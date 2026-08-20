@@ -45,7 +45,7 @@ function EnterPage() {
       <main className="mx-auto max-w-md px-4 py-12">
         <h1 className="font-display text-3xl text-fg">{mode === "up" ? "Make a handle" : "Enter"}</h1>
         <p className="mt-2 text-sm text-muted">
-          For the board and saved racks. Solving stays free, no account.
+          For the board and saved racks. Solving stays free. A handle is how a save follows you.
         </p>
         <form onSubmit={submit} className="mt-8 space-y-4">
           <label className="block">

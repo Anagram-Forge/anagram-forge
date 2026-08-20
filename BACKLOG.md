@@ -2,64 +2,54 @@
 
 Not started. Pick one when we want it.
 
-## Disclaimers — usage, privacy, ethics
+## Save this rack — in progress
 
-Want them findable without a cookie-wall or a lecture on first paint.
-
-Leaning: quiet links in the top bar (`usage · privacy · ethics`) that open a single short panel, not three legal PDFs. Open to other shapes.
-
-## Repentance flag
-
-A very small swipeable tab on the right edge, same gold as the verse theme labels (`#d4a24c`). Pull it and it reads:
-
-> Turn from your sin and come to Christ. Nothing else in this life outranks that.
-
-Keep it pull-to-reveal, not a popup.
-
-## Copy this solve
-
-A obvious button that copies a shareable link for the current rack (`?q=listen` and friends). Search params already exist; make “send this one to someone” one click.
-
-## Background music
-
-A small music-note toggle. Inspiration only — do **not** rip artists from YouTube playlists. See notes in chat: free/CC or a paid web license, hosted by us.
-
-## Security checkup
-
-Do this on a cadence, not in a panic.
-
-- The mail worker still has Cloudflare’s default `*.workers.dev` URL. Optional: custom domain + refuse that Host. Visitors never see it today.
-- Rotate any token that was ever pasted in chat
-- Confirm WHOIS privacy still on (Cloudflare Registrar — already obfuscated)
-- GitHub org profile stays boring (no legal name / personal email)
-- Quick grep of the public repo for mail addresses, keys, tokens
-
-First pass when we feel like it. Then maybe every 90 days, same as the GitHub token reminder.
-
-## Site stats / humans vs bots
-
-Quiet dashboard near the ad/support slot: visitors, anagrams forged, a few other numbers.
-
-Use **Cloudflare Web Analytics with bot filtering** when we want “how many humans,” not raw requests. The account analytics chart (requests / visits / countries) counts crawlers. Don’t treat Germany-at-3am as a fan club.
+Bookmark a rack (and mode). Signed in → D1. Signed out → this browser only.
 
 ## Learn SEO
 
-Walk through what actually matters for a small site like this (title, description, share card, sitemap, speed) without turning it into a marketing class. Do this before chasing rankings.
-
-## Custom 404
-
-Need a real “this page does not exist” page. Make it unique — brainstorm in chat before building. Should still be kind, not a jump-scare.
+Title, description, share card, sitemap, speed. A lesson, then maybe three tags. Do this before chasing rankings.
 
 ## Accessibility (ADA)
 
-Design for more than average vision and reading.
+Aa / easier type exists. Still owed: contrast, focus rings, keyboard, screen readers as their own pass.
 
-- Dyslexia-friendly type (Lexend, Atkinson Hyperlegible, or OpenDyslexic) as an **option**, not a force-replace of the current display font
-- Contrast, focus rings, keyboard, screen readers
-- Discuss as its own pass so we don’t bolt a font on and call it done
+## Background music
 
-## Later (already mentioned)
+A small music-note toggle. Free/CC or a paid web license, hosted by us. Do **not** rip YouTube playlists.
 
-- Voting / ranking of favorite finds (needs a database)
-- Save query / saved searches — after usage / ToS is in place
-- Sign-in when we actually need it
+## Security checkup
+
+Cadence, not panic. About every 90 days (GitHub PAT window).
+
+- Mail worker still on `*.workers.dev` — visitors never see it; optional custom domain
+- Rotate any token that was ever pasted in chat
+- WHOIS privacy (Cloudflare Registrar)
+- GitHub org stays boring (no legal name / personal email)
+- Grep the public repo for mail addresses, keys, tokens
+
+## Humans vs bots
+
+Cloudflare Web Analytics with **bot filtering** when we want “how many humans,” not Germany-at-3am crawlers. Footer visits stay the honest-enough number.
+
+## Calmer steward handle
+
+`FORGE_ADMIN` works. A human name would read better. One string.
+
+## Delete my data
+
+Wipe a handle, its saves, finds, votes, sessions. Button on Enter / Steward.
+
+## Hide a find
+
+Take a line off the board without banning the person. Restore if we fat-fingered.
+
+## Challenge archive
+
+Old racks + their finds, so a swap doesn’t vanish the last board.
+
+## Later
+
+- Soft hide / restore on Finds
+- CSV of a rack’s finds
+- Sign-in only when a feature actually needs it (handles already exist for the board)

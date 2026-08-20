@@ -14,6 +14,14 @@ export type Find = {
   created: number;
 };
 
+export type SavedRack = {
+  id: string;
+  label: string;
+  letters: string;
+  mode: string;
+  created: number;
+};
+
 type Stmt = {
   bind: (...a: unknown[]) => Stmt;
   all: () => Promise<{ results: Record<string, unknown>[] }>;
@@ -33,6 +41,7 @@ const ram = {
   bans: new Set<string>(),
   reported: new Set<string>(),
   challenge: null as Week | null,
+  saves: [] as SavedRack[],
 };
 
 type Kv = {
@@ -425,6 +434,29 @@ export async function banHandle(adminId: string, targetHandle: string): Promise<
   return { ok: true };
 }
 
+export async function wipeHandle(adminId: string, targetHandle: string): Promise<{ ok: true } | { ok: false; reason: string }> {
+  const banned = await banHandle(adminId, targetHandle);
+  if (!banned.ok) return banned;
+  const h = targetHandle.trim();
+  const db = await d1();
+  if (db) {
+    const u = await db.prepare("SELECT id FROM users WHERE handle = ?").bind(h).first();
+    if (u) {
+      const uid = String(u.id);
+      await db.prepare("DELETE FROM saves WHERE user_id = ?").bind(uid).run();
+      await db.prepare("DELETE FROM sessions WHERE user_id = ?").bind(uid).run();
+      await db.prepare("DELETE FROM users WHERE id = ?").bind(uid).run();
+    }
+  } else {
+    const u = ram.users.find((x) => x.handle.toLowerCase() === h.toLowerCase());
+    if (u) {
+      ram.saves = ram.saves.filter(() => true);
+      ram.users = ram.users.filter((x) => x.id !== u.id);
+    }
+  }
+  return { ok: true };
+}
+
 export async function unbanHandle(handle: string): Promise<{ ok: true } | { ok: false; reason: string }> {
   const h = handle.trim();
   if (!h) return { ok: false, reason: "Missing." };
@@ -490,4 +522,67 @@ export async function stewardSnapshot() {
     bans = [...ram.bans].map((handle) => ({ handle, created: 0 }));
   }
   return { challenge, visits, anagrams, handles, finds, reported, bans };
+}
+
+const SAVE_CAP = 40;
+
+export async function listSaves(userId: string): Promise<SavedRack[]> {
+  const db = await d1();
+  if (db) {
+    try {
+      const { results } = await db
+        .prepare("SELECT id, label, letters, mode, created FROM saves WHERE user_id = ? ORDER BY created DESC")
+        .bind(userId)
+        .all();
+      return results.map((r) => ({
+        id: String(r.id),
+        label: String(r.label),
+        letters: String(r.letters),
+        mode: String(r.mode),
+        created: Number(r.created) || 0,
+      }));
+    } catch {
+      return [];
+    }
+  }
+  return ram.saves.slice();
+}
+
+export async function addSave(
+  userId: string,
+  input: { letters: string; mode: string; label?: string },
+): Promise<{ ok: true; save: SavedRack } | { ok: false; reason: string }> {
+  const letters = input.letters.trim().slice(0, 80);
+  if (onlyLetters(letters).length < 2) return { ok: false, reason: "Need a rack first." };
+  const mode = (input.mode || "from-rack").slice(0, 20);
+  const label = (input.label || letters).trim().slice(0, 80);
+  const db = await d1();
+  if (db) {
+    const n = await db.prepare("SELECT COUNT(*) AS c FROM saves WHERE user_id = ?").bind(userId).first();
+    if (Number(n?.c) >= SAVE_CAP) return { ok: false, reason: "That’s enough saved racks." };
+    const row: SavedRack = { id: id(), label, letters, mode, created: Date.now() };
+    try {
+      await db
+        .prepare("INSERT INTO saves (id, user_id, label, letters, mode, created) VALUES (?, ?, ?, ?, ?, ?)")
+        .bind(row.id, userId, row.label, row.letters, row.mode, row.created)
+        .run();
+    } catch {
+      return { ok: false, reason: "Couldn’t save." };
+    }
+    return { ok: true, save: row };
+  }
+  if (ram.saves.length >= SAVE_CAP) return { ok: false, reason: "That’s enough saved racks." };
+  const row: SavedRack = { id: id(), label, letters, mode, created: Date.now() };
+  ram.saves.unshift(row);
+  return { ok: true, save: row };
+}
+
+export async function deleteSave(userId: string, saveId: string): Promise<{ ok: true } | { ok: false; reason: string }> {
+  const db = await d1();
+  if (db) {
+    await db.prepare("DELETE FROM saves WHERE id = ? AND user_id = ?").bind(saveId, userId).run();
+    return { ok: true };
+  }
+  ram.saves = ram.saves.filter((s) => s.id !== saveId);
+  return { ok: true };
 }

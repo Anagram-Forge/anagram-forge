@@ -11,6 +11,7 @@ import type { Find } from "@/lib/forge-db";
 export const Route = createFileRoute("/steward")({ component: StewardPage });
 
 type Snap = {
+  you?: string;
   challenge: Week;
   visits: number;
   anagrams: number;
@@ -104,6 +105,15 @@ function StewardPage() {
     void load();
   }
 
+  async function wipe(h: string) {
+    await fetch("/api/forge/steward", {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({ wipe: h }),
+    });
+    void load();
+  }
+
   return (
     <div className="min-h-dvh bg-bg">
       <AppHeader onTwoLetter={() => setTwo(true)} />
@@ -185,6 +195,18 @@ function StewardPage() {
                   <span className="text-subtle">
                     · {h.finds} find{h.finds === 1 ? "" : "s"} · last {when(h.lastPosted)} · joined {when(h.created)}
                   </span>
+                  {h.handle.toLowerCase() === (snap.you || "").toLowerCase() ? null : (
+                    <>
+                      {" · "}
+                      <button type="button" className="text-xs text-subtle hover:text-muted" onClick={() => void ban(h.handle)}>
+                        ban
+                      </button>
+                      {" · "}
+                      <button type="button" className="text-xs text-subtle hover:text-muted" onClick={() => void wipe(h.handle)}>
+                        wipe
+                      </button>
+                    </>
+                  )}
                 </li>
               ))
             )}
