@@ -1,5 +1,5 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { addFind, banHandle, deleteFind, getFind, isAdminHandle, listFinds, userFromToken, vote } from "@/lib/forge-db";
+import { addFind, banHandle, claimReport, deleteFind, getFind, isAdminHandle, listFinds, userFromToken, vote } from "@/lib/forge-db";
 
 function cookieOf(request: Request): string | null {
   const raw = request.headers.get("cookie") || "";
@@ -10,6 +10,16 @@ function cookieOf(request: Request): string | null {
 function envGet(key: string): string {
   const fromProcess = typeof process !== "undefined" ? process.env[key] : undefined;
   return (fromProcess || "").trim();
+}
+
+const lastReport = new Map<string, number>();
+
+function ipOf(request: Request): string {
+  return (
+    request.headers.get("cf-connecting-ip") ||
+    request.headers.get("x-forwarded-for")?.split(",")[0]?.trim() ||
+    "local"
+  );
 }
 
 export const Route = createFileRoute("/api/forge/finds")({
@@ -28,6 +38,12 @@ export const Route = createFileRoute("/api/forge/finds")({
         if (body.report) {
           const find = await getFind(String(body.report));
           if (!find) return Response.json({ ok: false, reason: "Missing." }, { status: 400 });
+          const ip = ipOf(request);
+          const now = Date.now();
+          if (now - (lastReport.get(ip) ?? 0) < 45_000) return Response.json({ ok: true, dup: true });
+          lastReport.set(ip, now);
+          const claim = await claimReport(find.id);
+          if (claim === "dup") return Response.json({ ok: true, dup: true });
           const url = envGet("MAIL_WORKER_URL");
           if (!url) return Response.json({ ok: false, reason: "Mail isn’t wired." }, { status: 503 });
           const message = [

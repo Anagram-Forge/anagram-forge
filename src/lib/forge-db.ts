@@ -23,7 +23,36 @@ const ram = {
   finds: [] as Find[],
   votes: new Set<string>(),
   bans: new Set<string>(),
+  reported: new Set<string>(),
 };
+
+type Kv = { get: (key: string) => Promise<string | null>; put: (key: string, value: string) => Promise<void> };
+
+async function kv(): Promise<Kv | null> {
+  try {
+    const mod = await import("cloudflare:workers");
+    const box = (mod as { env?: { STATS?: Kv } }).env?.STATS;
+    if (box && typeof box.get === "function") return box;
+  } catch {
+    /* preview */
+  }
+  return null;
+}
+
+/** First reporter mails you. Everyone after gets a polite no-op. */
+export async function claimReport(findId: string): Promise<"send" | "dup"> {
+  const key = `rpt:${findId}`;
+  const box = await kv();
+  if (box) {
+    const had = await box.get(key);
+    if (had) return "dup";
+    await box.put(key, String(Date.now()));
+    return "send";
+  }
+  if (ram.reported.has(findId)) return "dup";
+  ram.reported.add(findId);
+  return "send";
+}
 
 async function envAdmin(): Promise<string> {
   const fromProcess = typeof process !== "undefined" ? process.env.FORGE_ADMIN?.trim() : "";

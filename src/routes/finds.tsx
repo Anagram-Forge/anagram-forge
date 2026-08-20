@@ -19,6 +19,7 @@ function FindsPage() {
   const [phrase, setPhrase] = useState("");
   const [err, setErr] = useState<string | null>(null);
   const [msg, setMsg] = useState<string | null>(null);
+  const [reported, setReported] = useState<Set<string>>(() => new Set());
 
   async function refresh() {
     const [s, f] = await Promise.all([fetch("/api/forge/session"), fetch("/api/forge/finds")]);
@@ -90,6 +91,8 @@ function FindsPage() {
   }
 
   async function onReport(id: string) {
+    if (reported.has(id)) return;
+    setReported((cur) => new Set(cur).add(id));
     setErr(null);
     const res = await fetch("/api/forge/finds", {
       method: "POST",
@@ -97,8 +100,14 @@ function FindsPage() {
       body: JSON.stringify({ report: id }),
     });
     const data = (await res.json()) as { ok?: boolean; reason?: string };
-    if (!res.ok || !data.ok) setErr(data.reason || "Couldn’t report.");
-    else setMsg("Reported. Thanks.");
+    if (!res.ok || !data.ok) {
+      setReported((cur) => {
+        const next = new Set(cur);
+        next.delete(id);
+        return next;
+      });
+      setErr(data.reason || "Couldn’t report.");
+    } else setMsg("Reported. Thanks.");
   }
 
   async function onBan(h: string) {
@@ -216,9 +225,13 @@ function FindsPage() {
                     </>
                   ) : null}
                   {" · "}
-                  <button type="button" onClick={() => void onReport(f.id)} className="hover:text-muted">
-                    report
-                  </button>
+                  {reported.has(f.id) ? (
+                    <span>reported</span>
+                  ) : (
+                    <button type="button" onClick={() => void onReport(f.id)} className="hover:text-muted">
+                      report
+                    </button>
+                  )}
                   {admin && f.handle !== handle ? (
                     <>
                       {" · "}
