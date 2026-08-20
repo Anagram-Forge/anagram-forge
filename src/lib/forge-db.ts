@@ -125,7 +125,8 @@ async function envAdmin(): Promise<string> {
   if (fromProcess) return fromProcess;
   try {
     const mod = await import("cloudflare:workers");
-    const v = (mod as { env?: { FORGE_ADMIN?: string } }).env?.FORGE_ADMIN;
+    const env = (mod as { env?: Record<string, unknown> }).env;
+    const v = env?.FORGE_ADMIN;
     if (typeof v === "string" && v.trim()) return v.trim();
   } catch {
     /* preview */
