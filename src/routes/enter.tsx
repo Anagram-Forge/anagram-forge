@@ -47,7 +47,7 @@ function EnterPage() {
   }
 
   return (
-    <div className="min-h-dvh bg-bg">
+    <div className="min-h-dvh">
       <AppHeader onTwoLetter={() => setTwo(true)} />
       <TwoLetterPanel open={two} onClose={() => setTwo(false)} />
       <main className="mx-auto max-w-md px-4 py-12">

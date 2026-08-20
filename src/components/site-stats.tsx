@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import { ForgeAnvil } from "@/components/forge-anvil";
 import { fetchStats, pingStats, type Stats } from "@/lib/stats";
 
 const VISIT_KEY = "af-visit";
@@ -33,9 +34,13 @@ export function SiteStats() {
     };
   }, []);
 
-  if (!stats) return null;
-
   return (
-    <p className="mb-3 text-[11px] tabular-nums tracking-wide text-subtle/80">{line(stats)}</p>
+    <div className="mb-3 flex items-end justify-center gap-2.5">
+      {stats ? (
+        <p className="text-[11px] tabular-nums tracking-wide text-subtle/80">{line(stats)}</p>
+      ) : null}
+      <ForgeAnvil />
+      <span className="inline-block h-14 w-8" aria-hidden />
+    </div>
   );
 }

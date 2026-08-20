@@ -24,11 +24,10 @@ export function AppHeader({ onTwoLetter }: { onTwoLetter: () => void }) {
 
   return (
     <div>
-      <header className="flex items-center justify-between gap-3 border-b border-border px-4 py-3 sm:px-6">
+      <header className="flex items-center justify-between gap-3 border-b border-border bg-bg/70 px-4 py-3 backdrop-blur-[2px] sm:px-6">
         <div className="min-w-0">
           <Link to="/">
-            <p className="font-display text-lg font-medium tracking-tight text-fg">Anagram Forge</p>
-            <p className="hidden text-xs text-muted sm:block">unscramble anything. maybe.</p>
+            <p className="font-display text-base font-medium tracking-tight text-fg">Anagram Forge</p>
           </Link>
           <button
             type="button"

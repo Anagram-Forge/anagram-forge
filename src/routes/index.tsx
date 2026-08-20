@@ -12,6 +12,7 @@ import { AnagramCardButton, PickChips } from "@/components/anagram-card";
 import { PostFindButton } from "@/components/post-find";
 import { SpellLine } from "@/components/spell-line";
 import { SupportSlot } from "@/components/support-slot";
+import { ForgeMotto } from "@/components/forge-motto";
 import { ThemePicker } from "@/components/theme-picker";
 import { addLocalSave } from "@/lib/local-saves";
 import { Tip } from "@/components/tip";
@@ -315,22 +316,92 @@ function Home() {
   const activeHint = MODES.find((m) => m.id === mode)?.hint ?? "";
 
   return (
-    <div className="min-h-dvh bg-bg">
+    <div className="min-h-dvh">
       <AppHeader onTwoLetter={() => setTwo(true)} />
       <TwoLetterPanel open={two} onClose={() => setTwo(false)} />
 
-      <main className="mx-auto max-w-5xl px-4 pb-16 pt-8 sm:px-6">
-        <div className="max-w-2xl">
-          <h1 className="font-display text-4xl tracking-tight text-fg sm:text-5xl">
-            Make words from a rack.
+      <main className="mx-auto max-w-5xl px-4 pb-16 pt-6 sm:px-6">
+        <section className="mx-auto max-w-2xl text-center">
+          <h1 className="font-display text-5xl font-medium tracking-tight text-fg sm:text-6xl">
+            Anagram Forge
           </h1>
-          <p className="mt-3 max-w-xl text-base text-muted">
-            Exact anagrams, leftover-aware rack words, multi-word phrases, and crossword
-            patterns. Blanks, filters, and Scrabble scores included.
+          <ForgeMotto />
+          <p className="mx-auto mt-3 max-w-md text-sm text-muted">
+            Enter letters. Forge words. Discover hidden literature, one anagram at a time.
           </p>
-        </div>
+          <label className="relative mt-8 block text-left">
+            <span className="sr-only">Letters</span>
+            <Search className="pointer-events-none absolute left-3.5 top-1/2 size-4 -translate-y-1/2 text-subtle" />
+            <Input
+              value={letters}
+              onChange={(e) => {
+                setLetters(e.target.value);
+                pushSearch({ q: e.target.value });
+              }}
+              placeholder={mode === "phrase" ? "Yeshua is King" : "Enter letters (e.g., Lord, God, Said …)"}
+              autoCapitalize="none"
+              autoCorrect="off"
+              spellCheck={false}
+              className="h-12 rounded-lg border-border bg-bg/40 pl-10 pr-4 font-mono text-base tracking-wide"
+            />
+          </label>
+          <div className="mt-6">
+            {parsed.letters || parsed.blanks ? (
+              <LetterRack letters={parsed.letters} blanks={parsed.blanks} tone="night" />
+            ) : null}
+          </div>
+          <div className="mt-3 flex justify-center gap-4">
+            <button
+              type="button"
+              disabled={onlyLetters(letters).length < 2}
+              onClick={() => {
+                void navigator.clipboard.writeText(window.location.href);
+                toast("Link copied");
+              }}
+              className="text-[11px] text-subtle hover:text-muted disabled:cursor-not-allowed disabled:opacity-40"
+            >
+              Copy this solve
+            </button>
+            <button
+              type="button"
+              disabled={onlyLetters(letters).length < 2}
+              onClick={() => {
+                void (async () => {
+                  const session = (await (await fetch("/api/forge/session")).json()) as { handle: string | null };
+                  if (session.handle) {
+                    const res = await fetch("/api/forge/saves", {
+                      method: "POST",
+                      headers: { "content-type": "application/json" },
+                      body: JSON.stringify({ letters, mode }),
+                    });
+                    const data = (await res.json()) as { ok?: boolean; reason?: string };
+                    if (!res.ok || !data.ok) toast(data.reason || "Couldn’t save.");
+                    else toast("Saved");
+                    return;
+                  }
+                  const local = addLocalSave({ letters, mode });
+                  if (!local.ok) toast(local.reason);
+                  else toast("Saved on this browser only — sign in to keep it.");
+                })();
+              }}
+              className="text-[11px] text-subtle hover:text-muted disabled:cursor-not-allowed disabled:opacity-40"
+            >
+              Save this rack
+            </button>
+          </div>
+          <div className="mt-2 text-left">
+            <SpellLine
+              raw={letters}
+              loaded={loaded}
+              onChange={(next) => {
+                setLetters(next);
+                pushSearch({ q: next });
+              }}
+            />
+          </div>
+        </section>
 
-        <section className="mt-8 rounded-xl border border-border bg-surface p-4 sm:p-6">
+        <section className="mx-auto mt-10 max-w-2xl rounded-xl border border-border/80 bg-surface/50 p-4 sm:p-6">
           <div className="flex flex-wrap gap-1.5">
             {MODES.map((m) => (
               <button
@@ -350,73 +421,6 @@ function Home() {
             ))}
           </div>
           <p className="mt-3 text-sm text-subtle">{activeHint}</p>
-
-          <label className="mt-5 block">
-            <span className="flex items-baseline justify-between gap-3">
-              <span className="text-xs font-medium uppercase tracking-wide text-subtle">Letters</span>
-              <span className="flex items-baseline gap-3">
-              <button
-                type="button"
-                disabled={onlyLetters(letters).length < 2}
-                onClick={() => {
-                  void navigator.clipboard.writeText(window.location.href);
-                  toast("Link copied");
-                }}
-                className="text-[11px] text-subtle hover:text-muted disabled:cursor-not-allowed disabled:opacity-40"
-              >
-                Copy this solve
-              </button>
-              <button
-                type="button"
-                disabled={onlyLetters(letters).length < 2}
-                onClick={() => {
-                  void (async () => {
-                    const session = (await (await fetch("/api/forge/session")).json()) as { handle: string | null };
-                    if (session.handle) {
-                      const res = await fetch("/api/forge/saves", {
-                        method: "POST",
-                        headers: { "content-type": "application/json" },
-                        body: JSON.stringify({ letters, mode }),
-                      });
-                      const data = (await res.json()) as { ok?: boolean; reason?: string };
-                      if (!res.ok || !data.ok) toast(data.reason || "Couldn’t save.");
-                      else toast("Saved");
-                      return;
-                    }
-                    const local = addLocalSave({ letters, mode });
-                    if (!local.ok) toast(local.reason);
-                    else toast("Saved on this browser only — sign in to keep it.");
-                  })();
-                }}
-                className="text-[11px] text-subtle hover:text-muted disabled:cursor-not-allowed disabled:opacity-40"
-              >
-                Save this rack
-              </button>
-              </span>
-            </span>
-            <Input
-              value={letters}
-              onChange={(e) => {
-                setLetters(e.target.value);
-                pushSearch({ q: e.target.value });
-              }}
-              placeholder={mode === "phrase" ? "Yeshua is King" : "psalm"}
-              autoCapitalize="none"
-              autoCorrect="off"
-              spellCheck={false}
-              className="mt-1.5 font-mono text-base uppercase tracking-widest"
-            />
-            <p className="mt-1.5 text-xs text-subtle">A rack of letters. Use ? for a blank tile.</p>
-          </label>
-          <SpellLine
-            raw={letters}
-            loaded={loaded}
-            onChange={(next) => {
-              setLetters(next);
-              pushSearch({ q: next });
-            }}
-          />
-
           <label className="mt-4 block">
             <span className="text-xs font-medium uppercase tracking-wide text-subtle">
               Must contain
@@ -786,9 +790,18 @@ function Home() {
           </div>
         </section>
 
-        <section className="mt-8">
+        <section className="mt-8 min-h-[11.75rem]">
           {loadError && <p className="text-sm text-danger">{loadError}</p>}
-          {!poolReady && !loadError && <p className="text-sm text-muted">Loading dictionary…</p>}
+          {!poolReady && !loadError && (
+            <Empty
+              title="Waiting on a rack"
+              body={
+                mode === "phrase"
+                  ? "Enter a phrase to reshuffle. Try “Yeshua is King”."
+                  : "Enter at least two letters. Use ? for a blank. Try “psalm”."
+              }
+            />
+          )}
           {result?.kind === "empty" && poolReady && (
             <Empty
               title="Waiting on a rack"

@@ -20,7 +20,7 @@ function ArchivePage() {
   }, []);
 
   return (
-    <div className="min-h-dvh bg-bg">
+    <div className="min-h-dvh">
       <AppHeader onTwoLetter={() => setTwo(true)} />
       <TwoLetterPanel open={two} onClose={() => setTwo(false)} />
       <main className="mx-auto max-w-2xl px-4 py-10 sm:px-6">

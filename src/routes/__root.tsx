@@ -1,4 +1,6 @@
 import { createRootRoute, HeadContent, Outlet, Scripts } from "@tanstack/react-router";
+import { ForgeHammer } from "@/components/forge-hammer";
+import { ForgeSky } from "@/components/forge-sky";
 import { AuthProvider } from "@/lib/auth/provider";
 import { MissingPage } from "@/components/missing-page";
 import { PreviewHostBridge } from "@/components/preview-host-bridge";
@@ -52,9 +54,13 @@ export const Route = createRootRoute({
       </head>
       <body className="min-h-dvh bg-bg text-fg">
         <PreviewHostBridge />
-        <AuthProvider>
-          <Outlet />
-        </AuthProvider>
+        <ForgeSky />
+        <ForgeHammer />
+        <div className="relative z-10">
+          <AuthProvider>
+            <Outlet />
+          </AuthProvider>
+        </div>
         <Toaster
           theme="dark"
           position="bottom-center"

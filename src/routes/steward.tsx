@@ -55,7 +55,7 @@ function StewardPage() {
   if (denied) return <MissingPage />;
   if (!snap) {
     return (
-      <div className="min-h-dvh bg-bg">
+      <div className="min-h-dvh">
         <AppHeader onTwoLetter={() => setTwo(true)} />
         <p className="p-8 text-sm text-muted">Looking…</p>
       </div>
@@ -124,7 +124,7 @@ function StewardPage() {
   }
 
   return (
-    <div className="min-h-dvh bg-bg">
+    <div className="min-h-dvh">
       <AppHeader onTwoLetter={() => setTwo(true)} />
       <TwoLetterPanel open={two} onClose={() => setTwo(false)} />
       <main className="mx-auto max-w-3xl px-4 py-10 sm:px-6">
