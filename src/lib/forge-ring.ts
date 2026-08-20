@@ -33,5 +33,8 @@ export function parkedHammerPos() {
   const anvil = document.getElementById("forge-anvil");
   if (!anvil) return null;
   const a = anvil.getBoundingClientRect();
-  return { x: a.left + a.width * 0.52, y: a.top - 18 };
+  return {
+    x: a.left + window.scrollX + a.width * 0.52,
+    y: a.top + window.scrollY - 18,
+  };
 }

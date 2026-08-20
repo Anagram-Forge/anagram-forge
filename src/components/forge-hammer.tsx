@@ -8,6 +8,13 @@ function clamp(n: number, min: number, max: number) {
   return Math.max(min, Math.min(max, n));
 }
 
+function docSize() {
+  return {
+    w: Math.max(document.documentElement.scrollWidth, window.innerWidth),
+    h: Math.max(document.documentElement.scrollHeight, window.innerHeight),
+  };
+}
+
 type Bit = {
   x: number;
   y: number;
@@ -34,19 +41,9 @@ export function ForgeHammer() {
   useEffect(() => {
     warmRing();
     const place = () => {
-      if (!parked.current) {
-        setPos((cur) =>
-          cur
-            ? {
-                x: clamp(cur.x, 8, window.innerWidth - SIZE - 8),
-                y: clamp(cur.y, 8, window.innerHeight - SIZE - 8),
-              }
-            : cur,
-        );
-        return;
-      }
+      if (!parked.current) return;
       const next = parkedHammerPos();
-      if (next) setPos({ x: next.x, y: next.y });
+      if (next) setPos(next);
     };
     place();
     const ro = new ResizeObserver(place);
@@ -54,11 +51,9 @@ export function ForgeHammer() {
     if (anvil) ro.observe(anvil);
     ro.observe(document.body);
     window.addEventListener("resize", place);
-    window.addEventListener("scroll", place, { passive: true });
     return () => {
-      ro?.disconnect();
+      ro.disconnect();
       window.removeEventListener("resize", place);
-      window.removeEventListener("scroll", place);
     };
   }, []);
 
@@ -156,7 +151,7 @@ export function ForgeHammer() {
       if (!pos) return;
       e.preventDefault();
       e.currentTarget.setPointerCapture(e.pointerId);
-      grab.current = { dx: e.clientX - pos.x, dy: e.clientY - pos.y };
+      grab.current = { dx: e.clientX + window.scrollX - pos.x, dy: e.clientY + window.scrollY - pos.y };
       parked.current = false;
       setHeld(true);
     },
@@ -166,9 +161,10 @@ export function ForgeHammer() {
   const onPointerMove = useCallback(
     (e: React.PointerEvent<HTMLButtonElement>) => {
       if (!held) return;
+      const { w, h } = docSize();
       setPos({
-        x: clamp(e.clientX - grab.current.dx, 8, window.innerWidth - SIZE - 8),
-        y: clamp(e.clientY - grab.current.dy, 8, window.innerHeight - SIZE - 8),
+        x: clamp(e.clientX + window.scrollX - grab.current.dx, 8, w - SIZE - 8),
+        y: clamp(e.clientY + window.scrollY - grab.current.dy, 8, h - SIZE - 8),
       });
     },
     [held],
@@ -194,7 +190,7 @@ export function ForgeHammer() {
           onPointerMove={onPointerMove}
           onPointerUp={onPointerUp}
           onPointerCancel={onPointerUp}
-          className="fixed z-40 touch-none select-none text-accent hover:text-accent focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent/40"
+          className="absolute z-40 touch-none select-none text-accent hover:text-accent focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-accent/40"
           style={{
             left: pos.x,
             top: pos.y,

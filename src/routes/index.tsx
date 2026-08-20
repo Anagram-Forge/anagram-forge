@@ -331,14 +331,22 @@ function Home() {
           </p>
           <label className="relative mt-8 block text-left">
             <span className="sr-only">Letters</span>
-            <Search className="pointer-events-none absolute left-3.5 top-1/2 size-4 -translate-y-1/2 text-subtle" />
+            <Search className="pointer-events-none absolute left-3.5 top-1/2 z-[1] size-4 -translate-y-1/2 text-subtle" />
+            {!letters && mode !== "phrase" ? (
+              <span
+                className="letters-pulse-ph pointer-events-none absolute left-10 top-1/2 -translate-y-1/2 font-mono text-base tracking-wide text-subtle"
+                aria-hidden
+              >
+                enter letters
+              </span>
+            ) : null}
             <Input
               value={letters}
               onChange={(e) => {
                 setLetters(e.target.value);
                 pushSearch({ q: e.target.value });
               }}
-              placeholder={mode === "phrase" ? "Yeshua is King" : "Enter letters (e.g., Lord, God, Said …)"}
+              placeholder={mode === "phrase" ? "Yeshua is King" : ""}
               autoCapitalize="none"
               autoCorrect="off"
               spellCheck={false}
@@ -431,11 +439,11 @@ function Home() {
                 setMustRaw(e.target.value);
                 pushSearch({ inc: e.target.value });
               }}
-              placeholder="map"
+              placeholder=""
               autoCapitalize="none"
               autoCorrect="off"
               spellCheck={false}
-              className="mt-1.5 font-mono text-base"
+              className="mt-1.5 h-10 border-border bg-transparent font-mono text-sm"
             />
             <p className="mt-1.5 text-xs text-subtle">
               {mode === "phrase"

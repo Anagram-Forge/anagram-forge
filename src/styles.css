@@ -52,6 +52,7 @@ html.easy-read body {
   html,
   body,
   #app {
+    position: relative;
     min-height: 100%;
     background: var(--color-bg);
     color: var(--color-fg);
@@ -82,6 +83,20 @@ html.easy-read body {
     animation-duration: 0.01ms !important;
     transition-duration: 0.01ms !important;
   }
+}
+
+@keyframes letters-ph {
+  0%,
+  100% {
+    opacity: 0.32;
+  }
+  50% {
+    opacity: 0.82;
+  }
+}
+
+.letters-pulse-ph {
+  animation: letters-ph 3.6s ease-in-out infinite;
 }
 
 @keyframes forge-spark {
