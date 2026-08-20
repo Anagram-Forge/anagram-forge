@@ -1,5 +1,5 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { addFind, banHandle, claimReport, deleteFind, getFind, isAdminHandle, listFinds, userFromToken, vote } from "@/lib/forge-db";
+import { addFind, banHandle, claimReport, deleteFind, getFind, isAdminHandle, listFinds, setFindHidden, userFromToken, vote } from "@/lib/forge-db";
 
 function cookieOf(request: Request): string | null {
   const raw = request.headers.get("cookie") || "";
@@ -28,9 +28,9 @@ export const Route = createFileRoute("/api/forge/finds")({
       GET: async () => Response.json({ finds: await listFinds() }),
       POST: async ({ request }) => {
         const user = await userFromToken(cookieOf(request));
-        let body: { phrase?: string; vote?: string; remove?: string; report?: string; ban?: string };
+        let body: { phrase?: string; vote?: string; remove?: string; report?: string; ban?: string; hide?: string; unhide?: string };
         try {
-          body = (await request.json()) as { phrase?: string; vote?: string; remove?: string; report?: string; ban?: string };
+          body = (await request.json()) as { phrase?: string; vote?: string; remove?: string; report?: string; ban?: string; hide?: string; unhide?: string };
         } catch {
           return Response.json({ ok: false }, { status: 400 });
         }
@@ -76,6 +76,10 @@ export const Route = createFileRoute("/api/forge/finds")({
         if (!user) return Response.json({ ok: false, reason: "Sign in first." }, { status: 401 });
         const admin = await isAdminHandle(user.handle);
 
+        if (body.hide || body.unhide) {
+          const result = await setFindHidden(user.id, String(body.hide || body.unhide), Boolean(body.hide), admin);
+          return Response.json(result, { status: result.ok ? 200 : 400 });
+        }
         if (body.ban) {
           const result = await banHandle(user.id, String(body.ban));
           return Response.json(result, { status: result.ok ? 200 : 400 });

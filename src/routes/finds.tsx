@@ -122,6 +122,18 @@ function FindsPage() {
     else void refresh();
   }
 
+  async function onHide(id: string, hide: boolean) {
+    setErr(null);
+    const res = await fetch("/api/forge/finds", {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify(hide ? { hide: id } : { unhide: id }),
+    });
+    const data = (await res.json()) as { ok?: boolean; reason?: string };
+    if (!res.ok || !data.ok) setErr(data.reason || "Couldn’t hide.");
+    else void refresh();
+  }
+
   async function onRemove(id: string) {
     setErr(null);
     const res = await fetch("/api/forge/finds", {
@@ -147,7 +159,10 @@ function FindsPage() {
         <h1 className="font-display text-3xl text-fg">Finds</h1>
         <p className="mt-2 text-sm text-muted">
           Exact anagrams of the rack below. Same phrasing once. Up to five finds per handle.
-          Be decent — no blaspheming.
+          Be decent — no blaspheming.{" "}
+          <Link to="/archive" className="text-subtle hover:text-muted">
+            Past challenges
+          </Link>
         </p>
         <WeekCard />
         <div className="mt-4 text-xs text-subtle">
@@ -214,6 +229,14 @@ function FindsPage() {
                   )}
                   {handle && (f.handle === handle || admin) ? (
                     <>
+                      {" · "}
+                      <button
+                        type="button"
+                        onClick={() => void onHide(f.id, true)}
+                        className="hover:text-muted"
+                      >
+                        hide
+                      </button>
                       {" · "}
                       <button
                         type="button"

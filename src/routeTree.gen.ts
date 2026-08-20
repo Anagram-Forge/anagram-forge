@@ -11,6 +11,7 @@
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as SplatRouteImport } from './routes/$'
+import { Route as ArchiveRouteImport } from './routes/archive'
 import { Route as EnterRouteImport } from './routes/enter'
 import { Route as FindsRouteImport } from './routes/finds'
 import { Route as LoginRouteImport } from './routes/login'
@@ -20,6 +21,7 @@ import { Route as ApiReportRouteImport } from './routes/api/report'
 import { Route as ApiSponsorRouteImport } from './routes/api/sponsor'
 import { Route as ApiStatsRouteImport } from './routes/api/stats'
 import { Route as ApiAuthSplatRouteImport } from './routes/api/auth/$'
+import { Route as ApiForgeArchiveRouteImport } from './routes/api/forge/archive'
 import { Route as ApiForgeChallengeRouteImport } from './routes/api/forge/challenge'
 import { Route as ApiForgeFindsRouteImport } from './routes/api/forge/finds'
 import { Route as ApiForgeSavesRouteImport } from './routes/api/forge/saves'
@@ -34,6 +36,11 @@ const IndexRoute = IndexRouteImport.update({
 const SplatRoute = SplatRouteImport.update({
   id: '/$',
   path: '/$',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ArchiveRoute = ArchiveRouteImport.update({
+  id: '/archive',
+  path: '/archive',
   getParentRoute: () => rootRouteImport,
 } as any)
 const EnterRoute = EnterRouteImport.update({
@@ -81,6 +88,11 @@ const ApiAuthSplatRoute = ApiAuthSplatRouteImport.update({
   path: '/api/auth/$',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ApiForgeArchiveRoute = ApiForgeArchiveRouteImport.update({
+  id: '/api/forge/archive',
+  path: '/api/forge/archive',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const ApiForgeChallengeRoute = ApiForgeChallengeRouteImport.update({
   id: '/api/forge/challenge',
   path: '/api/forge/challenge',
@@ -110,6 +122,7 @@ const ApiForgeStewardRoute = ApiForgeStewardRouteImport.update({
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/$': typeof SplatRoute
+  '/archive': typeof ArchiveRoute
   '/enter': typeof EnterRoute
   '/finds': typeof FindsRoute
   '/login': typeof LoginRoute
@@ -119,6 +132,7 @@ export interface FileRoutesByFullPath {
   '/api/sponsor': typeof ApiSponsorRoute
   '/api/stats': typeof ApiStatsRoute
   '/api/auth/$': typeof ApiAuthSplatRoute
+  '/api/forge/archive': typeof ApiForgeArchiveRoute
   '/api/forge/challenge': typeof ApiForgeChallengeRoute
   '/api/forge/finds': typeof ApiForgeFindsRoute
   '/api/forge/saves': typeof ApiForgeSavesRoute
@@ -128,6 +142,7 @@ export interface FileRoutesByFullPath {
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/$': typeof SplatRoute
+  '/archive': typeof ArchiveRoute
   '/enter': typeof EnterRoute
   '/finds': typeof FindsRoute
   '/login': typeof LoginRoute
@@ -137,6 +152,7 @@ export interface FileRoutesByTo {
   '/api/sponsor': typeof ApiSponsorRoute
   '/api/stats': typeof ApiStatsRoute
   '/api/auth/$': typeof ApiAuthSplatRoute
+  '/api/forge/archive': typeof ApiForgeArchiveRoute
   '/api/forge/challenge': typeof ApiForgeChallengeRoute
   '/api/forge/finds': typeof ApiForgeFindsRoute
   '/api/forge/saves': typeof ApiForgeSavesRoute
@@ -147,6 +163,7 @@ export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
   '/$': typeof SplatRoute
+  '/archive': typeof ArchiveRoute
   '/enter': typeof EnterRoute
   '/finds': typeof FindsRoute
   '/login': typeof LoginRoute
@@ -156,6 +173,7 @@ export interface FileRoutesById {
   '/api/sponsor': typeof ApiSponsorRoute
   '/api/stats': typeof ApiStatsRoute
   '/api/auth/$': typeof ApiAuthSplatRoute
+  '/api/forge/archive': typeof ApiForgeArchiveRoute
   '/api/forge/challenge': typeof ApiForgeChallengeRoute
   '/api/forge/finds': typeof ApiForgeFindsRoute
   '/api/forge/saves': typeof ApiForgeSavesRoute
@@ -167,6 +185,7 @@ export interface FileRouteTypes {
   fullPaths:
     | '/'
     | '/$'
+    | '/archive'
     | '/enter'
     | '/finds'
     | '/login'
@@ -176,6 +195,7 @@ export interface FileRouteTypes {
     | '/api/sponsor'
     | '/api/stats'
     | '/api/auth/$'
+    | '/api/forge/archive'
     | '/api/forge/challenge'
     | '/api/forge/finds'
     | '/api/forge/saves'
@@ -185,6 +205,7 @@ export interface FileRouteTypes {
   to:
     | '/'
     | '/$'
+    | '/archive'
     | '/enter'
     | '/finds'
     | '/login'
@@ -194,6 +215,7 @@ export interface FileRouteTypes {
     | '/api/sponsor'
     | '/api/stats'
     | '/api/auth/$'
+    | '/api/forge/archive'
     | '/api/forge/challenge'
     | '/api/forge/finds'
     | '/api/forge/saves'
@@ -203,6 +225,7 @@ export interface FileRouteTypes {
     | '__root__'
     | '/'
     | '/$'
+    | '/archive'
     | '/enter'
     | '/finds'
     | '/login'
@@ -212,6 +235,7 @@ export interface FileRouteTypes {
     | '/api/sponsor'
     | '/api/stats'
     | '/api/auth/$'
+    | '/api/forge/archive'
     | '/api/forge/challenge'
     | '/api/forge/finds'
     | '/api/forge/saves'
@@ -222,6 +246,7 @@ export interface FileRouteTypes {
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   SplatRoute: typeof SplatRoute
+  ArchiveRoute: typeof ArchiveRoute
   EnterRoute: typeof EnterRoute
   FindsRoute: typeof FindsRoute
   LoginRoute: typeof LoginRoute
@@ -231,6 +256,7 @@ export interface RootRouteChildren {
   ApiSponsorRoute: typeof ApiSponsorRoute
   ApiStatsRoute: typeof ApiStatsRoute
   ApiAuthSplatRoute: typeof ApiAuthSplatRoute
+  ApiForgeArchiveRoute: typeof ApiForgeArchiveRoute
   ApiForgeChallengeRoute: typeof ApiForgeChallengeRoute
   ApiForgeFindsRoute: typeof ApiForgeFindsRoute
   ApiForgeSavesRoute: typeof ApiForgeSavesRoute
@@ -252,6 +278,13 @@ declare module '@tanstack/react-router' {
       path: '/$'
       fullPath: '/$'
       preLoaderRoute: typeof SplatRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/archive': {
+      id: '/archive'
+      path: '/archive'
+      fullPath: '/archive'
+      preLoaderRoute: typeof ArchiveRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/enter': {
@@ -317,6 +350,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiAuthSplatRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/api/forge/archive': {
+      id: '/api/forge/archive'
+      path: '/api/forge/archive'
+      fullPath: '/api/forge/archive'
+      preLoaderRoute: typeof ApiForgeArchiveRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/api/forge/challenge': {
       id: '/api/forge/challenge'
       path: '/api/forge/challenge'
@@ -358,6 +398,7 @@ declare module '@tanstack/react-router' {
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   SplatRoute: SplatRoute,
+  ArchiveRoute: ArchiveRoute,
   EnterRoute: EnterRoute,
   FindsRoute: FindsRoute,
   LoginRoute: LoginRoute,
@@ -367,6 +408,7 @@ const rootRouteChildren: RootRouteChildren = {
   ApiSponsorRoute: ApiSponsorRoute,
   ApiStatsRoute: ApiStatsRoute,
   ApiAuthSplatRoute: ApiAuthSplatRoute,
+  ApiForgeArchiveRoute: ApiForgeArchiveRoute,
   ApiForgeChallengeRoute: ApiForgeChallengeRoute,
   ApiForgeFindsRoute: ApiForgeFindsRoute,
   ApiForgeSavesRoute: ApiForgeSavesRoute,

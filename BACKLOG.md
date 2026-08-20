@@ -2,10 +2,6 @@
 
 Not started. Pick one when we want it.
 
-## Save this rack — in progress
-
-Bookmark a rack (and mode). Signed in → D1. Signed out → this browser only.
-
 ## Learn SEO
 
 Title, description, share card, sitemap, speed. A lesson, then maybe three tags. Do this before chasing rankings.
@@ -32,24 +28,7 @@ Cadence, not panic. About every 90 days (GitHub PAT window).
 
 Cloudflare Web Analytics with **bot filtering** when we want “how many humans,” not Germany-at-3am crawlers. Footer visits stay the honest-enough number.
 
-## Calmer steward handle
-
-`FORGE_ADMIN` works. A human name would read better. One string.
-
-## Delete my data
-
-Wipe a handle, its saves, finds, votes, sessions. Button on Enter / Steward.
-
-## Hide a find
-
-Take a line off the board without banning the person. Restore if we fat-fingered.
-
-## Challenge archive
-
-Old racks + their finds, so a swap doesn’t vanish the last board.
-
 ## Later
 
-- Soft hide / restore on Finds
+- Drop `FORGE_ADMIN` once `keeper` is the live steward handle
 - CSV of a rack’s finds
-- Sign-in only when a feature actually needs it (handles already exist for the board)

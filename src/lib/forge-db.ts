@@ -12,6 +12,7 @@ export type Find = {
   phrase: string;
   votes: number;
   created: number;
+  hidden: boolean;
 };
 
 export type SavedRack = {
@@ -42,6 +43,7 @@ const ram = {
   reported: new Set<string>(),
   challenge: null as Week | null,
   saves: [] as SavedRack[],
+  history: [] as (Week & { ended: number })[],
 };
 
 type Kv = {
@@ -116,6 +118,19 @@ export async function setChallenge(next: {
   const db = await d1();
   if (db) {
     try {
+      const prev = await getChallenge();
+      if (prev.id !== challenge.id) {
+        await db
+          .prepare(
+            "INSERT OR REPLACE INTO challenge_history (id, label, blurb, rack, mode, ended) VALUES (?, ?, ?, ?, ?, ?)",
+          )
+          .bind(prev.id, prev.label, prev.blurb, prev.rack, prev.mode, Date.now())
+          .run();
+      }
+    } catch {
+      /* history table optional */
+    }
+    try {
       await db
         .prepare(
           "INSERT INTO challenge (k, id, label, blurb, rack, mode) VALUES ('now', ?, ?, ?, ?, ?) ON CONFLICT(k) DO UPDATE SET id = excluded.id, label = excluded.label, blurb = excluded.blurb, rack = excluded.rack, mode = excluded.mode",
@@ -125,7 +140,12 @@ export async function setChallenge(next: {
     } catch {
       return { ok: false, reason: "Challenge table isn’t in D1 yet." };
     }
-  } else ram.challenge = challenge;
+  } else {
+    if (ram.challenge && ram.challenge.id !== challenge.id) {
+      ram.history.unshift({ ...ram.challenge, ended: Date.now() });
+    }
+    ram.challenge = challenge;
+  }
   return { ok: true, challenge };
 }
 
@@ -145,8 +165,10 @@ async function envAdmin(): Promise<string> {
 
 export async function isAdminHandle(handle: string | null | undefined): Promise<boolean> {
   if (!handle) return false;
-  const admin = await envAdmin();
-  if (admin) return admin.toLowerCase() === handle.toLowerCase();
+  const names = new Set(["keeper", "forge_admin"]);
+  const extra = await envAdmin();
+  if (extra) names.add(extra.toLowerCase());
+  if (names.has(handle.toLowerCase())) return true;
   return !isCloudflareWorker();
 }
 
@@ -262,27 +284,46 @@ export function sameRack(phrase: string, rack: string): boolean {
   return a.length >= 4 && a === b;
 }
 
-export async function listFinds(weekId?: string): Promise<Find[]> {
+function asFind(r: Record<string, unknown>): Find {
+  return {
+    id: String(r.id),
+    weekId: String(r.week_id ?? r.weekId),
+    userId: String(r.user_id ?? r.userId),
+    handle: String(r.handle),
+    phrase: String(r.phrase),
+    votes: Number(r.votes) || 0,
+    created: Number(r.created) || 0,
+    hidden: Number(r.hidden) === 1,
+  };
+}
+
+export async function listFinds(weekId?: string, includeHidden = false): Promise<Find[]> {
   const current = weekId ?? (await getChallenge()).id;
   const db = await d1();
   if (db) {
-    const { results } = await db
-      .prepare(
-        "SELECT f.id, f.week_id, f.user_id, u.handle, f.phrase, f.votes, f.created FROM finds f JOIN users u ON u.id = f.user_id WHERE f.week_id = ? ORDER BY f.votes DESC, f.created ASC",
-      )
-      .bind(current)
-      .all();
-    return results.map((r) => ({
-      id: String(r.id),
-      weekId: String(r.week_id),
-      userId: String(r.user_id),
-      handle: String(r.handle),
-      phrase: String(r.phrase),
-      votes: Number(r.votes) || 0,
-      created: Number(r.created) || 0,
-    }));
+    try {
+      const { results } = await db
+        .prepare(
+          includeHidden
+            ? "SELECT f.id, f.week_id, f.user_id, u.handle, f.phrase, f.votes, f.created, f.hidden FROM finds f JOIN users u ON u.id = f.user_id WHERE f.week_id = ? ORDER BY f.votes DESC, f.created ASC"
+            : "SELECT f.id, f.week_id, f.user_id, u.handle, f.phrase, f.votes, f.created, f.hidden FROM finds f JOIN users u ON u.id = f.user_id WHERE f.week_id = ? AND IFNULL(f.hidden, 0) = 0 ORDER BY f.votes DESC, f.created ASC",
+        )
+        .bind(current)
+        .all();
+      return results.map(asFind);
+    } catch {
+      const { results } = await db
+        .prepare(
+          "SELECT f.id, f.week_id, f.user_id, u.handle, f.phrase, f.votes, f.created FROM finds f JOIN users u ON u.id = f.user_id WHERE f.week_id = ? ORDER BY f.votes DESC, f.created ASC",
+        )
+        .bind(current)
+        .all();
+      return results.map((r) => asFind({ ...r, hidden: 0 }));
+    }
   }
-  return ram.finds.filter((f) => f.weekId === current).sort((a, b) => b.votes - a.votes || a.created - b.created);
+  return ram.finds
+    .filter((f) => f.weekId === current && (includeHidden || !f.hidden))
+    .sort((a, b) => b.votes - a.votes || a.created - b.created);
 }
 
 export async function getFind(id: string): Promise<Find | null> {
@@ -295,15 +336,7 @@ export async function getFind(id: string): Promise<Find | null> {
       .bind(id)
       .first();
     if (!r) return null;
-    return {
-      id: String(r.id),
-      weekId: String(r.week_id),
-      userId: String(r.user_id),
-      handle: String(r.handle),
-      phrase: String(r.phrase),
-      votes: Number(r.votes) || 0,
-      created: Number(r.created) || 0,
-    };
+    return asFind(r);
   }
   return ram.finds.find((f) => f.id === id) ?? null;
 }
@@ -331,6 +364,7 @@ export async function addFind(user: { id: string; handle: string }, phrase: stri
     phrase: clean,
     votes: 0,
     created: Date.now(),
+    hidden: false,
   };
   if (db) {
     try {
@@ -393,6 +427,90 @@ export async function deleteFind(userId: string, findId: string, asAdmin = false
   ram.finds = ram.finds.filter((x) => x.id !== findId);
   ram.votes = new Set([...ram.votes].filter((k) => !k.endsWith(`:${findId}`)));
   return { ok: true };
+}
+
+export async function setFindHidden(
+  userId: string,
+  findId: string,
+  hidden: boolean,
+  asAdmin: boolean,
+): Promise<{ ok: true } | { ok: false; reason: string }> {
+  const db = await d1();
+  if (db) {
+    const row = await db.prepare("SELECT user_id FROM finds WHERE id = ?").bind(findId).first();
+    if (!row) return { ok: false, reason: "Missing." };
+    if (!asAdmin && String(row.user_id) !== userId) return { ok: false, reason: "That’s not yours." };
+    try {
+      await db.prepare("UPDATE finds SET hidden = ? WHERE id = ?").bind(hidden ? 1 : 0, findId).run();
+    } catch {
+      return { ok: false, reason: "Hide isn’t on this database yet." };
+    }
+    return { ok: true };
+  }
+  const f = ram.finds.find((x) => x.id === findId);
+  if (!f) return { ok: false, reason: "Missing." };
+  if (!asAdmin && f.userId !== userId) return { ok: false, reason: "That’s not yours." };
+  f.hidden = hidden;
+  return { ok: true };
+}
+
+export async function deleteOwn(userId: string): Promise<{ ok: true }> {
+  const db = await d1();
+  if (db) {
+    const { results } = await db.prepare("SELECT id FROM finds WHERE user_id = ?").bind(userId).all();
+    for (const r of results) {
+      await db.prepare("DELETE FROM votes WHERE find_id = ?").bind(r.id).run();
+    }
+    await db.prepare("DELETE FROM votes WHERE user_id = ?").bind(userId).run();
+    await db.prepare("DELETE FROM finds WHERE user_id = ?").bind(userId).run();
+    await db.prepare("DELETE FROM saves WHERE user_id = ?").bind(userId).run();
+    await db.prepare("DELETE FROM sessions WHERE user_id = ?").bind(userId).run();
+    await db.prepare("DELETE FROM users WHERE id = ?").bind(userId).run();
+  } else {
+    const ids = new Set(ram.finds.filter((f) => f.userId === userId).map((f) => f.id));
+    ram.finds = ram.finds.filter((f) => f.userId !== userId);
+    ram.votes = new Set([...ram.votes].filter((k) => !k.startsWith(`${userId}:`) && ![...ids].some((id) => k.endsWith(`:${id}`))));
+    ram.saves = [];
+    for (const [tok, s] of ram.sessions) {
+      if (s.userId === userId) ram.sessions.delete(tok);
+    }
+    ram.users = ram.users.filter((u) => u.id !== userId);
+  }
+  return { ok: true };
+}
+
+export async function listArchive(): Promise<{ challenge: Week & { ended: number }; finds: Find[] }[]> {
+  const current = await getChallenge();
+  const db = await d1();
+  if (db) {
+    try {
+      const { results } = await db.prepare("SELECT id, label, blurb, rack, mode, ended FROM challenge_history ORDER BY ended DESC").all();
+      const out = [];
+      for (const r of results) {
+        const id = String(r.id);
+        if (id === current.id) continue;
+        const mode = r.mode === "exact" || r.mode === "from-rack" ? r.mode : "phrase";
+        const challenge: Week & { ended: number } = {
+          id,
+          label: String(r.label),
+          blurb: String(r.blurb),
+          rack: String(r.rack),
+          mode,
+          ended: Number(r.ended) || 0,
+        };
+        out.push({ challenge, finds: await listFinds(id, false) });
+      }
+      return out;
+    } catch {
+      return [];
+    }
+  }
+  return ram.history
+    .filter((h) => h.id !== current.id)
+    .map((challenge) => ({
+      challenge,
+      finds: ram.finds.filter((f) => f.weekId === challenge.id && !f.hidden),
+    }));
 }
 
 export async function banHandle(adminId: string, targetHandle: string): Promise<{ ok: true } | { ok: false; reason: string }> {
@@ -469,7 +587,7 @@ export async function unbanHandle(handle: string): Promise<{ ok: true } | { ok: 
 export async function stewardSnapshot() {
   const db = await d1();
   const challenge = await getChallenge();
-  const finds = await listFinds(challenge.id);
+  const finds = await listFinds(challenge.id, true);
   const box = await kv();
   let visits = 0;
   let anagrams = 0;

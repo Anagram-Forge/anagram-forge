@@ -1,5 +1,5 @@
 import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { AppHeader } from "@/components/app-header";
 import { TwoLetterPanel } from "@/components/two-letter-panel";
 import { Button } from "@/components/ui/button";
@@ -16,6 +16,14 @@ function EnterPage() {
   const [mode, setMode] = useState<"in" | "up">("in");
   const [err, setErr] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
+  const [who, setWho] = useState<string | null>(null);
+
+  useEffect(() => {
+    void fetch("/api/forge/session")
+      .then((r) => r.json())
+      .then((d: { handle?: string | null }) => setWho(d.handle || null))
+      .catch(() => setWho(null));
+  }, []);
 
   async function submit(e: React.FormEvent) {
     e.preventDefault();
@@ -84,6 +92,29 @@ function EnterPage() {
           </Link>
           .
         </p>
+        {who ? (
+          <div className="mt-10 border-t border-border pt-6">
+            <p className="text-sm text-muted">Signed in as {who}.</p>
+            <button
+              type="button"
+              className="mt-3 text-xs text-subtle hover:text-danger"
+              onClick={() => {
+                if (!window.confirm("Wipe this handle, its saves, finds, and votes? You can make a new one later.")) return;
+                void (async () => {
+                  await fetch("/api/forge/session", {
+                    method: "POST",
+                    headers: { "content-type": "application/json" },
+                    body: JSON.stringify({ action: "wipe" }),
+                  });
+                  setWho(null);
+                  void navigate({ to: "/" });
+                })();
+              }}
+            >
+              Delete my data
+            </button>
+          </div>
+        ) : null}
       </main>
       <div className="mx-auto max-w-5xl px-4">
         <SupportSlot />

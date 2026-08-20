@@ -1,5 +1,5 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { dropSession, isAdminHandle, login, register, userFromToken } from "@/lib/forge-db";
+import { deleteOwn, dropSession, isAdminHandle, login, register, userFromToken } from "@/lib/forge-db";
 
 function cookieOf(request: Request): string | null {
   const raw = request.headers.get("cookie") || "";
@@ -30,6 +30,14 @@ export const Route = createFileRoute("/api/forge/session")({
           body = (await request.json()) as { handle?: string; password?: string; action?: string };
         } catch {
           return Response.json({ ok: false }, { status: 400 });
+        }
+        if (body.action === "wipe") {
+          const user = await userFromToken(cookieOf(request));
+          if (!user) return Response.json({ ok: false, reason: "Sign in first." }, { status: 401 });
+          await deleteOwn(user.id);
+          return new Response(JSON.stringify({ ok: true }), {
+            headers: { "content-type": "application/json", "set-cookie": clearCookie() },
+          });
         }
         const action = body.action === "register" ? register : login;
         const result = await action(String(body.handle || ""), String(body.password || ""));

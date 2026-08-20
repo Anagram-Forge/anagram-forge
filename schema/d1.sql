@@ -56,3 +56,16 @@ CREATE TABLE IF NOT EXISTS challenge (
   rack TEXT NOT NULL,
   mode TEXT NOT NULL
 );
+
+CREATE TABLE IF NOT EXISTS challenge_history (
+  id TEXT PRIMARY KEY,
+  label TEXT NOT NULL,
+  blurb TEXT NOT NULL,
+  rack TEXT NOT NULL,
+  mode TEXT NOT NULL,
+  ended INTEGER NOT NULL
+);
+
+-- Existing DBs: run these once
+-- ALTER TABLE finds ADD COLUMN hidden INTEGER NOT NULL DEFAULT 0;
+

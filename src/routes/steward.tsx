@@ -1,4 +1,4 @@
-import { createFileRoute } from "@tanstack/react-router";
+import { createFileRoute, Link } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
 import { AppHeader } from "@/components/app-header";
 import { MissingPage } from "@/components/missing-page";
@@ -87,6 +87,15 @@ function StewardPage() {
     void load();
   }
 
+  async function hideFind(id: string, hide: boolean) {
+    await fetch("/api/forge/finds", {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify(hide ? { hide: id } : { unhide: id }),
+    });
+    void load();
+  }
+
   async function removeFind(id: string) {
     await fetch("/api/forge/finds", {
       method: "POST",
@@ -120,7 +129,12 @@ function StewardPage() {
       <TwoLetterPanel open={two} onClose={() => setTwo(false)} />
       <main className="mx-auto max-w-3xl px-4 py-10 sm:px-6">
         <h1 className="font-display text-3xl text-fg">Steward</h1>
-        <p className="mt-2 text-sm text-muted">Quiet on purpose. Password hashes stay in the dark.</p>
+        <p className="mt-2 text-sm text-muted">
+          Quiet on purpose. Password hashes stay in the dark.{" "}
+          <Link to="/archive" className="text-subtle hover:text-muted">
+            Archive
+          </Link>
+        </p>
         <p className="mt-4 text-sm tabular-nums text-subtle">
           {snap.visits} visits · {snap.anagrams} anagrams forged · {snap.handles.length} handles · {snap.finds.length} finds
         </p>
@@ -220,10 +234,15 @@ function StewardPage() {
               <li className="text-subtle">Empty board.</li>
             ) : (
               snap.finds.map((f) => (
-                <li key={f.id} className="font-mono text-fg">
+                <li key={f.id} className={f.hidden ? "font-mono text-subtle" : "font-mono text-fg"}>
+                  {f.hidden ? "(hidden) " : ""}
                   {f.phrase}{" "}
                   <span className="font-sans text-subtle">
                     · {f.handle} · updoots {f.votes}{" "}
+                    <button type="button" className="text-subtle hover:text-muted" onClick={() => void hideFind(f.id, !f.hidden)}>
+                      {f.hidden ? "restore" : "hide"}
+                    </button>
+                    {" · "}
                     <button type="button" className="text-subtle hover:text-muted" onClick={() => void removeFind(f.id)}>
                       remove
                     </button>
