@@ -131,7 +131,7 @@ async function envAdmin(): Promise<string> {
   } catch {
     /* preview */
   }
-  return "";
+  return "FORGE_ADMIN";
 }
 
 export async function isAdminHandle(handle: string | null | undefined): Promise<boolean> {

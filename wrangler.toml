@@ -3,9 +3,6 @@ compatibility_date = "2026-08-18"
 compatibility_flags = ["nodejs_compat"]
 pages_build_output_dir = "dist"
 
-[vars]
-FORGE_ADMIN = "FORGE_ADMIN"
-
 [[kv_namespaces]]
 binding = "STATS"
 id = "2a504adec2eb4b6cbc029a2537a1ce17"
