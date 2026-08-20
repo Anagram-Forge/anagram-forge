@@ -15,12 +15,15 @@ import { Route as EnterRouteImport } from './routes/enter'
 import { Route as FindsRouteImport } from './routes/finds'
 import { Route as LoginRouteImport } from './routes/login'
 import { Route as SavedRouteImport } from './routes/saved'
+import { Route as StewardRouteImport } from './routes/steward'
 import { Route as ApiReportRouteImport } from './routes/api/report'
 import { Route as ApiSponsorRouteImport } from './routes/api/sponsor'
 import { Route as ApiStatsRouteImport } from './routes/api/stats'
 import { Route as ApiAuthSplatRouteImport } from './routes/api/auth/$'
+import { Route as ApiForgeChallengeRouteImport } from './routes/api/forge/challenge'
 import { Route as ApiForgeFindsRouteImport } from './routes/api/forge/finds'
 import { Route as ApiForgeSessionRouteImport } from './routes/api/forge/session'
+import { Route as ApiForgeStewardRouteImport } from './routes/api/forge/steward'
 
 const IndexRoute = IndexRouteImport.update({
   id: '/',
@@ -52,6 +55,11 @@ const SavedRoute = SavedRouteImport.update({
   path: '/saved',
   getParentRoute: () => rootRouteImport,
 } as any)
+const StewardRoute = StewardRouteImport.update({
+  id: '/steward',
+  path: '/steward',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const ApiReportRoute = ApiReportRouteImport.update({
   id: '/api/report',
   path: '/api/report',
@@ -72,6 +80,11 @@ const ApiAuthSplatRoute = ApiAuthSplatRouteImport.update({
   path: '/api/auth/$',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ApiForgeChallengeRoute = ApiForgeChallengeRouteImport.update({
+  id: '/api/forge/challenge',
+  path: '/api/forge/challenge',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const ApiForgeFindsRoute = ApiForgeFindsRouteImport.update({
   id: '/api/forge/finds',
   path: '/api/forge/finds',
@@ -82,6 +95,11 @@ const ApiForgeSessionRoute = ApiForgeSessionRouteImport.update({
   path: '/api/forge/session',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ApiForgeStewardRoute = ApiForgeStewardRouteImport.update({
+  id: '/api/forge/steward',
+  path: '/api/forge/steward',
+  getParentRoute: () => rootRouteImport,
+} as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
@@ -90,12 +108,15 @@ export interface FileRoutesByFullPath {
   '/finds': typeof FindsRoute
   '/login': typeof LoginRoute
   '/saved': typeof SavedRoute
+  '/steward': typeof StewardRoute
   '/api/report': typeof ApiReportRoute
   '/api/sponsor': typeof ApiSponsorRoute
   '/api/stats': typeof ApiStatsRoute
   '/api/auth/$': typeof ApiAuthSplatRoute
+  '/api/forge/challenge': typeof ApiForgeChallengeRoute
   '/api/forge/finds': typeof ApiForgeFindsRoute
   '/api/forge/session': typeof ApiForgeSessionRoute
+  '/api/forge/steward': typeof ApiForgeStewardRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
@@ -104,12 +125,15 @@ export interface FileRoutesByTo {
   '/finds': typeof FindsRoute
   '/login': typeof LoginRoute
   '/saved': typeof SavedRoute
+  '/steward': typeof StewardRoute
   '/api/report': typeof ApiReportRoute
   '/api/sponsor': typeof ApiSponsorRoute
   '/api/stats': typeof ApiStatsRoute
   '/api/auth/$': typeof ApiAuthSplatRoute
+  '/api/forge/challenge': typeof ApiForgeChallengeRoute
   '/api/forge/finds': typeof ApiForgeFindsRoute
   '/api/forge/session': typeof ApiForgeSessionRoute
+  '/api/forge/steward': typeof ApiForgeStewardRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -119,12 +143,15 @@ export interface FileRoutesById {
   '/finds': typeof FindsRoute
   '/login': typeof LoginRoute
   '/saved': typeof SavedRoute
+  '/steward': typeof StewardRoute
   '/api/report': typeof ApiReportRoute
   '/api/sponsor': typeof ApiSponsorRoute
   '/api/stats': typeof ApiStatsRoute
   '/api/auth/$': typeof ApiAuthSplatRoute
+  '/api/forge/challenge': typeof ApiForgeChallengeRoute
   '/api/forge/finds': typeof ApiForgeFindsRoute
   '/api/forge/session': typeof ApiForgeSessionRoute
+  '/api/forge/steward': typeof ApiForgeStewardRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -135,12 +162,15 @@ export interface FileRouteTypes {
     | '/finds'
     | '/login'
     | '/saved'
+    | '/steward'
     | '/api/report'
     | '/api/sponsor'
     | '/api/stats'
     | '/api/auth/$'
+    | '/api/forge/challenge'
     | '/api/forge/finds'
     | '/api/forge/session'
+    | '/api/forge/steward'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
@@ -149,12 +179,15 @@ export interface FileRouteTypes {
     | '/finds'
     | '/login'
     | '/saved'
+    | '/steward'
     | '/api/report'
     | '/api/sponsor'
     | '/api/stats'
     | '/api/auth/$'
+    | '/api/forge/challenge'
     | '/api/forge/finds'
     | '/api/forge/session'
+    | '/api/forge/steward'
   id:
     | '__root__'
     | '/'
@@ -163,12 +196,15 @@ export interface FileRouteTypes {
     | '/finds'
     | '/login'
     | '/saved'
+    | '/steward'
     | '/api/report'
     | '/api/sponsor'
     | '/api/stats'
     | '/api/auth/$'
+    | '/api/forge/challenge'
     | '/api/forge/finds'
     | '/api/forge/session'
+    | '/api/forge/steward'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -178,12 +214,15 @@ export interface RootRouteChildren {
   FindsRoute: typeof FindsRoute
   LoginRoute: typeof LoginRoute
   SavedRoute: typeof SavedRoute
+  StewardRoute: typeof StewardRoute
   ApiReportRoute: typeof ApiReportRoute
   ApiSponsorRoute: typeof ApiSponsorRoute
   ApiStatsRoute: typeof ApiStatsRoute
   ApiAuthSplatRoute: typeof ApiAuthSplatRoute
+  ApiForgeChallengeRoute: typeof ApiForgeChallengeRoute
   ApiForgeFindsRoute: typeof ApiForgeFindsRoute
   ApiForgeSessionRoute: typeof ApiForgeSessionRoute
+  ApiForgeStewardRoute: typeof ApiForgeStewardRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -230,6 +269,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof SavedRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/steward': {
+      id: '/steward'
+      path: '/steward'
+      fullPath: '/steward'
+      preLoaderRoute: typeof StewardRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/api/report': {
       id: '/api/report'
       path: '/api/report'
@@ -258,6 +304,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiAuthSplatRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/api/forge/challenge': {
+      id: '/api/forge/challenge'
+      path: '/api/forge/challenge'
+      fullPath: '/api/forge/challenge'
+      preLoaderRoute: typeof ApiForgeChallengeRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/api/forge/finds': {
       id: '/api/forge/finds'
       path: '/api/forge/finds'
@@ -272,6 +325,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiForgeSessionRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/api/forge/steward': {
+      id: '/api/forge/steward'
+      path: '/api/forge/steward'
+      fullPath: '/api/forge/steward'
+      preLoaderRoute: typeof ApiForgeStewardRouteImport
+      parentRoute: typeof rootRouteImport
+    }
   }
 }
 
@@ -282,12 +342,15 @@ const rootRouteChildren: RootRouteChildren = {
   FindsRoute: FindsRoute,
   LoginRoute: LoginRoute,
   SavedRoute: SavedRoute,
+  StewardRoute: StewardRoute,
   ApiReportRoute: ApiReportRoute,
   ApiSponsorRoute: ApiSponsorRoute,
   ApiStatsRoute: ApiStatsRoute,
   ApiAuthSplatRoute: ApiAuthSplatRoute,
+  ApiForgeChallengeRoute: ApiForgeChallengeRoute,
   ApiForgeFindsRoute: ApiForgeFindsRoute,
   ApiForgeSessionRoute: ApiForgeSessionRoute,
+  ApiForgeStewardRoute: ApiForgeStewardRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)

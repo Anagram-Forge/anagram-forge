@@ -1,8 +1,8 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useNavigate } from "@tanstack/react-router";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
-import { PENDING_FIND, formatFind, matchesChallenge } from "@/lib/challenge";
+import { PENDING_FIND, WEEK, formatFind, matchesChallenge } from "@/lib/challenge";
 
 export function PostFindButton({
   phrase,
@@ -13,8 +13,19 @@ export function PostFindButton({
 }) {
   const navigate = useNavigate();
   const [busy, setBusy] = useState(false);
+  const [rack, setRack] = useState(WEEK.rack);
+  useEffect(() => {
+    void fetch("/api/forge/challenge")
+      .then((r) => r.json())
+      .then((d: { challenge?: { rack?: string } }) => {
+        if (d.challenge?.rack) setRack(d.challenge.rack);
+      })
+      .catch(() => {
+        /* keep fallback */
+      });
+  }, []);
   const formatted = formatFind(phrase);
-  if (!formatted || !matchesChallenge(formatted)) return null;
+  if (!formatted || !matchesChallenge(formatted, rack)) return null;
 
   async function post() {
     setBusy(true);

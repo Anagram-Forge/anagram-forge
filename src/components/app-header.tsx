@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Link } from "@tanstack/react-router";
 import { Bookmark, BookOpen } from "lucide-react";
 import { SignedIn, SignedOut, UserButton } from "@/lib/auth/gates";
@@ -14,6 +14,13 @@ export function AppHeader({ onTwoLetter }: { onTwoLetter: () => void }) {
   const authOn = import.meta.env.VITE_AUTH_ENABLED === "true";
   const { easy, toggle } = useTypeMode();
   const [notes, setNotes] = useState(false);
+  const [steward, setSteward] = useState(false);
+  useEffect(() => {
+    void fetch("/api/forge/session")
+      .then((r) => r.json())
+      .then((d: { admin?: boolean }) => setSteward(Boolean(d.admin)))
+      .catch(() => setSteward(false));
+  }, []);
 
   return (
     <div>
@@ -39,6 +46,14 @@ export function AppHeader({ onTwoLetter }: { onTwoLetter: () => void }) {
           >
             Finds
           </Link>
+          {steward ? (
+            <Link
+              to="/steward"
+              className="inline-flex h-11 items-center rounded-md px-2 text-sm text-subtle hover:bg-raised hover:text-muted sm:px-3"
+            >
+              Steward
+            </Link>
+          ) : null}
           <Tip label={easy ? "Default type" : "Easier reading"}>
             <button
               type="button"

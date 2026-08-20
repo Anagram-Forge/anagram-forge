@@ -1,6 +1,7 @@
-import { FIND_CAP, WEEK, formatFind } from "@/lib/challenge";
+import { FIND_CAP, WEEK, formatFind, type Week } from "@/lib/challenge";
 import { onlyLetters } from "@/lib/anagram/letters";
 import { handleAllowed } from "@/lib/handle-guard";
+import { isCloudflareWorker } from "@/lib/runtime";
 
 export type User = { id: string; handle: string; passHash: string };
 export type Find = {
@@ -13,8 +14,15 @@ export type Find = {
   created: number;
 };
 
+type Stmt = {
+  bind: (...a: unknown[]) => Stmt;
+  all: () => Promise<{ results: Record<string, unknown>[] }>;
+  run: () => Promise<void>;
+  first: () => Promise<Record<string, unknown> | null>;
+};
+
 type Box = {
-  prepare: (q: string) => { bind: (...a: unknown[]) => { all: () => Promise<{ results: Record<string, unknown>[] }>; run: () => Promise<void>; first: () => Promise<Record<string, unknown> | null> } };
+  prepare: (q: string) => Stmt;
 };
 
 const ram = {
@@ -24,9 +32,14 @@ const ram = {
   votes: new Set<string>(),
   bans: new Set<string>(),
   reported: new Set<string>(),
+  challenge: null as Week | null,
 };
 
-type Kv = { get: (key: string) => Promise<string | null>; put: (key: string, value: string) => Promise<void> };
+type Kv = {
+  get: (key: string) => Promise<string | null>;
+  put: (key: string, value: string) => Promise<void>;
+  list?: (opts: { prefix: string }) => Promise<{ keys: { name: string }[] }>;
+};
 
 async function kv(): Promise<Kv | null> {
   try {
@@ -54,6 +67,59 @@ export async function claimReport(findId: string): Promise<"send" | "dup"> {
   return "send";
 }
 
+export async function getChallenge(): Promise<Week> {
+  const db = await d1();
+  if (db) {
+    try {
+      const row = await db.prepare("SELECT id, label, blurb, rack, mode FROM challenge WHERE k = ?").bind("now").first();
+      if (row?.rack) {
+        const mode = row.mode === "exact" || row.mode === "from-rack" ? row.mode : "phrase";
+        return {
+          id: String(row.id),
+          label: String(row.label || "Challenge"),
+          blurb: String(row.blurb || ""),
+          rack: String(row.rack),
+          mode,
+        };
+      }
+    } catch {
+      /* table missing */
+    }
+  }
+  return ram.challenge ?? WEEK;
+}
+
+export async function setChallenge(next: {
+  label: string;
+  blurb: string;
+  rack: string;
+  mode?: Week["mode"];
+}): Promise<{ ok: true; challenge: Week } | { ok: false; reason: string }> {
+  const rack = next.rack.trim().replace(/\s+/g, " ").slice(0, 80);
+  if (onlyLetters(rack).length < 4) return { ok: false, reason: "Rack needs at least four letters." };
+  const challenge: Week = {
+    id: onlyLetters(rack) || "challenge",
+    label: (next.label || "Challenge").trim().slice(0, 40) || "Challenge",
+    blurb: (next.blurb || "").trim().slice(0, 240),
+    rack,
+    mode: next.mode === "exact" || next.mode === "from-rack" ? next.mode : "phrase",
+  };
+  const db = await d1();
+  if (db) {
+    try {
+      await db
+        .prepare(
+          "INSERT INTO challenge (k, id, label, blurb, rack, mode) VALUES ('now', ?, ?, ?, ?, ?) ON CONFLICT(k) DO UPDATE SET id = excluded.id, label = excluded.label, blurb = excluded.blurb, rack = excluded.rack, mode = excluded.mode",
+        )
+        .bind(challenge.id, challenge.label, challenge.blurb, challenge.rack, challenge.mode)
+        .run();
+    } catch {
+      return { ok: false, reason: "Challenge table isn’t in D1 yet." };
+    }
+  } else ram.challenge = challenge;
+  return { ok: true, challenge };
+}
+
 async function envAdmin(): Promise<string> {
   const fromProcess = typeof process !== "undefined" ? process.env.FORGE_ADMIN?.trim() : "";
   if (fromProcess) return fromProcess;
@@ -70,7 +136,8 @@ async function envAdmin(): Promise<string> {
 export async function isAdminHandle(handle: string | null | undefined): Promise<boolean> {
   if (!handle) return false;
   const admin = await envAdmin();
-  return !!admin && admin.toLowerCase() === handle.toLowerCase();
+  if (admin) return admin.toLowerCase() === handle.toLowerCase();
+  return !isCloudflareWorker();
 }
 
 async function isBanned(handle: string, db: Box | null): Promise<boolean> {
@@ -185,14 +252,15 @@ export function sameRack(phrase: string, rack: string): boolean {
   return a.length >= 4 && a === b;
 }
 
-export async function listFinds(weekId = WEEK.id): Promise<Find[]> {
+export async function listFinds(weekId?: string): Promise<Find[]> {
+  const current = weekId ?? (await getChallenge()).id;
   const db = await d1();
   if (db) {
     const { results } = await db
       .prepare(
         "SELECT f.id, f.week_id, f.user_id, u.handle, f.phrase, f.votes, f.created FROM finds f JOIN users u ON u.id = f.user_id WHERE f.week_id = ? ORDER BY f.votes DESC, f.created ASC",
       )
-      .bind(weekId)
+      .bind(current)
       .all();
     return results.map((r) => ({
       id: String(r.id),
@@ -204,7 +272,7 @@ export async function listFinds(weekId = WEEK.id): Promise<Find[]> {
       created: Number(r.created) || 0,
     }));
   }
-  return ram.finds.filter((f) => f.weekId === weekId).sort((a, b) => b.votes - a.votes || a.created - b.created);
+  return ram.finds.filter((f) => f.weekId === current).sort((a, b) => b.votes - a.votes || a.created - b.created);
 }
 
 export async function getFind(id: string): Promise<Find | null> {
@@ -232,21 +300,22 @@ export async function getFind(id: string): Promise<Find | null> {
 
 export async function addFind(user: { id: string; handle: string }, phrase: string): Promise<{ ok: true; find: Find } | { ok: false; reason: string }> {
   const clean = formatFind(phrase).slice(0, 80);
-  if (!sameRack(clean, WEEK.rack)) return { ok: false, reason: "Has to use this challenge’s letters, all of them." };
+  const week = await getChallenge();
+  if (!sameRack(clean, week.rack)) return { ok: false, reason: "Has to use this challenge’s letters, all of them." };
   const db = await d1();
   if (await isBanned(user.handle, db)) return { ok: false, reason: "That handle isn’t allowed." };
   if (db) {
     const n = await db
       .prepare("SELECT COUNT(*) AS c FROM finds WHERE week_id = ? AND user_id = ?")
-      .bind(WEEK.id, user.id)
+      .bind(week.id, user.id)
       .first();
     if (Number(n?.c) >= FIND_CAP) return { ok: false, reason: "That’s enough for this rack." };
-  } else if (ram.finds.filter((f) => f.weekId === WEEK.id && f.userId === user.id).length >= FIND_CAP) {
+  } else if (ram.finds.filter((f) => f.weekId === week.id && f.userId === user.id).length >= FIND_CAP) {
     return { ok: false, reason: "That’s enough for this rack." };
   }
   const row: Find = {
     id: id(),
-    weekId: WEEK.id,
+    weekId: week.id,
     userId: user.id,
     handle: user.handle,
     phrase: clean,
@@ -263,7 +332,7 @@ export async function addFind(user: { id: string; handle: string }, phrase: stri
       return { ok: false, reason: "Someone already posted that." };
     }
   } else {
-    if (ram.finds.some((f) => f.weekId === WEEK.id && f.phrase.toLowerCase() === clean.toLowerCase())) {
+    if (ram.finds.some((f) => f.weekId === week.id && f.phrase.toLowerCase() === clean.toLowerCase())) {
       return { ok: false, reason: "Someone already posted that." };
     }
     ram.finds.push(row);
@@ -353,4 +422,71 @@ export async function banHandle(adminId: string, targetHandle: string): Promise<
     }
   }
   return { ok: true };
+}
+
+export async function unbanHandle(handle: string): Promise<{ ok: true } | { ok: false; reason: string }> {
+  const h = handle.trim();
+  if (!h) return { ok: false, reason: "Missing." };
+  const db = await d1();
+  if (db) await db.prepare("DELETE FROM bans WHERE handle = ?").bind(h).run();
+  else ram.bans.delete(h.toLowerCase());
+  return { ok: true };
+}
+
+export async function stewardSnapshot() {
+  const db = await d1();
+  const challenge = await getChallenge();
+  const finds = await listFinds(challenge.id);
+  const box = await kv();
+  let visits = 0;
+  let anagrams = 0;
+  const reportedIds: string[] = [];
+  if (box) {
+    visits = Number(await box.get("visits")) || 0;
+    anagrams = Number(await box.get("anagrams")) || 0;
+    if (box.list) {
+      const listed = await box.list({ prefix: "rpt:" });
+      for (const k of listed.keys) reportedIds.push(k.name.slice(4));
+    }
+  } else {
+    reportedIds.push(...ram.reported);
+  }
+  const reported = finds.filter((f) => reportedIds.includes(f.id));
+  type HandleRow = { handle: string; created: number; finds: number; lastPosted: number };
+  let handles: HandleRow[] = [];
+  let bans: { handle: string; created: number }[] = [];
+  if (db) {
+    const users = await db.prepare("SELECT id, handle, created FROM users ORDER BY created DESC").all();
+    const counts = await db.prepare("SELECT user_id, COUNT(*) AS c FROM finds GROUP BY user_id").all();
+    const lasts = await db.prepare("SELECT user_id, MAX(created) AS last FROM finds GROUP BY user_id").all();
+    const cmap = new Map(counts.results.map((r) => [String(r.user_id), Number(r.c) || 0]));
+    const lmap = new Map(lasts.results.map((r) => [String(r.user_id), Number(r.last) || 0]));
+    handles = users.results.map((r) => ({
+      handle: String(r.handle),
+      created: Number(r.created) || 0,
+      finds: cmap.get(String(r.id)) || 0,
+      lastPosted: lmap.get(String(r.id)) || 0,
+    }));
+    try {
+      const b = await db.prepare("SELECT handle, created FROM bans ORDER BY created DESC").all();
+      bans = b.results.map((r) => ({ handle: String(r.handle), created: Number(r.created) || 0 }));
+    } catch {
+      bans = [];
+    }
+  } else {
+    const cmap = new Map<string, number>();
+    const lmap = new Map<string, number>();
+    for (const f of ram.finds) {
+      cmap.set(f.userId, (cmap.get(f.userId) || 0) + 1);
+      lmap.set(f.userId, Math.max(lmap.get(f.userId) || 0, f.created));
+    }
+    handles = ram.users.map((u) => ({
+      handle: u.handle,
+      created: 0,
+      finds: cmap.get(u.id) || 0,
+      lastPosted: lmap.get(u.id) || 0,
+    }));
+    bans = [...ram.bans].map((handle) => ({ handle, created: 0 }));
+  }
+  return { challenge, visits, anagrams, handles, finds, reported, bans };
 }
