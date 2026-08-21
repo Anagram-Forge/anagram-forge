@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from "react";
+import { pingStats } from "@/lib/stats";
 import { hitsAnvil, parkedHammerPos, strikePing, warmRing } from "@/lib/forge-ring";
 
 const SIZE = 30;
@@ -135,6 +136,7 @@ export function ForgeHammer() {
     if (t - cool.current < 700) return;
     cool.current = t;
     strikePing();
+    void pingStats("strike");
     burst(hit.x, hit.y);
     document.getElementById("forge-anvil")?.animate(
       [

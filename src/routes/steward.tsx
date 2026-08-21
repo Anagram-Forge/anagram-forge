@@ -15,6 +15,7 @@ type Snap = {
   challenge: Week;
   visits: number;
   anagrams: number;
+  strikes: number;
   handles: { handle: string; created: number; finds: number; lastPosted: number }[];
   finds: Find[];
   reported: Find[];
@@ -136,7 +137,7 @@ function StewardPage() {
           </Link>
         </p>
         <p className="mt-4 text-sm tabular-nums text-subtle">
-          {snap.visits} visits · {snap.anagrams} anagrams forged · {snap.handles.length} handles · {snap.finds.length} finds
+          {snap.visits} visits · {snap.anagrams} anagrams forged · {snap.strikes} anvil strikes · {snap.handles.length} handles · {snap.finds.length} finds
         </p>
 
         <form onSubmit={saveChallenge} className="mt-10 space-y-3 rounded-md border border-border bg-surface px-4 py-4">

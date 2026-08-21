@@ -591,10 +591,12 @@ export async function stewardSnapshot() {
   const box = await kv();
   let visits = 0;
   let anagrams = 0;
+  let strikes = 0;
   const reportedIds: string[] = [];
   if (box) {
     visits = Number(await box.get("visits")) || 0;
     anagrams = Number(await box.get("anagrams")) || 0;
+    strikes = Number(await box.get("strikes")) || 0;
     if (box.list) {
       const listed = await box.list({ prefix: "rpt:" });
       for (const k of listed.keys) reportedIds.push(k.name.slice(4));
@@ -639,7 +641,7 @@ export async function stewardSnapshot() {
     }));
     bans = [...ram.bans].map((handle) => ({ handle, created: 0 }));
   }
-  return { challenge, visits, anagrams, handles, finds, reported, bans };
+  return { challenge, visits, anagrams, strikes, handles, finds, reported, bans };
 }
 
 const SAVE_CAP = 40;
