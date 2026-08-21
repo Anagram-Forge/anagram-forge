@@ -1,4 +1,5 @@
 import { FIND_CAP, WEEK, formatFind, type Week } from "@/lib/challenge";
+import { lastDays, type DayRow } from "@/lib/stat-day";
 import { onlyLetters } from "@/lib/anagram/letters";
 import { handleAllowed } from "@/lib/handle-guard";
 import { isCloudflareWorker } from "@/lib/runtime";
@@ -592,11 +593,25 @@ export async function stewardSnapshot() {
   let visits = 0;
   let anagrams = 0;
   let strikes = 0;
+  const series: DayRow[] = [];
   const reportedIds: string[] = [];
   if (box) {
     visits = Number(await box.get("visits")) || 0;
     anagrams = Number(await box.get("anagrams")) || 0;
     strikes = Number(await box.get("strikes")) || 0;
+    for (const day of lastDays(14)) {
+      const [v, a, s] = await Promise.all([
+        box.get(`day:visits:${day}`),
+        box.get(`day:anagrams:${day}`),
+        box.get(`day:strikes:${day}`),
+      ]);
+      series.push({
+        day,
+        visits: Number(v) || 0,
+        anagrams: Number(a) || 0,
+        strikes: Number(s) || 0,
+      });
+    }
     if (box.list) {
       const listed = await box.list({ prefix: "rpt:" });
       for (const k of listed.keys) reportedIds.push(k.name.slice(4));
@@ -640,8 +655,11 @@ export async function stewardSnapshot() {
       lastPosted: lmap.get(u.id) || 0,
     }));
     bans = [...ram.bans].map((handle) => ({ handle, created: 0 }));
+    series.push(
+      ...lastDays(14).map((day) => ({ day, visits: 0, anagrams: 0, strikes: 0 })),
+    );
   }
-  return { challenge, visits, anagrams, strikes, handles, finds, reported, bans };
+  return { challenge, visits, anagrams, strikes, series, handles, finds, reported, bans };
 }
 
 const SAVE_CAP = 40;

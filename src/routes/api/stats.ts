@@ -1,4 +1,5 @@
-import { createFileRoute } from "@tanstack/react-router";
+import { createFileRoute } from '@tanstack/react-router'
+import { lastDays, todayNY, type DayRow } from "@/lib/stat-day";
 
 type Kind = "visit" | "anagram" | "strike";
 type Box = {
@@ -6,7 +7,12 @@ type Box = {
   put: (key: string, value: string) => Promise<void>;
 };
 
-const ram = { visits: 0, anagrams: 0, strikes: 0 };
+const ram = {
+  visits: 0,
+  anagrams: 0,
+  strikes: 0,
+  days: {} as Record<string, { visits: number; anagrams: number; strikes: number }>,
+};
 const lastHit = new Map<string, { visit: number; anagram: number; strike: number }>();
 
 function ipOf(request: Request): string {
@@ -38,24 +44,66 @@ async function read(box: Box | null) {
   };
 }
 
-async function write(box: Box | null, next: { visits: number; anagrams: number; strikes: number }) {
-  if (!box) {
+async function write(store: Box | null, next: { visits: number; anagrams: number; strikes: number }) {
+  if (!store) {
     ram.visits = next.visits;
     ram.anagrams = next.anagrams;
     ram.strikes = next.strikes;
     return;
   }
   await Promise.all([
-    box.put("visits", String(next.visits)),
-    box.put("anagrams", String(next.anagrams)),
-    box.put("strikes", String(next.strikes)),
+    store.put("visits", String(next.visits)),
+    store.put("anagrams", String(next.anagrams)),
+    store.put("strikes", String(next.strikes)),
   ]);
+}
+
+async function bumpDay(store: Box | null, kind: Kind) {
+  const day = todayNY();
+  if (!store) {
+    ram.days[day] = ram.days[day] || { visits: 0, anagrams: 0, strikes: 0 };
+    ram.days[day][kind === "visit" ? "visits" : kind === "anagram" ? "anagrams" : "strikes"] += 1;
+    return;
+  }
+  const key = `day:${kind}:${day}`;
+  const n = Number(await store.get(key)) || 0;
+  await store.put(key, String(n + 1));
+}
+
+async function readSeries(store: Box | null): Promise<DayRow[]> {
+  const days = lastDays(14);
+  if (!store) {
+    return days.map((day) => ({
+      day,
+      visits: ram.days[day]?.visits || 0,
+      anagrams: ram.days[day]?.anagrams || 0,
+      strikes: ram.days[day]?.strikes || 0,
+    }));
+  }
+  const rows: DayRow[] = [];
+  for (const day of days) {
+    const [visits, anagrams, strikes] = await Promise.all([
+      store.get(`day:visits:${day}`),
+      store.get(`day:anagrams:${day}`),
+      store.get(`day:strikes:${day}`),
+    ]);
+    rows.push({
+      day,
+      visits: Number(visits) || 0,
+      anagrams: Number(anagrams) || 0,
+      strikes: Number(strikes) || 0,
+    });
+  }
+  return rows;
 }
 
 export const Route = createFileRoute("/api/stats")({
   server: {
     handlers: {
-      GET: async () => Response.json(await read(await box())),
+      GET: async () => {
+        const store = await box();
+        return Response.json(await read(store));
+      },
       POST: async ({ request }) => {
         let kind: Kind = "visit";
         try {
@@ -84,6 +132,7 @@ export const Route = createFileRoute("/api/stats")({
           cur.anagrams += 1;
         }
         await write(store, cur);
+        await bumpDay(store, kind);
         return Response.json(cur);
       },
     },

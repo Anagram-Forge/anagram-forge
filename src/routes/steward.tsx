@@ -6,7 +6,9 @@ import { TwoLetterPanel } from "@/components/two-letter-panel";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { WEEK, type Week } from "@/lib/challenge";
+import { StewardPulse } from "@/components/steward-pulse";
 import type { Find } from "@/lib/forge-db";
+import type { DayRow } from "@/lib/stat-day";
 
 export const Route = createFileRoute("/steward")({ component: StewardPage });
 
@@ -16,6 +18,7 @@ type Snap = {
   visits: number;
   anagrams: number;
   strikes: number;
+  series?: DayRow[];
   handles: { handle: string; created: number; finds: number; lastPosted: number }[];
   finds: Find[];
   reported: Find[];
@@ -136,9 +139,14 @@ function StewardPage() {
             Archive
           </Link>
         </p>
-        <p className="mt-4 text-sm tabular-nums text-subtle">
-          {snap.visits} visits · {snap.anagrams} anagrams forged · {snap.strikes} anvil strikes · {snap.handles.length} handles · {snap.finds.length} finds
-        </p>
+        <StewardPulse
+          visits={snap.visits}
+          anagrams={snap.anagrams}
+          strikes={snap.strikes}
+          handles={snap.handles.length}
+          finds={snap.finds.length}
+          series={snap.series || []}
+        />
 
         <form onSubmit={saveChallenge} className="mt-10 space-y-3 rounded-md border border-border bg-surface px-4 py-4">
           <p className="text-[10px] font-medium uppercase tracking-[0.16em] text-accent">Challenge</p>
