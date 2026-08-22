@@ -13,7 +13,7 @@ export function SupportSlot() {
 
   return (
     <aside className="mt-16 border-t border-border/70 pt-8 pb-10">
-      <div className="mx-auto max-w-xl text-center">
+      <div className="mx-auto max-w-2xl text-center">
         {open === null ? (
           <div className="flex flex-col items-center gap-2">
             <SiteStats />

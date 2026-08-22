@@ -4,10 +4,10 @@ import { fetchStats, pingStats, type Stats } from "@/lib/stats";
 
 const VISIT_KEY = "af-visit";
 
-function line(s: Stats) {
-  const v = s.visits.toLocaleString();
-  const a = s.anagrams.toLocaleString();
-  return `${v} visit${s.visits === 1 ? "" : "s"} · ${a} anagram${s.anagrams === 1 ? "" : "s"} forged`;
+function bits(s: Stats) {
+  const v = `${s.visits.toLocaleString()} visit${s.visits === 1 ? "" : "s"}`;
+  const a = `${s.anagrams.toLocaleString()} anagram${s.anagrams === 1 ? "" : "s"} forged`;
+  return { v, a };
 }
 
 export function SiteStats() {
@@ -34,13 +34,21 @@ export function SiteStats() {
     };
   }, []);
 
+  const { v, a } = stats ? bits(stats) : { v: "", a: "" };
+
   return (
-    <div className="mb-3 flex items-end justify-center gap-2.5">
+    <div className="mb-3 grid w-full grid-cols-[1fr_auto_1fr] items-center gap-x-3">
       {stats ? (
-        <p className="text-[11px] tabular-nums tracking-wide text-subtle/80">{line(stats)}</p>
-      ) : null}
+        <p className="text-right text-[11px] tabular-nums tracking-wide text-subtle/80">{v}</p>
+      ) : (
+        <span />
+      )}
       <ForgeAnvil />
-      <span className="inline-block h-14 w-8" aria-hidden />
+      {stats ? (
+        <p className="text-left text-[11px] tabular-nums tracking-wide text-subtle/80">{a}</p>
+      ) : (
+        <span />
+      )}
     </div>
   );
 }
