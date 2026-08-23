@@ -24,6 +24,7 @@ import { Route as ApiSponsorRouteImport } from './routes/api/sponsor'
 import { Route as ApiStatsRouteImport } from './routes/api/stats'
 import { Route as ApiAuthSplatRouteImport } from './routes/api/auth/$'
 import { Route as ApiForgeArchiveRouteImport } from './routes/api/forge/archive'
+import { Route as ApiForgeBedRouteImport } from './routes/api/forge/bed'
 import { Route as ApiForgeChallengeRouteImport } from './routes/api/forge/challenge'
 import { Route as ApiForgeDoorRouteImport } from './routes/api/forge/door'
 import { Route as ApiForgeFindsRouteImport } from './routes/api/forge/finds'
@@ -106,6 +107,11 @@ const ApiForgeArchiveRoute = ApiForgeArchiveRouteImport.update({
   path: '/api/forge/archive',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ApiForgeBedRoute = ApiForgeBedRouteImport.update({
+  id: '/api/forge/bed',
+  path: '/api/forge/bed',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const ApiForgeChallengeRoute = ApiForgeChallengeRouteImport.update({
   id: '/api/forge/challenge',
   path: '/api/forge/challenge',
@@ -153,6 +159,7 @@ export interface FileRoutesByFullPath {
   '/api/stats': typeof ApiStatsRoute
   '/api/auth/$': typeof ApiAuthSplatRoute
   '/api/forge/archive': typeof ApiForgeArchiveRoute
+  '/api/forge/bed': typeof ApiForgeBedRoute
   '/api/forge/challenge': typeof ApiForgeChallengeRoute
   '/api/forge/door': typeof ApiForgeDoorRoute
   '/api/forge/finds': typeof ApiForgeFindsRoute
@@ -176,6 +183,7 @@ export interface FileRoutesByTo {
   '/api/stats': typeof ApiStatsRoute
   '/api/auth/$': typeof ApiAuthSplatRoute
   '/api/forge/archive': typeof ApiForgeArchiveRoute
+  '/api/forge/bed': typeof ApiForgeBedRoute
   '/api/forge/challenge': typeof ApiForgeChallengeRoute
   '/api/forge/door': typeof ApiForgeDoorRoute
   '/api/forge/finds': typeof ApiForgeFindsRoute
@@ -200,6 +208,7 @@ export interface FileRoutesById {
   '/api/stats': typeof ApiStatsRoute
   '/api/auth/$': typeof ApiAuthSplatRoute
   '/api/forge/archive': typeof ApiForgeArchiveRoute
+  '/api/forge/bed': typeof ApiForgeBedRoute
   '/api/forge/challenge': typeof ApiForgeChallengeRoute
   '/api/forge/door': typeof ApiForgeDoorRoute
   '/api/forge/finds': typeof ApiForgeFindsRoute
@@ -225,6 +234,7 @@ export interface FileRouteTypes {
     | '/api/stats'
     | '/api/auth/$'
     | '/api/forge/archive'
+    | '/api/forge/bed'
     | '/api/forge/challenge'
     | '/api/forge/door'
     | '/api/forge/finds'
@@ -248,6 +258,7 @@ export interface FileRouteTypes {
     | '/api/stats'
     | '/api/auth/$'
     | '/api/forge/archive'
+    | '/api/forge/bed'
     | '/api/forge/challenge'
     | '/api/forge/door'
     | '/api/forge/finds'
@@ -271,6 +282,7 @@ export interface FileRouteTypes {
     | '/api/stats'
     | '/api/auth/$'
     | '/api/forge/archive'
+    | '/api/forge/bed'
     | '/api/forge/challenge'
     | '/api/forge/door'
     | '/api/forge/finds'
@@ -295,6 +307,7 @@ export interface RootRouteChildren {
   ApiStatsRoute: typeof ApiStatsRoute
   ApiAuthSplatRoute: typeof ApiAuthSplatRoute
   ApiForgeArchiveRoute: typeof ApiForgeArchiveRoute
+  ApiForgeBedRoute: typeof ApiForgeBedRoute
   ApiForgeChallengeRoute: typeof ApiForgeChallengeRoute
   ApiForgeDoorRoute: typeof ApiForgeDoorRoute
   ApiForgeFindsRoute: typeof ApiForgeFindsRoute
@@ -410,6 +423,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiForgeArchiveRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/api/forge/bed': {
+      id: '/api/forge/bed'
+      path: '/api/forge/bed'
+      fullPath: '/api/forge/bed'
+      preLoaderRoute: typeof ApiForgeBedRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/api/forge/challenge': {
       id: '/api/forge/challenge'
       path: '/api/forge/challenge'
@@ -471,6 +491,7 @@ const rootRouteChildren: RootRouteChildren = {
   ApiStatsRoute: ApiStatsRoute,
   ApiAuthSplatRoute: ApiAuthSplatRoute,
   ApiForgeArchiveRoute: ApiForgeArchiveRoute,
+  ApiForgeBedRoute: ApiForgeBedRoute,
   ApiForgeChallengeRoute: ApiForgeChallengeRoute,
   ApiForgeDoorRoute: ApiForgeDoorRoute,
   ApiForgeFindsRoute: ApiForgeFindsRoute,

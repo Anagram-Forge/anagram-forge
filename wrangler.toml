@@ -7,7 +7,7 @@ pages_build_output_dir = "dist"
 binding = "STATS"
 id = "2a504adec2eb4b6cbc029a2537a1ce17"
 
-[[d1_databases]]
-binding = "DB"
-database_name = "anagram-forge"
-database_id = "1120143a-79d9-415c-93fa-862069dfa2bb"
+[[r2_buckets]]
+binding = "MEDIA"
+bucket_name = "anagram-forge-media"
+

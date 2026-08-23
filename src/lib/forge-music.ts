@@ -28,7 +28,7 @@ let volume = 0.32;
 const watchers = new Set<(s: Snap) => void>();
 
 function srcOf(next: BedId) {
-  return `/sounds/${next}.mp3`;
+  return `/api/forge/bed?id=${next}`;
 }
 
 function read<T>(key: string, fallback: T, parse: (v: string) => T | null): T {

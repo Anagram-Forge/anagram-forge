@@ -14,5 +14,16 @@ declare module "cloudflare:workers" {
       get: (key: string) => Promise<string | null>;
       put: (key: string, value: string) => Promise<void>;
     };
+    MEDIA?: {
+      get: (
+        key: string,
+        opts?: { range?: { offset: number; length?: number } },
+      ) => Promise<{
+        body: ReadableStream;
+        size: number;
+        httpEtag: string;
+        writeHttpMetadata: (headers: Headers) => void;
+      } | null>;
+    };
   };
 }
