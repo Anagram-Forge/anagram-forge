@@ -5,13 +5,17 @@ export function LetterRack({
   blanks,
   tone = "tile",
   ghost,
+  order,
 }: {
   letters: string;
   blanks: number;
   tone?: "tile" | "night";
   ghost?: boolean;
+  order?: number[] | null;
 }) {
-  const tiles = [...letters.toUpperCase(), ...Array.from({ length: blanks }, () => "?")];
+  const raw = [...letters.toUpperCase(), ...Array.from({ length: blanks }, () => "?")];
+  const tiles =
+    order && order.length === raw.length ? order.map((i) => raw[i] ?? "") : raw;
   if (tiles.length === 0) return null;
   return (
     <div className={cn("flex flex-wrap justify-center gap-2", ghost && "opacity-40")} aria-label={ghost ? undefined : "Letter rack"} aria-hidden={ghost || undefined}>

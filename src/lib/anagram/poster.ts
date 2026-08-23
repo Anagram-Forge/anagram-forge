@@ -84,6 +84,24 @@ function fontCss(style: CardStyle): string {
   return `${italic}${weight} ${style.size}px "${face.family}", ${face.fallback}`;
 }
 
+async function ensureSignatureFont() {
+  if (typeof document === "undefined") return;
+  const id = "card-font-vibes";
+  if (!document.getElementById(id)) {
+    const link = document.createElement("link");
+    link.id = id;
+    link.rel = "stylesheet";
+    link.href = "https://fonts.googleapis.com/css2?family=Great+Vibes&display=swap";
+    document.head.appendChild(link);
+  }
+  try {
+    await document.fonts.load('400 64px "Great Vibes"');
+    await document.fonts.ready;
+  } catch {
+    /* fallback */
+  }
+}
+
 async function ensureFont(style: CardStyle) {
   if (typeof document === "undefined") return;
   const face = spec(style.font);
@@ -215,8 +233,14 @@ function drawPaths(
   ctx.restore();
 }
 
-export async function renderAnagramCard(from: string, to: string, style: CardStyle = DEFAULT_CARD_STYLE): Promise<string> {
+export async function renderAnagramCard(
+  from: string,
+  to: string,
+  style: CardStyle = DEFAULT_CARD_STYLE,
+  sign?: string,
+): Promise<string> {
   await ensureFont(style);
+  if (sign) await ensureSignatureFont();
   const w = 1600;
   const h = 900;
   const canvas = document.createElement("canvas");
@@ -267,6 +291,17 @@ export async function renderAnagramCard(from: string, to: string, style: CardSty
 
   if (style.paths) {
     drawPaths(ctx, pairGlyphs(topGlyphs, botGlyphs), topSize, botSize, style.path);
+  }
+
+  if (sign) {
+    ctx.save();
+    ctx.fillStyle = "#d4a24c";
+    ctx.globalAlpha = 0.82;
+    ctx.textAlign = "right";
+    ctx.textBaseline = "alphabetic";
+    ctx.font = '400 64px "Great Vibes", "Palatino Linotype", cursive';
+    ctx.fillText(sign, w - 72, h - 56);
+    ctx.restore();
   }
 
   return canvas.toDataURL("image/png");

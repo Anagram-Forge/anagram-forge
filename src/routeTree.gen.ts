@@ -17,6 +17,7 @@ import { Route as FindsRouteImport } from './routes/finds'
 import { Route as LoginRouteImport } from './routes/login'
 import { Route as SavedRouteImport } from './routes/saved'
 import { Route as StewardRouteImport } from './routes/steward'
+import { Route as TheWayRouteImport } from './routes/the-way'
 import { Route as ApiReportRouteImport } from './routes/api/report'
 import { Route as ApiSponsorRouteImport } from './routes/api/sponsor'
 import { Route as ApiStatsRouteImport } from './routes/api/stats'
@@ -66,6 +67,11 @@ const SavedRoute = SavedRouteImport.update({
 const StewardRoute = StewardRouteImport.update({
   id: '/steward',
   path: '/steward',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const TheWayRoute = TheWayRouteImport.update({
+  id: '/the-way',
+  path: '/the-way',
   getParentRoute: () => rootRouteImport,
 } as any)
 const ApiReportRoute = ApiReportRouteImport.update({
@@ -128,6 +134,7 @@ export interface FileRoutesByFullPath {
   '/login': typeof LoginRoute
   '/saved': typeof SavedRoute
   '/steward': typeof StewardRoute
+  '/the-way': typeof TheWayRoute
   '/api/report': typeof ApiReportRoute
   '/api/sponsor': typeof ApiSponsorRoute
   '/api/stats': typeof ApiStatsRoute
@@ -148,6 +155,7 @@ export interface FileRoutesByTo {
   '/login': typeof LoginRoute
   '/saved': typeof SavedRoute
   '/steward': typeof StewardRoute
+  '/the-way': typeof TheWayRoute
   '/api/report': typeof ApiReportRoute
   '/api/sponsor': typeof ApiSponsorRoute
   '/api/stats': typeof ApiStatsRoute
@@ -169,6 +177,7 @@ export interface FileRoutesById {
   '/login': typeof LoginRoute
   '/saved': typeof SavedRoute
   '/steward': typeof StewardRoute
+  '/the-way': typeof TheWayRoute
   '/api/report': typeof ApiReportRoute
   '/api/sponsor': typeof ApiSponsorRoute
   '/api/stats': typeof ApiStatsRoute
@@ -191,6 +200,7 @@ export interface FileRouteTypes {
     | '/login'
     | '/saved'
     | '/steward'
+    | '/the-way'
     | '/api/report'
     | '/api/sponsor'
     | '/api/stats'
@@ -211,6 +221,7 @@ export interface FileRouteTypes {
     | '/login'
     | '/saved'
     | '/steward'
+    | '/the-way'
     | '/api/report'
     | '/api/sponsor'
     | '/api/stats'
@@ -231,6 +242,7 @@ export interface FileRouteTypes {
     | '/login'
     | '/saved'
     | '/steward'
+    | '/the-way'
     | '/api/report'
     | '/api/sponsor'
     | '/api/stats'
@@ -252,6 +264,7 @@ export interface RootRouteChildren {
   LoginRoute: typeof LoginRoute
   SavedRoute: typeof SavedRoute
   StewardRoute: typeof StewardRoute
+  TheWayRoute: typeof TheWayRoute
   ApiReportRoute: typeof ApiReportRoute
   ApiSponsorRoute: typeof ApiSponsorRoute
   ApiStatsRoute: typeof ApiStatsRoute
@@ -320,6 +333,13 @@ declare module '@tanstack/react-router' {
       path: '/steward'
       fullPath: '/steward'
       preLoaderRoute: typeof StewardRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/the-way': {
+      id: '/the-way'
+      path: '/the-way'
+      fullPath: '/the-way'
+      preLoaderRoute: typeof TheWayRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/api/report': {
@@ -404,6 +424,7 @@ const rootRouteChildren: RootRouteChildren = {
   LoginRoute: LoginRoute,
   SavedRoute: SavedRoute,
   StewardRoute: StewardRoute,
+  TheWayRoute: TheWayRoute,
   ApiReportRoute: ApiReportRoute,
   ApiSponsorRoute: ApiSponsorRoute,
   ApiStatsRoute: ApiStatsRoute,

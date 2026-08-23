@@ -1,5 +1,6 @@
 import { ChevronLeft, ChevronRight, Download, ImageIcon, X } from "lucide-react";
 import { useEffect, useState } from "react";
+import { Link } from "@tanstack/react-router";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import {
@@ -13,6 +14,7 @@ import {
   renderAnagramCard,
   type CardStyle,
 } from "@/lib/anagram/poster";
+import { DOOR_PATH, DOOR_SIGN, doorOpen, markDoor } from "@/lib/side-door";
 import { cn } from "@/lib/utils";
 
 export function PickChips({
@@ -120,12 +122,14 @@ export function AnagramCardButton({
   const from = displayRack(source);
   const to = picks.join(" ");
   const face = CARD_FONTS.find((f) => f.id === style.font) ?? CARD_FONTS[0];
+  const door = doorOpen(source, picks);
 
   useEffect(() => {
     if (!open) return;
     let live = true;
     setBusy(true);
-    renderAnagramCard(from, to, style)
+    if (door) markDoor();
+    renderAnagramCard(from, to, style, door ? DOOR_SIGN : undefined)
       .then((url) => {
         if (live) setSrc(url);
       })
@@ -138,7 +142,7 @@ export function AnagramCardButton({
     return () => {
       live = false;
     };
-  }, [open, from, to, style]);
+  }, [open, from, to, style, door]);
 
   function patch(next: Partial<CardStyle>) {
     setStyle((cur) => {
@@ -317,7 +321,7 @@ export function AnagramCardButton({
               </div>
             </div>
 
-            <div className="mt-4 overflow-hidden rounded-md border border-border" style={{ background: style.paper }}>
+            <div className="relative mt-4 overflow-hidden rounded-md border border-border" style={{ background: style.paper }}>
               {src ? (
                 <img src={src} alt={`${from} becomes ${to}`} className="block w-full" />
               ) : (
@@ -325,6 +329,15 @@ export function AnagramCardButton({
                   {busy ? "Drawing…" : "Preview"}
                 </div>
               )}
+              {door && src ? (
+                <Link
+                  to={DOOR_PATH}
+                  className="door-sign absolute bottom-[4.5%] right-[5%] text-[clamp(1.25rem,3.6vw,1.85rem)] leading-none"
+                  onClick={() => markDoor()}
+                >
+                  {DOOR_SIGN}
+                </Link>
+              ) : null}
             </div>
             <div className="mt-4 flex flex-wrap gap-2">
               <Button type="button" onClick={download} disabled={!src}>

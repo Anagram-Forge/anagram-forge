@@ -4,6 +4,8 @@ import { hitsAnvil, parkedHammerPos, strikePing, warmRing } from "@/lib/forge-ri
 
 const SIZE = 30;
 const COLORS = ["#fff6d0", "#ffe08a", "#ffb347", "#ff6a1a", "#d4a24c", "#ff4500", "#fff"];
+const WORDS = ["iron", "sharpens", "iron"] as const;
+const RARE = ["crucible", "furnace", "gold"] as const;
 
 function clamp(n: number, min: number, max: number) {
   return Math.max(min, Math.min(max, n));
@@ -17,6 +19,7 @@ function docSize() {
 }
 
 type Bit = {
+  kind: "word" | "streak";
   x: number;
   y: number;
   vx: number;
@@ -25,7 +28,9 @@ type Bit = {
   max: number;
   w: number;
   h: number;
+  size: number;
   color: string;
+  word: string;
 };
 
 export function ForgeHammer() {
@@ -81,21 +86,38 @@ export function ForgeHammer() {
       b.life -= 0.016;
       if (b.life <= 0) continue;
       const a = Math.max(0, b.life / b.max);
-      ctx.globalAlpha = a;
-      ctx.strokeStyle = b.color;
-      ctx.lineWidth = b.w;
-      ctx.lineCap = "round";
       const ang = Math.atan2(b.vy, b.vx);
-      ctx.beginPath();
-      ctx.moveTo(b.x, b.y);
-      ctx.lineTo(b.x - Math.cos(ang) * b.h, b.y - Math.sin(ang) * b.h);
-      ctx.stroke();
-      if (a > 0.6 && Math.random() > 0.7) {
-        ctx.fillStyle = "#fff6d0";
-        ctx.globalAlpha = (a - 0.5) * 0.8;
+      if (b.kind === "word") {
+        ctx.save();
+        ctx.translate(b.x, b.y);
+        ctx.rotate(ang);
+        ctx.globalAlpha = a;
+        ctx.fillStyle = b.color;
+        ctx.font = `${b.size}px Fraunces, "Times New Roman", serif`;
+        ctx.textAlign = "center";
+        ctx.textBaseline = "middle";
+        if (a > 0.45) {
+          ctx.shadowColor = "#ffe08a";
+          ctx.shadowBlur = 5;
+        }
+        ctx.fillText(b.word, 0, 0);
+        ctx.restore();
+      } else {
+        ctx.globalAlpha = a;
+        ctx.strokeStyle = b.color;
+        ctx.lineWidth = b.w;
+        ctx.lineCap = "round";
         ctx.beginPath();
-        ctx.arc(b.x, b.y, 1.2, 0, Math.PI * 2);
-        ctx.fill();
+        ctx.moveTo(b.x, b.y);
+        ctx.lineTo(b.x - Math.cos(ang) * b.h, b.y - Math.sin(ang) * b.h);
+        ctx.stroke();
+        if (a > 0.6 && Math.random() > 0.7) {
+          ctx.fillStyle = "#fff6d0";
+          ctx.globalAlpha = (a - 0.5) * 0.8;
+          ctx.beginPath();
+          ctx.arc(b.x, b.y, 1.2, 0, Math.PI * 2);
+          ctx.fill();
+        }
       }
       next.push(b);
     }
@@ -107,11 +129,29 @@ export function ForgeHammer() {
 
   const burst = (x: number, y: number) => {
     if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) return;
-    const n = 70;
-    for (let i = 0; i < n; i++) {
+    const pushWord = (word: string) => {
+      const ang = Math.random() * Math.PI * 2;
+      const speed = 1.8 + Math.random() * 8.5;
+      bits.current.push({
+        kind: "word",
+        x: x + (Math.random() - 0.5) * 10,
+        y: y + (Math.random() - 0.5) * 6,
+        vx: Math.cos(ang) * speed,
+        vy: Math.sin(ang) * speed - 5.2,
+        max: 0.85 + Math.random() * 0.7,
+        life: 0.85 + Math.random() * 0.7,
+        w: 0,
+        h: 0,
+        size: 8 + Math.random() * 3.5,
+        color: COLORS[(Math.random() * COLORS.length) | 0],
+        word,
+      });
+    };
+    for (let i = 0; i < 70; i++) {
       const ang = Math.random() * Math.PI * 2;
       const speed = 2.5 + Math.random() * 13;
       bits.current.push({
+        kind: "streak",
         x: x + (Math.random() - 0.5) * 8,
         y: y + (Math.random() - 0.5) * 4,
         vx: Math.cos(ang) * speed,
@@ -120,8 +160,16 @@ export function ForgeHammer() {
         life: 0.45 + Math.random() * 0.85,
         w: 1 + Math.random() * 2.2,
         h: 8 + Math.random() * 22,
+        size: 0,
         color: COLORS[(Math.random() * COLORS.length) | 0],
+        word: "",
       });
+    }
+    if (Math.random() < 0.28) {
+      for (let i = 0; i < 3; i++) pushWord(WORDS[i % WORDS.length]);
+    }
+    if (Math.random() < 0.08) {
+      pushWord(RARE[(Math.random() * RARE.length) | 0]);
     }
     cancelAnimationFrame(raf.current);
     raf.current = requestAnimationFrame(paint);

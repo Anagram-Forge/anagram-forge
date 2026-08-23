@@ -98,6 +98,18 @@ function totalLeft(p: { leftover: string }): number {
   return p.leftover.length;
 }
 
+function shuffleOrder(n: number): number[] {
+  const a = Array.from({ length: n }, (_, i) => i);
+  for (let i = n - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [a[i], a[j]] = [a[j]!, a[i]!];
+  }
+  if (n > 1 && a.every((v, i) => v === i)) {
+    [a[0], a[1]] = [a[1]!, a[0]!];
+  }
+  return a;
+}
+
 function Home() {
   const search = Route.useSearch();
   const navigate = useNavigate({ from: "/" });
@@ -123,6 +135,7 @@ function Home() {
   const [picks, setPicks] = useState<string[]>([]);
   const [joinLeft, setJoinLeft] = useState("");
   const [collapsed, setCollapsed] = useState<Set<number>>(() => new Set());
+  const [tileOrder, setTileOrder] = useState<number[] | null>(null);
 
   useEffect(() => {
     let live = true;
@@ -179,6 +192,7 @@ function Home() {
   useEffect(() => {
     setPicks([]);
     setCollapsed(new Set());
+    setTileOrder(null);
   }, [parsed.letters, parsed.blanks]);
 
   const result = useMemo(() => {
@@ -355,10 +369,31 @@ function Home() {
           </label>
           <div className="mt-6">
             {parsed.letters || parsed.blanks ? (
-              <LetterRack letters={parsed.letters} blanks={parsed.blanks} tone="night" />
+              <LetterRack letters={parsed.letters} blanks={parsed.blanks} tone="night" order={tileOrder} />
             ) : null}
           </div>
           <div className="mt-3 flex justify-center gap-4">
+            <button
+              type="button"
+              disabled={parsed.letters.length + parsed.blanks < 2}
+              onClick={() => {
+                const n = parsed.letters.length + parsed.blanks;
+                if (n < 2) return;
+                if (tileOrder) setTileOrder(null);
+                else setTileOrder(shuffleOrder(n));
+              }}
+              className="text-[11px] text-subtle hover:text-muted disabled:cursor-not-allowed disabled:opacity-40"
+              aria-label={tileOrder ? "Unscramble letter tiles" : "Scramble letter tiles"}
+            >
+              {tileOrder ? (
+                <>
+                  <span className="text-subtle/55">un-</span>
+                  scramble
+                </>
+              ) : (
+                "scramble"
+              )}
+            </button>
             <button
               type="button"
               disabled={onlyLetters(letters).length < 2}
@@ -485,7 +520,7 @@ function Home() {
           />
 
           <div className="mt-5">
-            <LetterRack letters={parsed.letters} blanks={parsed.blanks} />
+            <LetterRack letters={parsed.letters} blanks={parsed.blanks} order={tileOrder} />
             <p className="mt-2 font-mono text-xs tabular-nums text-subtle">
               {parsed.letters.length} letters
               {parsed.blanks ? ` · ${parsed.blanks} blank${parsed.blanks === 1 ? "" : "s"}` : ""}
