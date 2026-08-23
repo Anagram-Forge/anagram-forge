@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { WEEK, type Week } from "@/lib/challenge";
 import { StewardPulse } from "@/components/steward-pulse";
+import { ForgeAnvil } from "@/components/forge-anvil";
 import type { Find } from "@/lib/forge-db";
 import type { DayRow } from "@/lib/stat-day";
 
@@ -147,6 +148,16 @@ function StewardPage() {
           finds={snap.finds.length}
           series={snap.series || []}
         />
+
+        <section className="mt-10 rounded-md border border-border bg-surface px-4 py-4">
+          <p className="text-[10px] font-medium uppercase tracking-[0.16em] text-accent">Spark range</p>
+          <p className="mt-1 text-sm text-muted">
+            Same hammer. Each strike cycles metal → iron sharpens iron → crucible furnace gold. Does not count.
+          </p>
+          <div className="mt-6 flex justify-center pb-4">
+            <ForgeAnvil demo />
+          </div>
+        </section>
 
         <form onSubmit={saveChallenge} className="mt-10 space-y-3 rounded-md border border-border bg-surface px-4 py-4">
           <p className="text-[10px] font-medium uppercase tracking-[0.16em] text-accent">Challenge</p>

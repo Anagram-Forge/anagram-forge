@@ -1,7 +1,14 @@
-export function ForgeAnvil() {
+import { useEffect } from "react";
+
+export function ForgeAnvil({ demo }: { demo?: boolean }) {
+  useEffect(() => {
+    window.dispatchEvent(new Event("af-anvil"));
+  }, [demo]);
+
   return (
     <span
       id="forge-anvil"
+      data-forge={demo ? "demo" : undefined}
       className="inline-flex h-10 w-[4.25rem] items-center text-accent"
       aria-hidden
     >

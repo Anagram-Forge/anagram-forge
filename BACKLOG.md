@@ -12,7 +12,7 @@ Aa / easier type exists. Still owed: contrast, focus rings, keyboard, screen rea
 
 ## Background music
 
-A small music-note toggle. Free/CC or a paid web license, hosted by us. Do **not** rip YouTube playlists.
+Note: first click plays (no panel). Hover after that for a tiny mixer — skip, pause, volume, AlkaKrab link. No track list. Pack gitignored; R2 before production.
 
 ## Security checkup
 
@@ -39,8 +39,9 @@ Cloudflare Web Analytics with **bot filtering** when we want “how many humans,
 - Anvil silhouette (user will tweak)
 - **Strike sparks as verses** — default = original metal streaks. Rare (~1 in 4) **iron / sharpens / iron**. Rarer (~1 in 12) **crucible / furnace / gold**. Reduced-motion: skip.
 - **Rare strikes, more distinct** — verse/gold bursts need a subtler tell vs normal sparks (slower flight is one option; also: linger, slightly larger type, quieter extra ping). Open.
+- **Muted rare-strike sound** — a quieter hammer ping (or a different sample) when the verse/gold burst fires, so it reads as rare without a louder hit. Steward spark-range is for previewing bursts, not the sound.
 - **Steward: The Way visits** — count page hits on `/w` (cookie-gated). Capital **W**.
-- **Finds challenge loop** — incentives for the current top-voted find; expiration/rotation model for challenges (not locked to weekly yet).
+- **Constellation sparks** — gold motes that drift letter-to-letter in the background anagram sky. Must stay rare/slow so it doesn’t fight the solver. Think first; don’t crank motion.
 
 ## Side quests (hidden page)
 

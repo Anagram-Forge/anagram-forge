@@ -26,7 +26,7 @@ export function hitsAnvil(hammer: DOMRect) {
   const hy = hammer.top + hammer.height * 0.28;
   const pad = 10;
   if (hx < a.left - pad || hx > a.right + pad || hy < a.top - pad || hy > a.bottom + pad) return null;
-  return { x: a.left + a.width / 2, y: a.top + a.height * 0.35 };
+  return { x: a.left + a.width / 2, y: a.top + a.height * 0.35, demo: anvil.dataset.forge === "demo" };
 }
 
 export function parkedHammerPos() {

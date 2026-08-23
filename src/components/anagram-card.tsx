@@ -103,6 +103,7 @@ export function AnagramCardButton({
   picks,
   leftoverAdds = [],
   filled,
+  quiet,
   onReorder,
   onAdd,
   onRemove,
@@ -111,6 +112,7 @@ export function AnagramCardButton({
   picks: string[];
   leftoverAdds?: string[];
   filled: boolean;
+  quiet?: boolean;
   onReorder: (next: string[]) => void;
   onAdd?: (word: string) => void;
   onRemove: (index: number) => void;
@@ -180,9 +182,19 @@ export function AnagramCardButton({
 
   return (
     <>
-      <Button type="button" variant={filled ? "default" : "secondary"} size="sm" onClick={() => setOpen(true)}>
-        <ImageIcon /> Make card
-      </Button>
+      {quiet ? (
+        <button
+          type="button"
+          onClick={() => setOpen(true)}
+          className="shrink-0 text-xs text-subtle hover:text-muted"
+        >
+          Card
+        </button>
+      ) : (
+        <Button type="button" variant={filled ? "default" : "secondary"} size="sm" onClick={() => setOpen(true)}>
+          <ImageIcon /> Make card
+        </Button>
+      )}
       {open && (
         <div
           className="fixed inset-0 z-50 grid place-items-center bg-black/70 p-4"

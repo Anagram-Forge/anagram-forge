@@ -116,6 +116,16 @@ export function MissingPage() {
             ) : (
               <p className="mt-2 text-xs uppercase tracking-wide text-muted">fills the rack — still not a page</p>
             )}
+            <Link
+              to="/"
+              search={{
+                q: letters,
+                mode: tease.kind === "phrase" ? "phrase" : tease.kind === "exact" ? "exact" : "from-rack",
+              }}
+              className="mt-3 inline-block text-xs text-subtle hover:text-muted"
+            >
+              Use this rack
+            </Link>
           </div>
         ) : null}
 

@@ -51,6 +51,22 @@ export function NotesPanel({ onClose }: { onClose: () => void }) {
         </section>
 
         <section className="mt-5">
+          <h3 className="text-[10px] font-medium uppercase tracking-[0.16em] text-accent">Music</h3>
+          <p className="mt-2 text-sm leading-relaxed text-fg">
+            Off unless you tap the note. Ten beds from{" "}
+            <a
+              href="https://alkakrab.itch.io/free-fantasy-medieval-ambient-music-pack"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="text-muted underline decoration-border underline-offset-2 hover:text-fg"
+            >
+              AlkaKrab
+            </a>
+            . Royalty-free; we host a copy so YouTube isn’t in the loop.
+          </p>
+        </section>
+
+        <section className="mt-5">
           <h3 className="text-[10px] font-medium uppercase tracking-[0.16em] text-accent">Ethics</h3>
           <p className="mt-2 text-sm leading-relaxed text-fg">
             The verses and the gold cross are not decoration. They’re an invitation: turn from your

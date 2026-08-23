@@ -957,6 +957,7 @@ function Home() {
                   <PhraseRow
                     key={hit.words.join("-")}
                     hit={hit}
+                    source={letters}
                     onCopy={() => copyWords([hit.words.join(" ")])}
                     onPick={() => {
                       setPicks(hit.words);
@@ -1144,13 +1145,21 @@ function WordRow({
 
 function PhraseRow({
   hit,
+  source,
   onCopy,
   onPick,
 }: {
   hit: PhraseHit;
+  source: string;
   onCopy: () => void;
   onPick: () => void;
 }) {
+  const [order, setOrder] = useState(hit.words);
+  useEffect(() => {
+    setOrder(hit.words);
+  }, [hit.words]);
+  const leftover = (hit.leftover || "").replace(/\?/g, "");
+
   return (
     <li className="flex items-center gap-3 rounded-lg border border-border bg-surface px-4 py-3">
       <p className="flex min-w-0 flex-1 flex-wrap items-center gap-x-2 gap-y-1 font-mono text-sm uppercase tracking-wide text-fg">
@@ -1186,6 +1195,16 @@ function PhraseRow({
           <Copy className="size-4" />
         </button>
       </Tip>
+      <AnagramCardButton
+        source={source}
+        picks={order}
+        leftoverAdds={[...leftover]}
+        filled={!leftover}
+        quiet
+        onReorder={setOrder}
+        onAdd={(w) => setOrder((cur) => [...cur, w])}
+        onRemove={(i) => setOrder((cur) => cur.filter((_, j) => j !== i))}
+      />
       <button
         type="button"
         onClick={onPick}

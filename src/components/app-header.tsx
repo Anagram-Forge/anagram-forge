@@ -7,6 +7,7 @@ import { useTypeMode } from "@/lib/type-mode";
 import { NotesPanel } from "@/components/notes-panel";
 import { Tip } from "@/components/tip";
 import { VerseBanner } from "@/components/verse-banner";
+import { ForgeMusicToggle } from "@/components/forge-music";
 import { cn } from "@/lib/utils";
 
 export function AppHeader({ onTwoLetter }: { onTwoLetter: () => void }) {
@@ -24,7 +25,7 @@ export function AppHeader({ onTwoLetter }: { onTwoLetter: () => void }) {
 
   return (
     <div>
-      <header className="flex items-center justify-between gap-3 border-b border-border bg-bg/70 px-4 py-3 backdrop-blur-[2px] sm:px-6">
+      <header className="relative z-20 flex items-center justify-between gap-3 border-b border-border bg-bg/70 px-4 py-3 backdrop-blur-[2px] sm:px-6">
         <div className="min-w-0">
           <Link to="/">
             <p className="font-display text-base font-medium tracking-tight text-fg">Anagram Forge</p>
@@ -59,6 +60,7 @@ export function AppHeader({ onTwoLetter }: { onTwoLetter: () => void }) {
               Steward
             </Link>
           ) : null}
+          <ForgeMusicToggle />
           <Tip label={easy ? "Default type" : "Easier reading"}>
             <button
               type="button"

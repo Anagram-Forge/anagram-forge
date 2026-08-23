@@ -6,6 +6,7 @@ const SIZE = 30;
 const COLORS = ["#fff6d0", "#ffe08a", "#ffb347", "#ff6a1a", "#d4a24c", "#ff4500", "#fff"];
 const WORDS = ["iron", "sharpens", "iron"] as const;
 const RARE = ["crucible", "furnace", "gold"] as const;
+const DEMO: Array<"metal" | "iron" | "gold"> = ["metal", "iron", "gold"];
 
 function clamp(n: number, min: number, max: number) {
   return Math.max(min, Math.min(max, n));
@@ -39,6 +40,7 @@ export function ForgeHammer() {
   const grab = useRef({ dx: 0, dy: 0 });
   const parked = useRef(true);
   const cool = useRef(0);
+  const demoStep = useRef(0);
   const el = useRef<HTMLButtonElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const bits = useRef<Bit[]>([]);
@@ -47,19 +49,21 @@ export function ForgeHammer() {
   useEffect(() => {
     warmRing();
     const place = () => {
+      const anvil = document.getElementById("forge-anvil");
+      if (anvil) ro.observe(anvil);
       if (!parked.current) return;
       const next = parkedHammerPos();
       if (next) setPos(next);
     };
-    place();
     const ro = new ResizeObserver(place);
-    const anvil = document.getElementById("forge-anvil");
-    if (anvil) ro.observe(anvil);
+    place();
     ro.observe(document.body);
     window.addEventListener("resize", place);
+    window.addEventListener("af-anvil", place);
     return () => {
       ro.disconnect();
       window.removeEventListener("resize", place);
+      window.removeEventListener("af-anvil", place);
     };
   }, []);
 
@@ -127,7 +131,7 @@ export function ForgeHammer() {
     else ctx.clearRect(0, 0, window.innerWidth, window.innerHeight);
   };
 
-  const burst = (x: number, y: number) => {
+  const burst = (x: number, y: number, kind: "metal" | "iron" | "gold" | "live" = "live") => {
     if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) return;
     const pushWord = (word: string) => {
       const ang = Math.random() * Math.PI * 2;
@@ -165,10 +169,12 @@ export function ForgeHammer() {
         word: "",
       });
     }
-    if (Math.random() < 0.28) {
+    if (kind === "iron" || (kind === "live" && Math.random() < 0.28)) {
       for (let i = 0; i < 3; i++) pushWord(WORDS[i % WORDS.length]);
     }
-    if (Math.random() < 0.08) {
+    if (kind === "gold") {
+      for (const w of RARE) pushWord(w);
+    } else if (kind === "live" && Math.random() < 0.08) {
       pushWord(RARE[(Math.random() * RARE.length) | 0]);
     }
     cancelAnimationFrame(raf.current);
@@ -184,8 +190,14 @@ export function ForgeHammer() {
     if (t - cool.current < 700) return;
     cool.current = t;
     strikePing();
-    void pingStats("strike");
-    burst(hit.x, hit.y);
+    if (hit.demo) {
+      const kind = DEMO[demoStep.current % DEMO.length];
+      demoStep.current += 1;
+      burst(hit.x, hit.y, kind);
+    } else {
+      void pingStats("strike");
+      burst(hit.x, hit.y, "live");
+    }
     document.getElementById("forge-anvil")?.animate(
       [
         { transform: "translateY(0)" },

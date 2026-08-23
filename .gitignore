@@ -17,3 +17,6 @@ AGENTS.project.md
 startup.sh
 .grok
 public/__grok
+public/sounds/*.ogg
+public/sounds/*.mp3
+!public/sounds/anvil-hit.mp3
