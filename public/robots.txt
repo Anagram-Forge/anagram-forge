@@ -1,0 +1,4 @@
+User-agent: *
+Disallow: /w
+Disallow: /the-way
+Disallow: /api/forge/door

@@ -18,12 +18,14 @@ import { Route as LoginRouteImport } from './routes/login'
 import { Route as SavedRouteImport } from './routes/saved'
 import { Route as StewardRouteImport } from './routes/steward'
 import { Route as TheWayRouteImport } from './routes/the-way'
+import { Route as WRouteImport } from './routes/w'
 import { Route as ApiReportRouteImport } from './routes/api/report'
 import { Route as ApiSponsorRouteImport } from './routes/api/sponsor'
 import { Route as ApiStatsRouteImport } from './routes/api/stats'
 import { Route as ApiAuthSplatRouteImport } from './routes/api/auth/$'
 import { Route as ApiForgeArchiveRouteImport } from './routes/api/forge/archive'
 import { Route as ApiForgeChallengeRouteImport } from './routes/api/forge/challenge'
+import { Route as ApiForgeDoorRouteImport } from './routes/api/forge/door'
 import { Route as ApiForgeFindsRouteImport } from './routes/api/forge/finds'
 import { Route as ApiForgeSavesRouteImport } from './routes/api/forge/saves'
 import { Route as ApiForgeSessionRouteImport } from './routes/api/forge/session'
@@ -74,6 +76,11 @@ const TheWayRoute = TheWayRouteImport.update({
   path: '/the-way',
   getParentRoute: () => rootRouteImport,
 } as any)
+const WRoute = WRouteImport.update({
+  id: '/w',
+  path: '/w',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const ApiReportRoute = ApiReportRouteImport.update({
   id: '/api/report',
   path: '/api/report',
@@ -102,6 +109,11 @@ const ApiForgeArchiveRoute = ApiForgeArchiveRouteImport.update({
 const ApiForgeChallengeRoute = ApiForgeChallengeRouteImport.update({
   id: '/api/forge/challenge',
   path: '/api/forge/challenge',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiForgeDoorRoute = ApiForgeDoorRouteImport.update({
+  id: '/api/forge/door',
+  path: '/api/forge/door',
   getParentRoute: () => rootRouteImport,
 } as any)
 const ApiForgeFindsRoute = ApiForgeFindsRouteImport.update({
@@ -135,12 +147,14 @@ export interface FileRoutesByFullPath {
   '/saved': typeof SavedRoute
   '/steward': typeof StewardRoute
   '/the-way': typeof TheWayRoute
+  '/w': typeof WRoute
   '/api/report': typeof ApiReportRoute
   '/api/sponsor': typeof ApiSponsorRoute
   '/api/stats': typeof ApiStatsRoute
   '/api/auth/$': typeof ApiAuthSplatRoute
   '/api/forge/archive': typeof ApiForgeArchiveRoute
   '/api/forge/challenge': typeof ApiForgeChallengeRoute
+  '/api/forge/door': typeof ApiForgeDoorRoute
   '/api/forge/finds': typeof ApiForgeFindsRoute
   '/api/forge/saves': typeof ApiForgeSavesRoute
   '/api/forge/session': typeof ApiForgeSessionRoute
@@ -156,12 +170,14 @@ export interface FileRoutesByTo {
   '/saved': typeof SavedRoute
   '/steward': typeof StewardRoute
   '/the-way': typeof TheWayRoute
+  '/w': typeof WRoute
   '/api/report': typeof ApiReportRoute
   '/api/sponsor': typeof ApiSponsorRoute
   '/api/stats': typeof ApiStatsRoute
   '/api/auth/$': typeof ApiAuthSplatRoute
   '/api/forge/archive': typeof ApiForgeArchiveRoute
   '/api/forge/challenge': typeof ApiForgeChallengeRoute
+  '/api/forge/door': typeof ApiForgeDoorRoute
   '/api/forge/finds': typeof ApiForgeFindsRoute
   '/api/forge/saves': typeof ApiForgeSavesRoute
   '/api/forge/session': typeof ApiForgeSessionRoute
@@ -178,12 +194,14 @@ export interface FileRoutesById {
   '/saved': typeof SavedRoute
   '/steward': typeof StewardRoute
   '/the-way': typeof TheWayRoute
+  '/w': typeof WRoute
   '/api/report': typeof ApiReportRoute
   '/api/sponsor': typeof ApiSponsorRoute
   '/api/stats': typeof ApiStatsRoute
   '/api/auth/$': typeof ApiAuthSplatRoute
   '/api/forge/archive': typeof ApiForgeArchiveRoute
   '/api/forge/challenge': typeof ApiForgeChallengeRoute
+  '/api/forge/door': typeof ApiForgeDoorRoute
   '/api/forge/finds': typeof ApiForgeFindsRoute
   '/api/forge/saves': typeof ApiForgeSavesRoute
   '/api/forge/session': typeof ApiForgeSessionRoute
@@ -201,12 +219,14 @@ export interface FileRouteTypes {
     | '/saved'
     | '/steward'
     | '/the-way'
+    | '/w'
     | '/api/report'
     | '/api/sponsor'
     | '/api/stats'
     | '/api/auth/$'
     | '/api/forge/archive'
     | '/api/forge/challenge'
+    | '/api/forge/door'
     | '/api/forge/finds'
     | '/api/forge/saves'
     | '/api/forge/session'
@@ -222,12 +242,14 @@ export interface FileRouteTypes {
     | '/saved'
     | '/steward'
     | '/the-way'
+    | '/w'
     | '/api/report'
     | '/api/sponsor'
     | '/api/stats'
     | '/api/auth/$'
     | '/api/forge/archive'
     | '/api/forge/challenge'
+    | '/api/forge/door'
     | '/api/forge/finds'
     | '/api/forge/saves'
     | '/api/forge/session'
@@ -243,12 +265,14 @@ export interface FileRouteTypes {
     | '/saved'
     | '/steward'
     | '/the-way'
+    | '/w'
     | '/api/report'
     | '/api/sponsor'
     | '/api/stats'
     | '/api/auth/$'
     | '/api/forge/archive'
     | '/api/forge/challenge'
+    | '/api/forge/door'
     | '/api/forge/finds'
     | '/api/forge/saves'
     | '/api/forge/session'
@@ -265,12 +289,14 @@ export interface RootRouteChildren {
   SavedRoute: typeof SavedRoute
   StewardRoute: typeof StewardRoute
   TheWayRoute: typeof TheWayRoute
+  WRoute: typeof WRoute
   ApiReportRoute: typeof ApiReportRoute
   ApiSponsorRoute: typeof ApiSponsorRoute
   ApiStatsRoute: typeof ApiStatsRoute
   ApiAuthSplatRoute: typeof ApiAuthSplatRoute
   ApiForgeArchiveRoute: typeof ApiForgeArchiveRoute
   ApiForgeChallengeRoute: typeof ApiForgeChallengeRoute
+  ApiForgeDoorRoute: typeof ApiForgeDoorRoute
   ApiForgeFindsRoute: typeof ApiForgeFindsRoute
   ApiForgeSavesRoute: typeof ApiForgeSavesRoute
   ApiForgeSessionRoute: typeof ApiForgeSessionRoute
@@ -342,6 +368,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof TheWayRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/w': {
+      id: '/w'
+      path: '/w'
+      fullPath: '/w'
+      preLoaderRoute: typeof WRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/api/report': {
       id: '/api/report'
       path: '/api/report'
@@ -382,6 +415,13 @@ declare module '@tanstack/react-router' {
       path: '/api/forge/challenge'
       fullPath: '/api/forge/challenge'
       preLoaderRoute: typeof ApiForgeChallengeRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/forge/door': {
+      id: '/api/forge/door'
+      path: '/api/forge/door'
+      fullPath: '/api/forge/door'
+      preLoaderRoute: typeof ApiForgeDoorRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/api/forge/finds': {
@@ -425,12 +465,14 @@ const rootRouteChildren: RootRouteChildren = {
   SavedRoute: SavedRoute,
   StewardRoute: StewardRoute,
   TheWayRoute: TheWayRoute,
+  WRoute: WRoute,
   ApiReportRoute: ApiReportRoute,
   ApiSponsorRoute: ApiSponsorRoute,
   ApiStatsRoute: ApiStatsRoute,
   ApiAuthSplatRoute: ApiAuthSplatRoute,
   ApiForgeArchiveRoute: ApiForgeArchiveRoute,
   ApiForgeChallengeRoute: ApiForgeChallengeRoute,
+  ApiForgeDoorRoute: ApiForgeDoorRoute,
   ApiForgeFindsRoute: ApiForgeFindsRoute,
   ApiForgeSavesRoute: ApiForgeSavesRoute,
   ApiForgeSessionRoute: ApiForgeSessionRoute,

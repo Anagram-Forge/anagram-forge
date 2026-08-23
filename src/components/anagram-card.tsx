@@ -14,7 +14,7 @@ import {
   renderAnagramCard,
   type CardStyle,
 } from "@/lib/anagram/poster";
-import { DOOR_PATH, DOOR_SIGN, doorOpen, markDoor } from "@/lib/side-door";
+import { DOOR_PATH, tryDoor, type DoorUnlock } from "@/lib/side-door";
 import { cn } from "@/lib/utils";
 
 export function PickChips({
@@ -122,14 +122,25 @@ export function AnagramCardButton({
   const from = displayRack(source);
   const to = picks.join(" ");
   const face = CARD_FONTS.find((f) => f.id === style.font) ?? CARD_FONTS[0];
-  const door = doorOpen(source, picks);
+  const [door, setDoor] = useState<DoorUnlock | null>(null);
+
+  useEffect(() => {
+    if (!open) return;
+    let live = true;
+    setDoor(null);
+    void tryDoor(source, picks).then((hit) => {
+      if (live) setDoor(hit);
+    });
+    return () => {
+      live = false;
+    };
+  }, [open, source, picks]);
 
   useEffect(() => {
     if (!open) return;
     let live = true;
     setBusy(true);
-    if (door) markDoor();
-    renderAnagramCard(from, to, style, door ? DOOR_SIGN : undefined)
+    renderAnagramCard(from, to, style, door?.sign)
       .then((url) => {
         if (live) setSrc(url);
       })
@@ -333,9 +344,8 @@ export function AnagramCardButton({
                 <Link
                   to={DOOR_PATH}
                   className="door-sign absolute bottom-[4.5%] right-[5%] text-[clamp(1.25rem,3.6vw,1.85rem)] leading-none"
-                  onClick={() => markDoor()}
                 >
-                  {DOOR_SIGN}
+                  {door.sign}
                 </Link>
               ) : null}
             </div>

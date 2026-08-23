@@ -9,6 +9,7 @@ declare module "cloudflare:workers" {
     EMAIL?: { send: (message: unknown) => Promise<void> };
     SPONSOR_TO?: string;
     FORGE_ADMIN?: string;
+    DOOR_HASH?: string;
     STATS?: {
       get: (key: string) => Promise<string | null>;
       put: (key: string, value: string) => Promise<void>;

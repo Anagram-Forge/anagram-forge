@@ -19,6 +19,7 @@ A small music-note toggle. Free/CC or a paid web license, hosted by us. Do **not
 Cadence, not panic. About every 90 days (GitHub PAT window).
 
 - **Audit 2026-08-23** — PAT still in old chat; grep public repo; mail worker hostname; WHOIS; rotate anything pasted
+- `DOOR_HASH` (and later `DOOR_HASH_*`) live only in Cloudflare Variables and secrets — never git
 - Mail worker still on `*.workers.dev` — visitors never see it; optional custom domain
 - Rotate any token that was ever pasted in chat
 - WHOIS privacy (Cloudflare Registrar)
@@ -40,7 +41,7 @@ Cloudflare Web Analytics with **bot filtering** when we want “how many humans,
 
 ## Side quests (hidden page)
 
-Gate: type a set rack → pick the exact anagram in the exact order → **Make a card**. A gold cursive **signature** (subtle shimmer, bottom-right, not loud) is a link to a hidden adventures page. Gamified. Do **not** put the unlock phrase in this file (public repo). **Quest 1 in preview.**
+Gate: rack → exact phrase in order → Make a card. Signature is the link. Copy is server-gated (`/api/forge/door`, cookie `af_doors`). Add a later gate with another secret `DOOR_HASH_NAME` plus a vault entry — matcher already loops them. Do **not** put unlock phrases in this file. **Real lock in preview.**
 
 ## Card looks (pick of 3)
 
