@@ -15,8 +15,8 @@ type Page = { sign: string; title: string; blurb: string; quests: Quest[] };
 
 const VAULT: Record<string, Page> = {
   way: {
-    sign: "the way",
-    title: "The way",
+    sign: "The Way",
+    title: "The Way",
     blurb: "You arranged two. More doors later. Quiet on purpose.",
     quests: [
       { kicker: "Quest 1 · open", title: "Arrange two", note: "The gate you just walked through.", open: true },

@@ -37,11 +37,14 @@ Cloudflare Web Analytics with **bot filtering** when we want “how many humans,
 - CSV of a rack’s finds
 - 404 that’s an anagram joke (“the letters are missing”) — **shipped.** Optional: match the hero type, “use these letters” button
 - Anvil silhouette (user will tweak)
-- **Strike sparks as verses** — default = original metal streaks. Rare (~1 in 4) **iron / sharpens / iron**. Rarer (~1 in 12) **crucible / furnace / gold**. Reduced-motion: skip. **In preview.**
+- **Strike sparks as verses** — default = original metal streaks. Rare (~1 in 4) **iron / sharpens / iron**. Rarer (~1 in 12) **crucible / furnace / gold**. Reduced-motion: skip.
+- **Rare strikes, more distinct** — verse/gold bursts need a subtler tell vs normal sparks (slower flight is one option; also: linger, slightly larger type, quieter extra ping). Open.
+- **Steward: The Way visits** — count page hits on `/w` (cookie-gated). Capital **W**.
+- **Finds challenge loop** — incentives for the current top-voted find; expiration/rotation model for challenges (not locked to weekly yet).
 
 ## Side quests (hidden page)
 
-Gate: rack → exact phrase in order → Make a card. Signature is the link. Copy is server-gated (`/api/forge/door`, cookie `af_doors`). Add a later gate with another secret `DOOR_HASH_NAME` plus a vault entry — matcher already loops them. Do **not** put unlock phrases in this file. **Real lock in preview.**
+Gate: rack → exact phrase in order → Make a card. Signature is the link. Copy is server-gated (`/api/forge/door`, cookie `af_doors`). Add a later gate with another secret `DOOR_HASH_NAME` plus a vault entry — matcher already loops them. Do **not** put unlock phrases in this file. Title/signature: **The Way**.
 
 ## Card looks (pick of 3)
 
