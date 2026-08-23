@@ -213,7 +213,7 @@ export async function register(handle: string, password: string): Promise<{ ok: 
   const uid = id();
   const hash = await sha(password, uid);
   if (db) {
-    const taken = await db.prepare("SELECT id FROM users WHERE handle = ?").bind(h).first();
+    const taken = await db.prepare("SELECT id FROM users WHERE lower(handle) = lower(?)").bind(h).first();
     if (taken) return { ok: false, reason: "That handle is taken." };
     await db.prepare("INSERT INTO users (id, handle, pass_hash, created) VALUES (?, ?, ?, ?)").bind(uid, h, hash, Date.now()).run();
   } else {
@@ -229,7 +229,10 @@ export async function login(handle: string, password: string): Promise<{ ok: tru
   const db = await d1();
   let user: User | null = null;
   if (db) {
-    const row = await db.prepare("SELECT id, handle, pass_hash FROM users WHERE handle = ?").bind(h).first();
+    const row = await db
+      .prepare("SELECT id, handle, pass_hash FROM users WHERE lower(handle) = lower(?)")
+      .bind(h)
+      .first();
     if (row) user = { id: String(row.id), handle: String(row.handle), passHash: String(row.pass_hash) };
   } else {
     user = ram.users.find((u) => u.handle.toLowerCase() === h.toLowerCase()) ?? null;
