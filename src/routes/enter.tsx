@@ -19,6 +19,12 @@ function EnterPage() {
   const [who, setWho] = useState<string | null>(null);
 
   useEffect(() => {
+    try {
+      const last = localStorage.getItem("af-handle");
+      if (last) setHandle(last);
+    } catch {
+      /* private mode */
+    }
     void fetch("/api/forge/session")
       .then((r) => r.json())
       .then((d: { handle?: string | null }) => setWho(d.handle || null))
@@ -38,7 +44,13 @@ function EnterPage() {
       const data = (await res.json()) as { ok?: boolean; reason?: string };
       if (!res.ok || !data.ok) {
         setErr(data.reason || "Couldn’t sign in.");
+        if (data.reason?.includes("Make one")) setMode("up");
         return;
+      }
+      try {
+        localStorage.setItem("af-handle", handle.trim());
+      } catch {
+        /* private mode */
       }
       void navigate({ to: "/finds" });
     } finally {
@@ -83,7 +95,7 @@ function EnterPage() {
             setErr(null);
           }}
         >
-          {mode === "up" ? "Already have a handle?" : "Need a handle?"}
+          {mode === "up" ? "Already have a handle? Enter." : "Need a handle? Create one."}
         </button>
         <p className="mt-8 text-xs text-subtle">
           We store your handle, a hashed password, and what you choose to save or post.{" "}

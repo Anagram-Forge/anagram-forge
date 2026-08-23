@@ -185,10 +185,19 @@ async function isBanned(handle: string, db: Box | null): Promise<boolean> {
 async function d1(): Promise<Box | null> {
   try {
     const mod = await import("cloudflare:workers");
-    const db = (mod as { env?: { DB?: Box } }).env?.DB;
+    const env = (mod as { env?: { DB?: Box } }).env;
+    const db = env?.DB;
     if (db && typeof db.prepare === "function") return db;
   } catch {
     /* preview */
+  }
+  return null;
+}
+
+function needDb(db: Box | null): { ok: false; reason: string } | null {
+  if (db) return null;
+  if (isCloudflareWorker()) {
+    return { ok: false, reason: "Account store isn’t wired (D1). Can’t keep a handle after you leave." };
   }
   return null;
 }
@@ -207,11 +216,14 @@ export async function register(handle: string, password: string): Promise<{ ok: 
   const h = handle.trim().slice(0, 24);
   if (!/^[a-zA-Z0-9_]{3,24}$/.test(h)) return { ok: false, reason: "Handle: 3–24 letters, numbers, underscore." };
   if (!handleAllowed(h)) return { ok: false, reason: "That handle isn’t allowed." };
-  if (password.length < 8) return { ok: false, reason: "Password needs 8 characters." };
+  const pass = password.trim();
+  if (pass.length < 8) return { ok: false, reason: "Password needs 8 characters." };
   const db = await d1();
+  const missing = needDb(db);
+  if (missing) return missing;
   if (await isBanned(h, db)) return { ok: false, reason: "That handle isn’t allowed." };
   const uid = id();
-  const hash = await sha(password, uid);
+  const hash = await sha(pass, uid);
   if (db) {
     const taken = await db.prepare("SELECT id FROM users WHERE lower(handle) = lower(?)").bind(h).first();
     if (taken) return { ok: false, reason: "That handle is taken." };
@@ -226,7 +238,10 @@ export async function register(handle: string, password: string): Promise<{ ok: 
 
 export async function login(handle: string, password: string): Promise<{ ok: true; token: string; handle: string } | { ok: false; reason: string }> {
   const h = handle.trim();
+  const pass = password.trim();
   const db = await d1();
+  const missing = needDb(db);
+  if (missing) return missing;
   let user: User | null = null;
   if (db) {
     const row = await db
@@ -237,10 +252,10 @@ export async function login(handle: string, password: string): Promise<{ ok: tru
   } else {
     user = ram.users.find((u) => u.handle.toLowerCase() === h.toLowerCase()) ?? null;
   }
-  if (!user) return { ok: false, reason: "Handle or password is wrong." };
+  if (!user) return { ok: false, reason: "No handle by that name. Make one?" };
   if (await isBanned(user.handle, db)) return { ok: false, reason: "That handle isn’t allowed." };
-  const hash = await sha(password, user.id);
-  if (hash !== user.passHash) return { ok: false, reason: "Handle or password is wrong." };
+  const hash = await sha(pass, user.id);
+  if (hash !== user.passHash) return { ok: false, reason: "Password doesn’t match." };
   const token = await makeSession(user.id, db);
   return { ok: true, token, handle: user.handle };
 }
