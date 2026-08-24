@@ -4,6 +4,7 @@ import {
   ITCH,
   bedTitle,
   musicSnap,
+  seekMusic,
   setMusic,
   setVolume,
   skip,
@@ -15,7 +16,7 @@ import { cn } from "@/lib/utils";
 const LINGER = 2000;
 
 export function ForgeMusicToggle() {
-  const [snap, setSnap] = useState<Snap>({ on: false, id: "emberlight", volume: 0.32 });
+  const [snap, setSnap] = useState<Snap>({ on: false, id: "emberlight", volume: 0.32, at: 0, dur: 0 });
   const [armed, setArmed] = useState(false);
   const [hover, setHover] = useState(false);
   const hold = useRef(0);
@@ -40,6 +41,8 @@ export function ForgeMusicToggle() {
   }
 
   const show = armed && hover;
+  const p = snap.dur > 0 ? Math.min(1, snap.at / snap.dur) : 0;
+  const ring = 2 * Math.PI * 11;
 
   return (
     <div className="relative z-[80]" onMouseEnter={stay} onMouseLeave={leave}>
@@ -72,12 +75,56 @@ export function ForgeMusicToggle() {
           snap.on ? "text-accent" : "text-muted hover:text-fg",
         )}
       >
-        <Music className="size-4" />
+        <span className="relative grid size-7 place-items-center">
+          {snap.on || p > 0.01 ? (
+            <svg className="absolute inset-0" viewBox="0 0 28 28" aria-hidden>
+              <circle
+                cx="14"
+                cy="14"
+                r="11"
+                fill="none"
+                className="stroke-accent/25"
+                strokeWidth="1.25"
+              />
+              <circle
+                cx="14"
+                cy="14"
+                r="11"
+                fill="none"
+                className="stroke-accent"
+                strokeWidth="1.25"
+                strokeLinecap="round"
+                strokeDasharray={ring}
+                strokeDashoffset={ring * (1 - p)}
+                transform="rotate(-90 14 14)"
+              />
+            </svg>
+          ) : null}
+          <Music className="size-4" />
+        </span>
       </button>
       {show ? (
         <div className="absolute right-0 z-[80] pt-1">
           <div className="pointer-events-auto w-44 rounded-md border border-border bg-surface px-2.5 py-2 shadow-md">
             <p className="truncate text-[11px] text-muted">{bedTitle(snap.id)}</p>
+            <div
+              role="slider"
+              aria-label="Seek"
+              aria-valuemin={0}
+              aria-valuemax={100}
+              aria-valuenow={Math.round(p * 100)}
+              className="relative mt-1.5 h-3 w-full cursor-pointer rounded-full bg-border"
+              onClick={(e) => {
+                const r = e.currentTarget.getBoundingClientRect();
+                if (r.width <= 0) return;
+                seekMusic((e.clientX - r.left) / r.width);
+              }}
+            >
+              <span
+                className="pointer-events-none absolute inset-y-0 left-0 rounded-full bg-accent"
+                style={{ width: `${Math.round(p * 100)}%` }}
+              />
+            </div>
             <div className="mt-1.5 flex items-center justify-center gap-0.5">
               <button
                 type="button"

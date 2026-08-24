@@ -20,7 +20,7 @@ const KEY_ON = "af-music";
 const KEY_BED = "af-music-bed";
 const KEY_VOL = "af-music-vol";
 
-export type Snap = { on: boolean; id: BedId; volume: number };
+export type Snap = { on: boolean; id: BedId; volume: number; at: number; dur: number };
 
 let bed: HTMLAudioElement | null = null;
 let id: BedId = "emberlight";
@@ -28,6 +28,7 @@ let volume = 0.32;
 const watchers = new Set<(s: Snap) => void>();
 
 function srcOf(next: BedId) {
+  if (import.meta.env.DEV) return `/sounds/${next}.mp3`;
   return `/api/forge/bed?id=${next}`;
 }
 
@@ -53,8 +54,12 @@ function isBed(v: string | null | undefined): v is BedId {
   return !!v && BEDS.some((b) => b.id === v);
 }
 
+let lastProg = 0;
+
 function snap(): Snap {
-  return { on: Boolean(bed && !bed.paused), id, volume };
+  const at = bed?.currentTime || 0;
+  const dur = bed && Number.isFinite(bed.duration) ? bed.duration : 0;
+  return { on: Boolean(bed && !bed.paused), id, volume, at, dur };
 }
 
 function emit() {
@@ -71,17 +76,25 @@ function el() {
       return Number.isFinite(n) ? Math.min(0.7, Math.max(0.06, n)) : null;
     });
     bed = new Audio(srcOf(id));
-    bed.loop = true;
-    bed.preload = "none";
+    bed.loop = false;
+    bed.preload = "auto";
     bed.volume = volume;
     bed.addEventListener("play", emit);
     bed.addEventListener("pause", emit);
+    bed.addEventListener("ended", () => skip(1));
+    bed.addEventListener("timeupdate", () => {
+      const now = Date.now();
+      if (now - lastProg < 250) return;
+      lastProg = now;
+      emit();
+    });
+    bed.addEventListener("durationchange", emit);
   }
   return bed;
 }
 
 export function musicSnap(): Snap {
-  if (typeof window === "undefined") return { on: false, id: "emberlight", volume: 0.32 };
+  if (typeof window === "undefined") return { on: false, id: "emberlight", volume: 0.32, at: 0, dur: 0 };
   el();
   return snap();
 }
@@ -110,7 +123,7 @@ export function setBed(next: BedId, play = true) {
   const keep = play || (a && !a.paused);
   a.pause();
   a.src = srcOf(next);
-  a.loop = true;
+  a.loop = false;
   a.volume = volume;
   if (keep) void a.play().catch(() => {});
   emit();
@@ -120,6 +133,20 @@ export function skip(dir: -1 | 1) {
   const i = BEDS.findIndex((b) => b.id === id);
   const next = BEDS[(i + dir + BEDS.length) % BEDS.length];
   if (next) setBed(next.id, true);
+}
+
+export function seekMusic(ratio: number) {
+  const a = el();
+  if (!a) return;
+  const dur = Number.isFinite(a.duration) ? a.duration : 0;
+  if (dur <= 0) return;
+  const t = Math.min(dur - 0.05, Math.max(0, ratio) * dur);
+  try {
+    a.currentTime = t;
+  } catch {
+    /* not seekable yet */
+  }
+  emit();
 }
 
 export function setVolume(next: number) {
