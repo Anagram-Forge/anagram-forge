@@ -62,7 +62,7 @@ export function NotesPanel({ onClose }: { onClose: () => void }) {
             >
               AlkaKrab
             </a>
-            . Royalty-free; we host a copy so YouTube isn’t in the loop.
+            .
           </p>
         </section>
 

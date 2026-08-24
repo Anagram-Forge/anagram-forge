@@ -157,16 +157,16 @@ async function envAdmin(): Promise<string> {
     const mod = await import("cloudflare:workers");
     const env = (mod as { env?: Record<string, unknown> }).env;
     const v = env?.FORGE_ADMIN;
-    if (typeof v === "string" && v.trim()) return v.trim();
+    if (typeof v === "string" && v.trim() && v.trim() !== "FORGE_ADMIN") return v.trim();
   } catch {
     /* preview */
   }
-  return "FORGE_ADMIN";
+  return "";
 }
 
 export async function isAdminHandle(handle: string | null | undefined): Promise<boolean> {
   if (!handle) return false;
-  const names = new Set(["keeper", "forge_admin"]);
+  const names = new Set(["keeper"]);
   const extra = await envAdmin();
   if (extra) names.add(extra.toLowerCase());
   if (names.has(handle.toLowerCase())) return true;
@@ -187,11 +187,25 @@ async function d1(): Promise<Box | null> {
     const mod = await import("cloudflare:workers");
     const env = (mod as { env?: { DB?: Box } }).env;
     const db = env?.DB;
-    if (db && typeof db.prepare === "function") return db;
+    if (db && typeof db.prepare === "function") {
+      await bootSchema(db);
+      return db;
+    }
   } catch {
     /* preview */
   }
   return null;
+}
+
+let booted = false;
+async function bootSchema(db: Box) {
+  if (booted) return;
+  booted = true;
+  await db
+    .prepare(
+      "CREATE TABLE IF NOT EXISTS bans (handle TEXT PRIMARY KEY COLLATE NOCASE, created INTEGER NOT NULL)",
+    )
+    .run();
 }
 
 function needDb(db: Box | null): { ok: false; reason: string } | null {
@@ -543,10 +557,12 @@ export async function banHandle(adminId: string, targetHandle: string): Promise<
   if (!(await isAdminHandle(adminHandle))) return { ok: false, reason: "No." };
   const h = targetHandle.trim();
   if (!h) return { ok: false, reason: "Missing." };
-  if (await isAdminHandle(h)) return { ok: false, reason: "No." };
+  if (await isAdminHandle(h) && h.toLowerCase() === adminHandle.toLowerCase()) {
+    return { ok: false, reason: "That’s you." };
+  }
   if (db) {
     await db.prepare("INSERT OR IGNORE INTO bans (handle, created) VALUES (?, ?)").bind(h, Date.now()).run();
-    const u = await db.prepare("SELECT id FROM users WHERE handle = ?").bind(h).first();
+    const u = await db.prepare("SELECT id FROM users WHERE lower(handle) = lower(?)").bind(h).first();
     if (u) {
       const uid = String(u.id);
       const { results } = await db.prepare("SELECT id FROM finds WHERE user_id = ?").bind(uid).all();
@@ -577,7 +593,7 @@ export async function wipeHandle(adminId: string, targetHandle: string): Promise
   const h = targetHandle.trim();
   const db = await d1();
   if (db) {
-    const u = await db.prepare("SELECT id FROM users WHERE handle = ?").bind(h).first();
+    const u = await db.prepare("SELECT id FROM users WHERE lower(handle) = lower(?)").bind(h).first();
     if (u) {
       const uid = String(u.id);
       await db.prepare("DELETE FROM saves WHERE user_id = ?").bind(uid).run();

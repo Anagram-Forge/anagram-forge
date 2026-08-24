@@ -84,48 +84,35 @@ function StewardPage() {
   }
 
   async function unban(h: string) {
-    await fetch("/api/forge/steward", {
-      method: "POST",
-      headers: { "content-type": "application/json" },
-      body: JSON.stringify({ unban: h }),
-    });
-    void load();
+    await act("/api/forge/steward", { unban: h });
   }
 
   async function hideFind(id: string, hide: boolean) {
-    await fetch("/api/forge/finds", {
-      method: "POST",
-      headers: { "content-type": "application/json" },
-      body: JSON.stringify(hide ? { hide: id } : { unhide: id }),
-    });
-    void load();
+    await act("/api/forge/finds", hide ? { hide: id } : { unhide: id });
   }
 
   async function removeFind(id: string) {
-    await fetch("/api/forge/finds", {
-      method: "POST",
-      headers: { "content-type": "application/json" },
-      body: JSON.stringify({ remove: id }),
-    });
-    void load();
+    await act("/api/forge/finds", { remove: id });
   }
 
   async function ban(h: string) {
-    await fetch("/api/forge/finds", {
-      method: "POST",
-      headers: { "content-type": "application/json" },
-      body: JSON.stringify({ ban: h }),
-    });
-    void load();
+    await act("/api/forge/finds", { ban: h });
   }
 
   async function wipe(h: string) {
-    await fetch("/api/forge/steward", {
+    await act("/api/forge/steward", { wipe: h });
+  }
+
+  async function act(url: string, body: Record<string, unknown>) {
+    setMsg(null);
+    const res = await fetch(url, {
       method: "POST",
       headers: { "content-type": "application/json" },
-      body: JSON.stringify({ wipe: h }),
+      body: JSON.stringify(body),
     });
-    void load();
+    const data = (await res.json().catch(() => ({}))) as { ok?: boolean; reason?: string };
+    if (!res.ok || data.ok === false) setMsg(data.reason || "Couldn’t.");
+    else void load();
   }
 
   return (
