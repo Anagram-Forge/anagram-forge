@@ -53,7 +53,7 @@ export function NotesPanel({ onClose }: { onClose: () => void }) {
         <section className="mt-5">
           <h3 className="text-[10px] font-medium uppercase tracking-[0.16em] text-accent">Music</h3>
           <p className="mt-2 text-sm leading-relaxed text-fg">
-            Off unless you tap the note. Ten beds from{" "}
+            Off unless you tap the note. Full credit to{" "}
             <a
               href="https://alkakrab.itch.io/free-fantasy-medieval-ambient-music-pack"
               target="_blank"
@@ -61,8 +61,8 @@ export function NotesPanel({ onClose }: { onClose: () => void }) {
               className="text-muted underline decoration-border underline-offset-2 hover:text-fg"
             >
               AlkaKrab
-            </a>
-            .
+            </a>{" "}
+            for amazing tunes.
           </p>
         </section>
 
