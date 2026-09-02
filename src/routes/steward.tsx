@@ -6,10 +6,11 @@ import { TwoLetterPanel } from "@/components/two-letter-panel";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { WEEK, type Week } from "@/lib/challenge";
-import { StewardPulse } from "@/components/steward-pulse";
+import { StewardPulse, TheWayPulse } from "@/components/steward-pulse";
 import { ForgeAnvil } from "@/components/forge-anvil";
 import type { Find } from "@/lib/forge-db";
 import type { DayRow } from "@/lib/stat-day";
+import type { WayDay } from "@/lib/way-stats";
 
 export const Route = createFileRoute("/steward")({ component: StewardPage });
 
@@ -20,6 +21,8 @@ type Snap = {
   anagrams: number;
   strikes: number;
   series?: DayRow[];
+  wayVisits?: number;
+  waySeries?: WayDay[];
   handles: { handle: string; created: number; finds: number; lastPosted: number }[];
   finds: Find[];
   reported: Find[];
@@ -135,6 +138,7 @@ function StewardPage() {
           finds={snap.finds.length}
           series={snap.series || []}
         />
+        <TheWayPulse visits={snap.wayVisits || 0} series={snap.waySeries || []} />
 
         <section className="mt-10 rounded-md border border-border bg-surface px-4 py-4">
           <p className="text-[10px] font-medium uppercase tracking-[0.16em] text-accent">Spark range</p>

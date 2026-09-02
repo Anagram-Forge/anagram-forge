@@ -1,5 +1,6 @@
 import { FIND_CAP, WEEK, formatFind, type Week } from "@/lib/challenge";
 import { lastDays, type DayRow } from "@/lib/stat-day";
+import { readWayStats } from "@/lib/way-stats";
 import { onlyLetters } from "@/lib/anagram/letters";
 import { handleAllowed } from "@/lib/handle-guard";
 import { isCloudflareWorker } from "@/lib/runtime";
@@ -693,7 +694,8 @@ export async function stewardSnapshot() {
       ...lastDays(14).map((day) => ({ day, visits: 0, anagrams: 0, strikes: 0 })),
     );
   }
-  return { challenge, visits, anagrams, strikes, series, handles, finds, reported, bans };
+  const way = await readWayStats();
+  return { challenge, visits, anagrams, strikes, series, wayVisits: way.visits, waySeries: way.series, handles, finds, reported, bans };
 }
 
 const SAVE_CAP = 40;

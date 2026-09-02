@@ -1,5 +1,6 @@
 import { createHash, timingSafeEqual } from "node:crypto";
 import { createFileRoute } from "@tanstack/react-router";
+import { bumpWayVisit } from "@/lib/way-stats";
 
 /**
  * Gates are env secrets, not code.
@@ -118,6 +119,7 @@ export const Route = createFileRoute("/api/forge/door")({
         const ids = readIds(request);
         const doors = ids.map((id) => (VAULT[id] ? { id, ...VAULT[id] } : null)).filter(Boolean);
         if (!doors.length) return Response.json({ ok: false }, { status: 404 });
+        if (ids.includes("way")) await bumpWayVisit(request);
         return Response.json(
           { ok: true, doors },
           { headers: { "x-robots-tag": "noindex, nofollow" } },

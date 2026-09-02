@@ -1,4 +1,5 @@
 import type { DayRow } from "@/lib/stat-day";
+import type { WayDay } from "@/lib/way-stats";
 
 function Card({ n, label }: { n: number; label: string }) {
   return (
@@ -75,5 +76,45 @@ export function StewardPulse({
       </div>
       {series.length ? <Bars series={series} /> : null}
     </div>
+  );
+}
+
+export function TheWayPulse({ visits, series }: { visits: number; series: WayDay[] }) {
+  const max = Math.max(1, ...series.map((d) => d.visits));
+  const h = 56;
+  return (
+    <section className="mt-10">
+      <p className="text-[10px] font-medium uppercase tracking-[0.16em] text-accent">The Way</p>
+      <p className="mt-1 text-sm text-muted">Counted only after the door is open. Direct paths stay 404.</p>
+      <div className="mt-4 max-w-xs">
+        <Card n={visits} label="visits" />
+      </div>
+      {series.length ? (
+        <div className="mt-6">
+          <p className="text-[10px] font-medium uppercase tracking-[0.16em] text-accent">Last 14 days</p>
+          <div className="mt-3 flex items-end gap-1" style={{ height: h }}>
+            {series.map((d) => {
+              const col = (d.visits / max) * h;
+              return (
+                <div
+                  key={d.day}
+                  className="flex h-full min-w-0 flex-1 flex-col justify-end"
+                  title={`${d.day}: ${d.visits}`}
+                >
+                  <div
+                    className="w-full rounded-sm bg-accent/80"
+                    style={{ height: d.visits ? Math.max(3, col) : 0 }}
+                  />
+                </div>
+              );
+            })}
+          </div>
+          <div className="mt-2 flex justify-between text-[10px] text-subtle">
+            <span>{series[0]?.day.slice(5)}</span>
+            <span>{series[series.length - 1]?.day.slice(5)}</span>
+          </div>
+        </div>
+      ) : null}
+    </section>
   );
 }
