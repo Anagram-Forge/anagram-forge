@@ -47,6 +47,8 @@ Cloudflare Web Analytics with **bot filtering** when we want “how many humans,
 
 Gate: rack → exact phrase in order → Make a card. Signature is the link. Copy is server-gated (`/api/forge/door`, cookie `af_doors`). Add a later gate with another secret `DOOR_HASH_NAME` plus a vault entry — matcher already loops them. Do **not** put unlock phrases in this file. Title/signature: **The Way**. Steward visit tracker: **shipped** (cookie-gated, not the public footer).
 
+- **Trail for the first clue** — visitors need a hint or breadcrumb toward the first door (the rack + exact arrangement). Quiet, not a spoiler on the homepage. Open.
+
 ## Card looks (pick of 3)
 
 1. **Vintage postcard** — aged stock, stamp, hairline border, handwritten feel

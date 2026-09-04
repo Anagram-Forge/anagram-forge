@@ -1,5 +1,6 @@
 import { createHash, timingSafeEqual } from "node:crypto";
 import { createFileRoute } from "@tanstack/react-router";
+import { doorCookie, readDoorIds } from "@/lib/door-cookie";
 import { bumpWayVisit } from "@/lib/way-stats";
 
 /**
@@ -70,22 +71,6 @@ function throttled(ip: string) {
   return false;
 }
 
-function readIds(request: Request): string[] {
-  const raw = request.headers.get("cookie") || "";
-  const m = raw.match(/(?:^|;\s*)af_doors=([^;]+)/);
-  if (!m) return [];
-  return decodeURIComponent(m[1])
-    .split(".")
-    .map((id) => id.toLowerCase())
-    .filter((id) => /^[a-z][a-z0-9]{0,24}$/.test(id));
-}
-
-function setCookie(ids: string[], request: Request) {
-  const secure = new URL(request.url).protocol === "https:" ? "; Secure" : "";
-  const value = [...new Set(ids)].join(".");
-  return `af_doors=${encodeURIComponent(value)}; Path=/; HttpOnly; SameSite=Lax; Max-Age=${60 * 60 * 24 * 400}${secure}`;
-}
-
 async function secrets(): Promise<{ id: string; hash: string }[]> {
   const bag: Record<string, unknown> = {
     ...(typeof process !== "undefined" ? process.env : {}),
@@ -116,7 +101,7 @@ export const Route = createFileRoute("/api/forge/door")({
   server: {
     handlers: {
       GET: async ({ request }) => {
-        const ids = readIds(request);
+        const ids = readDoorIds(request);
         const doors = ids.map((id) => (VAULT[id] ? { id, ...VAULT[id] } : null)).filter(Boolean);
         if (!doors.length) return Response.json({ ok: false }, { status: 404 });
         if (ids.includes("way")) await bumpWayVisit(request);
@@ -141,13 +126,13 @@ export const Route = createFileRoute("/api/forge/door")({
         const hit = keys.find((k) => sameHash(k.hash, got));
         if (!hit) return Response.json({ ok: false });
         const page = VAULT[hit.id];
-        const ids = [...readIds(request), hit.id];
+        const ids = [...readDoorIds(request), hit.id];
         return new Response(
           JSON.stringify({ ok: true, id: hit.id, sign: page?.sign || hit.id }),
           {
             headers: {
               "content-type": "application/json",
-              "set-cookie": setCookie(ids, request),
+              "set-cookie": doorCookie(ids, request),
               "x-robots-tag": "noindex, nofollow",
             },
           },

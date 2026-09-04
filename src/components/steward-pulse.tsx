@@ -1,6 +1,13 @@
 import type { DayRow } from "@/lib/stat-day";
 import type { WayDay } from "@/lib/way-stats";
 
+export type DoorNote = {
+  id: string;
+  title: string;
+  rack: string;
+  phrase: string;
+};
+
 function Card({ n, label }: { n: number; label: string }) {
   return (
     <div className="rounded-md border border-border bg-surface px-3 py-3">
@@ -79,13 +86,34 @@ export function StewardPulse({
   );
 }
 
-export function TheWayPulse({ visits, series }: { visits: number; series: WayDay[] }) {
+export function TheWayPulse({
+  visits,
+  series,
+  doors,
+  onOpen,
+}: {
+  visits: number;
+  series: WayDay[];
+  doors?: DoorNote[];
+  onOpen?: () => void;
+}) {
   const max = Math.max(1, ...series.map((d) => d.visits));
   const h = 56;
   return (
-    <section className="mt-10">
-      <p className="text-[10px] font-medium uppercase tracking-[0.16em] text-accent">The Way</p>
-      <p className="mt-1 text-sm text-muted">Counted only after the door is open. Direct paths stay 404.</p>
+    <section className="mt-8">
+      <div className="flex items-baseline justify-between gap-3">
+        <p className="text-[10px] font-medium uppercase tracking-[0.16em] text-accent">The Way</p>
+        {onOpen ? (
+          <button
+            type="button"
+            onClick={onOpen}
+            className="text-xs text-subtle underline decoration-border underline-offset-2 hover:text-muted"
+          >
+            Open The Way
+          </button>
+        ) : null}
+      </div>
+      <p className="mt-1 text-sm text-muted">Counted after the door is open. Direct paths stay 404.</p>
       <div className="mt-4 max-w-xs">
         <Card n={visits} label="visits" />
       </div>
@@ -114,6 +142,18 @@ export function TheWayPulse({ visits, series }: { visits: number; series: WayDay
             <span>{series[series.length - 1]?.day.slice(5)}</span>
           </div>
         </div>
+      ) : null}
+      {doors && doors.length ? (
+        <ul className="mt-6 space-y-3">
+          {doors.map((d) => (
+            <li key={d.id}>
+              <p className="text-sm text-fg">{d.title}</p>
+              <p className="mt-0.5 font-mono text-xs text-muted">
+                {d.rack} → {d.phrase}
+              </p>
+            </li>
+          ))}
+        </ul>
       ) : null}
     </section>
   );
