@@ -170,10 +170,11 @@ function Home() {
     [letters],
   );
   const solvePool = useMemo(() => {
-    if (!seedTokens.length) return pool;
+    const extras = [...seedTokens, ...mustInclude];
+    if (!extras.length) return pool;
     const have = new Set(pool.map((p) => p.word));
     const extra: DictWord[] = [];
-    for (const word of seedTokens) {
+    for (const word of extras) {
       if (have.has(word)) continue;
       extra.push({
         word,
@@ -181,9 +182,10 @@ function Home() {
         score: scrabbleScore(word),
         freq: 6000,
       });
+      have.add(word);
     }
     return extra.length ? extra.concat(pool) : pool;
-  }, [pool, seedTokens]);
+  }, [pool, seedTokens, mustInclude]);
   const picked = useMemo(
     () => consumePicks(parsed.letters, parsed.blanks, picks),
     [parsed, picks],

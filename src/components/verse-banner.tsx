@@ -18,10 +18,11 @@ function Line({ v }: { v: Verse }) {
 }
 
 export function VerseBanner() {
-  const [i, setI] = useState(() => Math.floor(Math.random() * VERSES.length));
+  const [i, setI] = useState(0);
   const [on, setOn] = useState(true);
 
   useEffect(() => {
+    setI(Math.floor(Math.random() * VERSES.length));
     const reduce = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
     if (reduce) return;
     const id = window.setInterval(() => {

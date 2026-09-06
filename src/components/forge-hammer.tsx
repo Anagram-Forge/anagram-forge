@@ -37,6 +37,7 @@ type Bit = {
 export function ForgeHammer() {
   const [pos, setPos] = useState<{ x: number; y: number } | null>(null);
   const [held, setHeld] = useState(false);
+  const [away, setAway] = useState(false);
   const grab = useRef({ dx: 0, dy: 0 });
   const parked = useRef(true);
   const cool = useRef(0);
@@ -60,8 +61,13 @@ export function ForgeHammer() {
     ro.observe(document.body);
     window.addEventListener("resize", place);
     window.addEventListener("af-anvil", place);
+    const postcard = () => setAway(document.body.classList.contains("af-postcard"));
+    postcard();
+    const mo = new MutationObserver(postcard);
+    mo.observe(document.body, { attributes: true, attributeFilter: ["class"] });
     return () => {
       ro.disconnect();
+      mo.disconnect();
       window.removeEventListener("resize", place);
       window.removeEventListener("af-anvil", place);
     };
@@ -242,8 +248,13 @@ export function ForgeHammer() {
 
   return (
     <>
-      <canvas ref={canvasRef} className="pointer-events-none fixed inset-0 z-50" aria-hidden />
-      {pos ? (
+      <canvas
+        ref={canvasRef}
+        className="pointer-events-none fixed inset-0 z-50"
+        aria-hidden
+        hidden={away}
+      />
+      {pos && !away ? (
         <button
           ref={el}
           type="button"

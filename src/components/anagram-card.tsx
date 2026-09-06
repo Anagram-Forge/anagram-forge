@@ -1,18 +1,27 @@
 import { ChevronLeft, ChevronRight, Download, ImageIcon, X } from "lucide-react";
 import { useEffect, useState } from "react";
+import { createPortal } from "react-dom";
 import { Link } from "@tanstack/react-router";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import {
   CARD_FONTS,
   DEFAULT_CARD_STYLE,
+  DOODLES,
   INK_SWATCHES,
+  LOOK_PRESETS,
   PAPER_SWATCHES,
   PATH_SWATCHES,
+  POSTCARD,
+  POSTCARD_LOOKS,
+  VINTAGE_STAMP,
   displayRack,
+  ensureSignatureFont,
   nearestWeight,
   renderAnagramCard,
   type CardStyle,
+  type DoodleId,
+  type PostcardLook,
 } from "@/lib/anagram/poster";
 import { DOOR_PATH, tryDoor, type DoorUnlock } from "@/lib/side-door";
 import { cn } from "@/lib/utils";
@@ -128,6 +137,12 @@ export function AnagramCardButton({
 
   useEffect(() => {
     if (!open) return;
+    document.body.classList.add("af-postcard");
+    return () => document.body.classList.remove("af-postcard");
+  }, [open]);
+
+  useEffect(() => {
+    if (!open) return;
     let live = true;
     setDoor(null);
     void tryDoor(source, picks).then((hit) => {
@@ -141,21 +156,25 @@ export function AnagramCardButton({
   useEffect(() => {
     if (!open) return;
     let live = true;
-    setBusy(true);
-    renderAnagramCard(from, to, style, door?.sign)
-      .then((url) => {
-        if (live) setSrc(url);
-      })
-      .catch(() => {
-        if (live) toast("Could not draw the card");
-      })
-      .finally(() => {
-        if (live) setBusy(false);
-      });
+    const t = window.setTimeout(() => {
+      setBusy(true);
+      if (door?.sign) void ensureSignatureFont();
+      renderAnagramCard(from, to, style)
+        .then((url) => {
+          if (live) setSrc(url);
+        })
+        .catch(() => {
+          if (live) toast("Could not draw the card");
+        })
+        .finally(() => {
+          if (live) setBusy(false);
+        });
+    }, 160);
     return () => {
       live = false;
+      window.clearTimeout(t);
     };
-  }, [open, from, to, style, door]);
+  }, [open, from, to, style]);
 
   function patch(next: Partial<CardStyle>) {
     setStyle((cur) => {
@@ -169,13 +188,47 @@ export function AnagramCardButton({
     });
   }
 
-  function download() {
-    if (!src) return;
-    const a = document.createElement("a");
-    a.href = src;
-    a.download = `${slug(from)}-anagram.png`;
-    a.click();
-    toast("Card saved");
+  async function postcardPng() {
+    const dataUrl = await renderAnagramCard(from, to, style, door?.sign);
+    const blob = await fetch(dataUrl).then((r) => r.blob());
+    return URL.createObjectURL(blob);
+  }
+
+  async function download() {
+    setBusy(true);
+    try {
+      const href = await postcardPng();
+      const a = document.createElement("a");
+      a.href = href;
+      a.download = `${slug(from)}-postcard.png`;
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      const framed = window.self !== window.top;
+      toast(
+        framed
+          ? "Preview pane often blocks saves. Use Open PNG, or try the live site."
+          : "Postcard saved · print at 4×6 in, 100%",
+      );
+      window.setTimeout(() => URL.revokeObjectURL(href), 20_000);
+    } catch {
+      toast("Could not draw the card");
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  async function openPng() {
+    setBusy(true);
+    try {
+      const href = await postcardPng();
+      const w = window.open(href, "_blank", "noopener");
+      if (!w) toast("Popup blocked in this pane. It will download on the live site.");
+    } catch {
+      toast("Could not draw the card");
+    } finally {
+      setBusy(false);
+    }
   }
 
   if (picks.length < 1) return null;
@@ -192,12 +245,13 @@ export function AnagramCardButton({
         </button>
       ) : (
         <Button type="button" variant={filled ? "default" : "secondary"} size="sm" onClick={() => setOpen(true)}>
-          <ImageIcon /> Make card
+          <ImageIcon /> Make postcard
         </Button>
       )}
-      {open && (
+      {open &&
+        createPortal(
         <div
-          className="fixed inset-0 z-50 grid place-items-center bg-black/70 p-4"
+          className="fixed inset-0 z-[80] grid place-items-center bg-black/70 p-4"
           onClick={() => setOpen(false)}
         >
           <div
@@ -205,7 +259,7 @@ export function AnagramCardButton({
             onClick={(e) => e.stopPropagation()}
           >
             <div className="flex items-center justify-between gap-3">
-              <p className="font-display text-lg text-fg">Anagram card</p>
+              <p className="font-display text-lg text-fg">Postcard</p>
               <button
                 type="button"
                 className="grid size-10 place-items-center rounded-sm text-muted hover:text-fg"
@@ -215,7 +269,9 @@ export function AnagramCardButton({
                 <X className="size-4" />
               </button>
             </div>
-            <p className="mt-1 text-xs text-subtle">Rearrange the chips, then tune the type.</p>
+            <p className="mt-1 text-xs text-subtle">
+              4×6 in · 300 dpi. Rearrange the chips, pick a stock, print at actual size.
+            </p>
             <div className="mt-3">
               <PickChips picks={picks} onReorder={onReorder} onRemove={onRemove} />
             </div>
@@ -230,6 +286,42 @@ export function AnagramCardButton({
                     className="inline-flex h-9 items-center rounded-sm border border-dashed border-accent/60 px-2.5 font-mono text-xs uppercase tracking-wide text-accent hover:bg-accent hover:text-accent-fg"
                   >
                     + {w}
+                  </button>
+                ))}
+              </div>
+            ) : null}
+
+            <div className="mt-4 grid grid-cols-3 gap-2">
+              {POSTCARD_LOOKS.map((look) => (
+                <button
+                  key={look.id}
+                  type="button"
+                  onClick={() => patch({ ...LOOK_PRESETS[look.id], look: look.id as PostcardLook })}
+                  className={cn(
+                    "rounded-md border px-2 py-2 text-left",
+                    style.look === look.id ? "border-fg bg-raised" : "border-border hover:border-muted",
+                  )}
+                >
+                  <span className="block text-sm text-fg">{look.label}</span>
+                  <span className="mt-0.5 block text-[11px] text-subtle">{look.note}</span>
+                </button>
+              ))}
+            </div>
+
+            {style.look === "vintage" ? (
+              <div className="mt-3 grid grid-cols-3 gap-2">
+                {DOODLES.map((d) => (
+                  <button
+                    key={d.id}
+                    type="button"
+                    onClick={() => patch({ doodle: d.id as DoodleId })}
+                    className={cn(
+                      "rounded-md border px-2 py-2 text-left",
+                      style.doodle === d.id ? "border-fg bg-raised" : "border-border hover:border-muted",
+                    )}
+                  >
+                    <span className="block text-sm text-fg">{d.label}</span>
+                    <span className="mt-0.5 block text-[11px] text-subtle">{d.note}</span>
                   </button>
                 ))}
               </div>
@@ -268,8 +360,8 @@ export function AnagramCardButton({
                 <span className="text-xs text-subtle">Size · {style.size}px</span>
                 <input
                   type="range"
-                  min={48}
-                  max={140}
+                  min={24}
+                  max={220}
                   value={style.size}
                   onChange={(e) => patch({ size: Number(e.target.value) })}
                   className="mt-2 w-full accent-accent"
@@ -344,7 +436,10 @@ export function AnagramCardButton({
               </div>
             </div>
 
-            <div className="relative mt-4 overflow-hidden rounded-md border border-border" style={{ background: style.paper }}>
+            <div
+              className="relative mt-4 overflow-hidden rounded-md border border-border"
+              style={{ background: style.paper, aspectRatio: `${POSTCARD.inchW} / ${POSTCARD.inchH}` }}
+            >
               {src ? (
                 <img src={src} alt={`${from} becomes ${to}`} className="block w-full" />
               ) : (
@@ -355,25 +450,42 @@ export function AnagramCardButton({
               {door && src ? (
                 <Link
                   to={DOOR_PATH}
-                  className="door-sign absolute bottom-[4.5%] right-[5%] text-[clamp(1.25rem,3.6vw,1.85rem)] leading-none"
+                  aria-label={door.sign}
+                  className={
+                    style.look === "vintage" && style.doodle === "sling"
+                      ? "way-shimmer absolute -translate-x-1/2 -translate-y-1/2 text-[clamp(1.05rem,2.6vw,1.55rem)] leading-none"
+                      : "way-shimmer absolute bottom-[3%] right-[3%] text-[clamp(1.2rem,2.8vw,1.7rem)] leading-none"
+                  }
+                  style={
+                    style.look === "vintage" && style.doodle === "sling"
+                      ? { left: `${VINTAGE_STAMP.x * 100}%`, top: `${VINTAGE_STAMP.y * 100}%` }
+                      : undefined
+                  }
                 >
                   {door.sign}
                 </Link>
               ) : null}
             </div>
             <div className="mt-4 flex flex-wrap gap-2">
-              <Button type="button" onClick={download} disabled={!src}>
-                <Download /> Download PNG
+              <Button type="button" onClick={download} disabled={!src || busy}>
+                <Download /> Download 4×6 PNG
+              </Button>
+              <Button type="button" variant="secondary" onClick={openPng} disabled={!src || busy}>
+                Open PNG
               </Button>
               <Button type="button" variant="secondary" onClick={() => setStyle(DEFAULT_CARD_STYLE)}>
-                Reset type
+                Reset
               </Button>
               <Button type="button" variant="secondary" onClick={() => setOpen(false)}>
                 Close
               </Button>
             </div>
+            <p className="mt-2 text-xs text-subtle">
+              Print at 4×6 in, 100%. This preview pane may block the save — Open PNG is the check.
+            </p>
           </div>
-        </div>
+        </div>,
+        document.body,
       )}
     </>
   );

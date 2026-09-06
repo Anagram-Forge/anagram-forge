@@ -99,6 +99,22 @@ html.easy-read body {
   animation: letters-ph 3.6s ease-in-out infinite;
 }
 
+.way-shimmer {
+  font-family: "Great Vibes", cursive;
+  color: #d4a24c;
+  text-decoration: none;
+  letter-spacing: 0.03em;
+  text-shadow: 0 0 8px rgba(212, 162, 76, 0.35);
+  animation: letters-ph 3.6s ease-in-out infinite;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .way-shimmer {
+    animation: none;
+    opacity: 0.9;
+  }
+}
+
 .door-sign {
   font-family: "Great Vibes", cursive;
   color: var(--color-accent);

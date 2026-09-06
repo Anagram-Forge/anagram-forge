@@ -49,6 +49,16 @@ Gate: rack → exact phrase in order → Make a card. Signature is the link. Cop
 
 - **Trail for the first clue** — visitors need a hint or breadcrumb toward the first door (the rack + exact arrangement). Quiet, not a spoiler on the homepage. Open.
 
+## Must-contain → theme heat
+
+Rejuvenate the “must contain” box so it can also be a **free-form theme**, not only a required substring.
+
+- Example: rack solve, type `rattlesnake` in the box. Results stay legal for the rack, but **sort and color hot → cold** by how close each word/phrase is to that theme.
+- One word or a short phrase in the box is enough.
+- Existing “must include these letters” behavior stays available — don’t silently replace it. Split, toggle, or a second field; decide when we build.
+- Color is a quiet heat scale (not neon). Accessible (not color-only).
+- Thematic scoring is the hard part (embeddings vs a small local related-words list vs a tiny worker). Pick the cheap client-side path first.
+
 ## Card looks (pick of 3)
 
 1. **Vintage postcard** — aged stock, stamp, hairline border, handwritten feel
