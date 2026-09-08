@@ -361,7 +361,7 @@ export function AnagramCardButton({
                 <input
                   type="range"
                   min={24}
-                  max={220}
+                  max={350}
                   value={style.size}
                   onChange={(e) => patch({ size: Number(e.target.value) })}
                   className="mt-2 w-full accent-accent"

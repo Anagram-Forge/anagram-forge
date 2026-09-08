@@ -1,6 +1,6 @@
 import { Volume2 } from "lucide-react";
 import { useEffect, useId, useRef, useState, type FocusEvent } from "react";
-import { defineWord, peekDefinition, playPronunciation, type Definition } from "@/lib/anagram/define";
+import { defineWord, fillEtymology, peekDefinition, playPronunciation, type Definition } from "@/lib/anagram/define";
 import { cn } from "@/lib/utils";
 
 export function DefinedWord({
@@ -27,7 +27,13 @@ export function DefinedWord({
     if (cached !== undefined) setDef(cached);
     else setDef(undefined);
     defineWord(word).then((d) => {
-      if (live) setDef(d);
+      if (!live) return;
+      setDef(d);
+      if (d && !d.etymology) {
+        void fillEtymology(word).then((etym) => {
+          if (live && etym) setDef({ ...d, etymology: etym });
+        });
+      }
     });
     return () => {
       live = false;

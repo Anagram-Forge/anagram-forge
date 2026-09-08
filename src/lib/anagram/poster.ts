@@ -738,27 +738,14 @@ export async function renderAnagramCard(
   const botLines = wrapLine(ctx, bottom, maxW, style.tracking);
 
   const leading = plated ? 1.08 : 1.16;
-  let gap = plated
+  const gap = plated
     ? Math.max(style.paths ? 64 : 40, style.size * 0.55)
     : Math.max(style.paths ? 110 : 56, style.size * (style.paths ? 1.2 : 0.85));
-  const skyTop = plated ? h * 0.1 : 0;
-  const skyBot = plated ? h * 0.48 : h;
-  if (plated) {
-    const skyH = skyBot - skyTop;
-    const raw = topLines.length * topSize * leading + botLines.length * botSize * leading + gap;
-    if (raw > skyH) {
-      const s = skyH / raw;
-      topSize = Math.max(16, topSize * s);
-      botSize = Math.max(16, botSize * s);
-      gap *= s;
-    }
-  }
   const topBlock = topLines.length * topSize * leading;
   const botBlock = botLines.length * botSize * leading;
   const total = topBlock + gap + botBlock;
-  let y = plated
-    ? skyTop + Math.max(0, (skyBot - skyTop - total) / 2) + topSize * 0.52
-    : (h - total) / 2 + topSize * 0.52;
+  const skyTop = plated ? h * 0.12 : 0;
+  let y = plated ? skyTop + topSize * 0.52 : (h - total) / 2 + topSize * 0.52;
 
   const topGlyphs: Glyph[] = [];
   const drawLine = (line: string, yy: number, size: number) => {

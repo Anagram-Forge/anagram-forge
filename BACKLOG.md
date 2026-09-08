@@ -59,6 +59,16 @@ Rejuvenate the “must contain” box so it can also be a **free-form theme**, n
 - Color is a quiet heat scale (not neon). Accessible (not color-only).
 - Thematic scoring is the hard part (embeddings vs a small local related-words list vs a tiny worker). Pick the cheap client-side path first.
 
+## Top 3 perfect anagrams
+
+Suggest the best **complete** anagrams of the typed rack (every letter used, leftover = 0). Show three, ranked.
+
+- Not “first 160 phrase dumps.” Hunt for good ones: common words, few words, don’t just reshuffle the input.
+- `eleven plus two` → `twelve plus one` is the gold standard (aptagram / anagrammatic equation). Taste is the hard part; search is medium.
+- Short racks: cheap, in-browser. Long names: beam/best-first with a time budget so the page never freezes. Same machine-not-ours rule.
+- UI: a quiet top-3 above the banks. Click → picked, ready for a postcard.
+- First pass can skip when it can’t finish clean.
+
 ## Card looks (pick of 3)
 
 1. **Vintage postcard** — aged stock, stamp, hairline border, handwritten feel
