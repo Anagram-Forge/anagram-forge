@@ -1,6 +1,7 @@
 import { createRootRoute, HeadContent, Outlet, Scripts } from "@tanstack/react-router";
 import { ForgeHammer } from "@/components/forge-hammer";
 import { ForgeSky } from "@/components/forge-sky";
+import { inks } from "@/lib/palette";
 import { AuthProvider } from "@/lib/auth/provider";
 import { MissingPage } from "@/components/missing-page";
 import { PreviewHostBridge } from "@/components/preview-host-bridge";
@@ -24,7 +25,7 @@ export const Route = createRootRoute({
           "Unscramble letters into words and phrases. Exact anagrams, rack words, crossword patterns, blanks, and Scrabble scores.",
       },
       { name: "apple-mobile-web-app-title", content: APP_NAME },
-      { name: "theme-color", content: "#0c0b0a" },
+      { name: "theme-color", content: inks.soot },
       { name: "twitter:card", content: "summary_large_image" },
       { property: "og:type", content: "website" },
       ...(ogImage

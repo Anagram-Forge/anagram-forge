@@ -36,7 +36,7 @@ function ArchivePage() {
               {challenge.blurb ? <p className="mt-1 text-sm text-muted">{challenge.blurb}</p> : null}
               <Link
                 to="/"
-                search={{ q: challenge.rack, mode: challenge.mode }}
+                search={{ q: challenge.rack, mode: "from-rack" }}
                 className="mt-2 inline-block text-xs text-subtle hover:text-muted"
               >
                 Use this rack

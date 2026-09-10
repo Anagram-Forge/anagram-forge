@@ -21,7 +21,7 @@ export function WeekCard() {
       <p className="mt-2 font-mono text-sm uppercase tracking-wide text-muted">{week.rack}</p>
       <Link
         to="/"
-        search={{ q: week.rack, mode: week.mode }}
+        search={{ q: week.rack, mode: "from-rack" }}
         className="mt-3 inline-block text-xs text-subtle hover:text-muted"
       >
         Use this rack

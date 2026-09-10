@@ -37,6 +37,10 @@ export function VerseBanner() {
 
   const current = VERSES[i] ?? VERSES[0];
 
+  useEffect(() => {
+    window.dispatchEvent(new CustomEvent("af-verse-theme", { detail: current.theme }));
+  }, [current.theme]);
+
   return (
     <div
       id="verse-banner"

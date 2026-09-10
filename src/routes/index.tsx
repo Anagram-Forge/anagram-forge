@@ -33,6 +33,7 @@ import {
 } from "@/lib/anagram/types";
 import { pingStats } from "@/lib/stats";
 import { cn } from "@/lib/utils";
+import { setSkyLetters } from "@/components/forge-sky";
 
 type Search = {
   q?: string;
@@ -136,6 +137,11 @@ function Home() {
   const [joinLeft, setJoinLeft] = useState("");
   const [collapsed, setCollapsed] = useState<Set<number>>(() => new Set());
   const [tileOrder, setTileOrder] = useState<number[] | null>(null);
+
+  useEffect(() => {
+    setSkyLetters(letters, picks.join(" "));
+    return () => setSkyLetters("");
+  }, [letters, picks]);
 
   useEffect(() => {
     let live = true;

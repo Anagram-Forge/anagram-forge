@@ -62,6 +62,7 @@ export function SupportSlot() {
             </button>
           </div>
         )}
+        <p className="mt-6 text-[10px] tracking-wide text-subtle/70">Vibecoded with Grok.</p>
       </div>
     </aside>
   );

@@ -1,4 +1,6 @@
-export type CardFontId = "fraunces" | "lexend" | "atkinson";
+import { bone, gold, inks, rgba, soot } from "@/lib/palette";
+
+export type CardFontId = "source" | "atkinson" | "lexend";
 export type PostcardLook = "vintage" | "index" | "press";
 export type DoodleId = "sling" | "stone" | "fall";
 
@@ -32,36 +34,47 @@ export const DOODLES: { id: DoodleId; label: string; note: string }[] = [
 export const CARD_FONTS: {
   id: CardFontId;
   label: string;
+  note: string;
+  sample: string;
   family: string;
   weights: Array<CardStyle["weight"]>;
   italic?: boolean;
   href: string;
   fallback: string;
+  /** Pin optical size when the face is variable (canvas otherwise picks the thin display cut). */
+  opsz?: number;
 }[] = [
   {
-    id: "fraunces",
-    label: "Fraunces",
-    family: "Fraunces",
-    weights: [500, 600, 700],
+    id: "source",
+    label: "Source Serif",
+    note: "Even color · built for this size",
+    sample: "David",
+    family: "Source Serif 4",
+    weights: [400, 600, 700, 800],
     italic: true,
-    href: "https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,500;0,9..144,600;0,9..144,700;1,9..144,600&display=swap",
-    fallback: "serif",
-  },
-  {
-    id: "lexend",
-    label: "Lexend",
-    family: "Lexend",
-    weights: [400, 500, 600, 700, 800],
-    href: "https://fonts.googleapis.com/css2?family=Lexend:wght@400;500;600;700;800&display=swap",
-    fallback: "sans-serif",
+    href: "https://fonts.googleapis.com/css2?family=Source+Serif+4:ital,opsz,wght@0,8..60,400..800;1,8..60,400..700&display=swap",
+    fallback: "Georgia, serif",
+    opsz: 48,
   },
   {
     id: "atkinson",
     label: "Atkinson",
-    family: "Atkinson Hyperlegible",
-    weights: [400, 700],
+    note: "I, l, 1, O, 0 stay distinct",
+    sample: "David",
+    family: "Atkinson Hyperlegible Next",
+    weights: [400, 500, 600, 700],
     italic: true,
-    href: "https://fonts.googleapis.com/css2?family=Atkinson+Hyperlegible:ital,wght@0,400;0,700;1,400;1,700&display=swap",
+    href: "https://fonts.googleapis.com/css2?family=Atkinson+Hyperlegible+Next:ital,wght@0,400..700;1,400..700&display=swap",
+    fallback: "Atkinson Hyperlegible, sans-serif",
+  },
+  {
+    id: "lexend",
+    label: "Lexend",
+    note: "Open spacing · less crowding",
+    sample: "David",
+    family: "Lexend",
+    weights: [400, 500, 600, 700, 800],
+    href: "https://fonts.googleapis.com/css2?family=Lexend:wght@400;500;600;700;800&display=swap",
     fallback: "sans-serif",
   },
 ];
@@ -69,51 +82,54 @@ export const CARD_FONTS: {
 export const LOOK_PRESETS: Record<PostcardLook, Partial<CardStyle>> = {
   vintage: {
     look: "vintage",
-    font: "fraunces",
-    weight: 700,
+    font: "source",
+    weight: 600,
     italic: false,
     uppercase: true,
-    ink: "#3b1d0f",
-    paper: "#e6d5b8",
-    path: "#a33b2b",
+    tracking: 4,
+    ink: soot.surface,
+    paper: bone.tile,
+    path: inks.iron,
     doodle: "sling",
   },
   index: {
     look: "index",
     font: "atkinson",
-    weight: 700,
+    weight: 600,
     italic: false,
     uppercase: false,
-    ink: "#1e3a5f",
-    paper: "#f6edd8",
-    path: "#b23b2c",
+    tracking: 0,
+    ink: soot.surface,
+    paper: bone.fg,
+    path: inks.iron,
     doodle: "sling",
   },
   press: {
     look: "press",
-    font: "fraunces",
-    weight: 700,
+    font: "source",
+    weight: 600,
     italic: false,
     uppercase: true,
-    ink: "#1a1714",
-    paper: "#f3eee4",
-    path: "#c6a15b",
+    tracking: 4,
+    ink: soot.surface,
+    paper: bone.fg,
+    path: inks.gold,
     doodle: "sling",
   },
 };
 
 export const DEFAULT_CARD_STYLE: CardStyle = {
   look: "vintage",
-  font: "fraunces",
-  size: 84,
-  weight: 700,
+  font: "source",
+  size: 168,
+  weight: 600,
   italic: false,
   uppercase: true,
-  tracking: 0,
-  ink: "#3b1d0f",
-  paper: "#e6d5b8",
+  tracking: 4,
+  ink: soot.surface,
+  paper: bone.tile,
   paths: true,
-  path: "#a33b2b",
+  path: inks.iron,
   doodle: "sling",
 };
 
@@ -160,9 +176,8 @@ async function drawVintagePlate(
   }
 }
 
-export const PAPER_SWATCHES = ["#e6d5b8", "#f6edd8", "#f3eee4", "#efe6d4", "#111111"];
-export const INK_SWATCHES = ["#3b1d0f", "#1e3a5f", "#1a1714", "#6b1d12", "#d4a24c"];
-export const PATH_SWATCHES = ["#a33b2b", "#c6a15b", "#f07812", "#1a1714", "#ebe4d6"];
+export const INK_SWATCHES = [soot.surface, gold.fg, inks.iron, inks.gold, bone.fg];
+export const PATH_SWATCHES = [inks.iron, inks.gold, gold.dim, soot.surface, inks.bone];
 
 function spec(id: CardFontId) {
   return CARD_FONTS.find((f) => f.id === id) ?? CARD_FONTS[0];
@@ -213,16 +228,31 @@ async function ensureFont(style: CardStyle) {
   const weight = clampWeight(style.font, style.weight);
   const italic = style.italic && face.italic ? "italic " : "";
   try {
-    await document.fonts.load(`${italic}${weight} 80px "${face.family}"`);
+    await document.fonts.load(`${italic}${weight} 168px "${face.family}"`);
     await document.fonts.ready;
   } catch {
     /* fallback */
   }
 }
 
+type CanvasType = CanvasRenderingContext2D & {
+  fontKerning?: string;
+  fontVariationSettings?: string;
+  fontOpticalSizing?: string;
+};
+
 function applyFont(ctx: CanvasRenderingContext2D, style: CardStyle, size: number) {
   ctx.font = fontCss({ ...style, size });
   ctx.letterSpacing = "0px";
+  const c = ctx as CanvasType;
+  if ("fontKerning" in ctx) c.fontKerning = "normal";
+  const face = spec(style.font);
+  if (face.opsz) {
+    if ("fontOpticalSizing" in ctx) c.fontOpticalSizing = "none";
+    if ("fontVariationSettings" in ctx) c.fontVariationSettings = `"opsz" ${face.opsz}`;
+  } else if ("fontVariationSettings" in ctx) {
+    c.fontVariationSettings = "normal";
+  }
 }
 
 function measureRun(ctx: CanvasRenderingContext2D, text: string, tracking: number): number {
@@ -234,10 +264,40 @@ function measureRun(ctx: CanvasRenderingContext2D, text: string, tracking: numbe
   return w;
 }
 
+function lineOverflows(ctx: CanvasRenderingContext2D, lines: string[], maxWidth: number, tracking: number) {
+  return lines.some((line) => measureRun(ctx, line, tracking) > maxWidth);
+}
+
+/** Keep headline size; wrap first, then shrink only if a line or the block won't fit. */
+function layoutPhrase(
+  ctx: CanvasRenderingContext2D,
+  text: string,
+  maxWidth: number,
+  maxHeight: number,
+  style: CardStyle,
+  leading: number,
+): { size: number; lines: string[] } {
+  let size = style.size;
+  const floor = 56;
+  applyFont(ctx, style, size);
+  let lines = wrapLine(ctx, text, maxWidth, style.tracking);
+  while (size > floor && (lineOverflows(ctx, lines, maxWidth, style.tracking) || lines.length * size * leading > maxHeight)) {
+    size -= 2;
+    applyFont(ctx, style, size);
+    lines = wrapLine(ctx, text, maxWidth, style.tracking);
+  }
+  while (size > 36 && lineOverflows(ctx, lines, maxWidth, style.tracking)) {
+    size -= 2;
+    applyFont(ctx, style, size);
+    lines = wrapLine(ctx, text, maxWidth, style.tracking);
+  }
+  return { size, lines };
+}
+
 function fitLine(ctx: CanvasRenderingContext2D, text: string, maxWidth: number, style: CardStyle): number {
   let size = style.size;
   applyFont(ctx, style, size);
-  while (size > 16 && measureRun(ctx, text, style.tracking) > maxWidth) {
+  while (size > 56 && measureRun(ctx, text, style.tracking) > maxWidth) {
     size -= 2;
     applyFont(ctx, style, size);
   }
@@ -262,6 +322,7 @@ function wrapLine(ctx: CanvasRenderingContext2D, text: string, maxWidth: number,
 }
 
 type Glyph = { ch: string; x: number; y: number };
+type Halo = { color: string; width: number };
 
 function drawRun(
   ctx: CanvasRenderingContext2D,
@@ -269,12 +330,28 @@ function drawRun(
   centerX: number,
   y: number,
   tracking: number,
+  halo?: Halo,
 ): Glyph[] {
   const total = measureRun(ctx, text, tracking);
   let x = centerX - total / 2;
   const glyphs: Glyph[] = [];
   ctx.textAlign = "left";
   ctx.textBaseline = "middle";
+  if (halo) {
+    ctx.save();
+    ctx.strokeStyle = halo.color;
+    ctx.lineWidth = halo.width;
+    ctx.lineJoin = "round";
+    ctx.lineCap = "round";
+    ctx.miterLimit = 2;
+    let sx = x;
+    for (const ch of text) {
+      const w = ctx.measureText(ch).width;
+      ctx.strokeText(ch, sx, y);
+      sx += w + tracking;
+    }
+    ctx.restore();
+  }
   for (const ch of text) {
     const w = ctx.measureText(ch).width;
     ctx.fillText(ch, x, y);
@@ -335,7 +412,7 @@ function grain(ctx: CanvasRenderingContext2D, w: number, h: number, n: number, r
   ctx.save();
   for (let i = 0; i < n; i++) {
     const a = rand() * 0.05;
-    ctx.fillStyle = rand() > 0.5 ? `rgba(70,40,16,${a})` : `rgba(255,250,235,${a})`;
+    ctx.fillStyle = rand() > 0.5 ? rgba(gold.dim, a) : rgba(bone.fg, a);
     ctx.fillRect(rand() * w, rand() * h, 1.2 + rand() * 1.4, 1.1);
   }
   ctx.restore();
@@ -360,7 +437,7 @@ function paperStock(ctx: CanvasRenderingContext2D, w: number, h: number, ink: st
   grain(ctx, w, h, 7000, rand);
   ctx.save();
   // Laid lines
-  ctx.strokeStyle = "rgba(90, 55, 25, 0.045)";
+  ctx.strokeStyle = rgba(gold.dim, 0.045);
   ctx.lineWidth = 1;
   for (let y = 0; y < h; y += 7) {
     ctx.beginPath();
@@ -369,7 +446,7 @@ function paperStock(ctx: CanvasRenderingContext2D, w: number, h: number, ink: st
     ctx.stroke();
   }
   // Chain lines
-  ctx.strokeStyle = "rgba(90, 55, 25, 0.035)";
+  ctx.strokeStyle = rgba(gold.dim, 0.035);
   for (let x = 40; x < w; x += 92) {
     ctx.beginPath();
     ctx.moveTo(x, 0);
@@ -377,7 +454,7 @@ function paperStock(ctx: CanvasRenderingContext2D, w: number, h: number, ink: st
     ctx.stroke();
   }
   // Fibers
-  ctx.strokeStyle = "rgba(70, 40, 16, 0.07)";
+  ctx.strokeStyle = rgba(gold.fg, 0.07);
   ctx.lineWidth = 0.8;
   for (let i = 0; i < 90; i++) {
     const x = rand() * w;
@@ -389,7 +466,7 @@ function paperStock(ctx: CanvasRenderingContext2D, w: number, h: number, ink: st
   }
   // Foxing
   for (let i = 0; i < 18; i++) {
-    ctx.fillStyle = `rgba(140, 70, 28, ${0.03 + rand() * 0.06})`;
+    ctx.fillStyle = rgba(inks.iron, 0.03 + rand() * 0.06);
     ctx.beginPath();
     ctx.ellipse(rand() * w, rand() * h, 18 + rand() * 70, 10 + rand() * 36, rand() * Math.PI, 0, Math.PI * 2);
     ctx.fill();
@@ -561,7 +638,7 @@ function drawVintage(ctx: CanvasRenderingContext2D, w: number, h: number, ink: s
   hairline(ctx, m, m, w - m * 2, h - m * 2, `${ink}88`, 2.2);
   hairline(ctx, m + 12, m + 12, w - (m + 12) * 2, h - (m + 12) * 2, `${ink}44`, 1);
   ctx.save();
-  ctx.fillStyle = "rgba(80, 42, 16, 0.12)";
+  ctx.fillStyle = rgba(gold.dim, 0.12);
   for (const [cx, cy] of [
     [0, 0],
     [w, 0],
@@ -583,7 +660,7 @@ function drawStamp(ctx: CanvasRenderingContext2D, x: number, y: number, ink: str
   ctx.save();
   ctx.translate(x, y);
   ctx.rotate(0.08);
-  ctx.fillStyle = "#edd8b0";
+  ctx.fillStyle = bone.tile;
   ctx.strokeStyle = ink;
   ctx.lineWidth = 2.5;
   ctx.strokeRect(0, 0, sw, sh);
@@ -624,7 +701,7 @@ function drawIndex(ctx: CanvasRenderingContext2D, w: number, h: number) {
   const top = 96;
   const gap = 46;
   ctx.save();
-  ctx.strokeStyle = "rgba(70, 110, 160, 0.28)";
+  ctx.strokeStyle = rgba(soot.muted, 0.28);
   ctx.lineWidth = 1.5;
   for (let y = top; y < h - 70; y += gap) {
     ctx.beginPath();
@@ -632,14 +709,14 @@ function drawIndex(ctx: CanvasRenderingContext2D, w: number, h: number) {
     ctx.lineTo(w - 56, y);
     ctx.stroke();
   }
-  ctx.strokeStyle = "rgba(178, 59, 44, 0.7)";
+  ctx.strokeStyle = rgba(inks.iron, 0.7);
   ctx.lineWidth = 3;
   ctx.beginPath();
   ctx.moveTo(168, 56);
   ctx.lineTo(168, h - 56);
   ctx.stroke();
   ctx.restore();
-  drawDoodle(ctx, w - 220, 70, "#1e3a5f");
+  drawDoodle(ctx, w - 220, 70, inks.iron);
 }
 
 function drawDoodle(ctx: CanvasRenderingContext2D, x: number, y: number, color: string) {
@@ -671,7 +748,7 @@ function drawPress(ctx: CanvasRenderingContext2D, w: number, h: number, ink: str
   ctx.strokeStyle = `${ink}40`;
   ctx.lineWidth = 1.5;
   ctx.strokeRect(m, m, w - m * 2, h - m * 2);
-  ctx.fillStyle = "#c6a15b";
+  ctx.fillStyle = inks.gold;
   ctx.globalAlpha = 0.85;
   ctx.font = '600 18px "Fraunces", serif';
   ctx.textAlign = "center";
@@ -720,6 +797,14 @@ export async function renderAnagramCard(
     if (!plated) {
       drawVintage(ctx, w, h, style.ink, style.doodle || "sling", rng(seedOf(`${from}|${to}|${style.doodle}`)));
     }
+    if (plated) {
+      const sky = ctx.createLinearGradient(0, 0, 0, h * 0.42);
+      sky.addColorStop(0, rgba(gold.fg, 0.14));
+      sky.addColorStop(0.55, rgba(gold.fg, 0.04));
+      sky.addColorStop(1, rgba(gold.fg, 0));
+      ctx.fillStyle = sky;
+      ctx.fillRect(0, 0, w, h * 0.42);
+    }
   } else if (style.look === "index") drawIndex(ctx, w, h);
   else drawPress(ctx, w, h, style.ink);
 
@@ -727,20 +812,25 @@ export async function renderAnagramCard(
   const centerX = style.look === "index" ? w * 0.56 : plated ? w * 0.405 : w / 2;
   const topRaw = from.trim() || "—";
   const botRaw = to.trim() || "—";
-  const top = style.uppercase ? topRaw.toUpperCase() : topRaw;
-  const bottom = style.uppercase ? botRaw.toUpperCase() : botRaw;
+  const top = style.uppercase
+    ? topRaw.toUpperCase()
+    : topRaw.replace(/\S+/g, (word) => word.charAt(0).toUpperCase() + word.slice(1).toLowerCase());
+  const bottom = style.uppercase
+    ? botRaw.toUpperCase()
+    : botRaw.replace(/\S+/g, (word) => word.charAt(0).toUpperCase() + word.slice(1).toLowerCase());
 
-  let topSize = fitLine(ctx, top, maxW, style);
-  applyFont(ctx, style, topSize);
-  const topLines = wrapLine(ctx, top, maxW, style.tracking);
-  let botSize = fitLine(ctx, bottom, maxW, style);
-  applyFont(ctx, style, botSize);
-  const botLines = wrapLine(ctx, bottom, maxW, style.tracking);
+  const leading = plated ? 1.18 : 1.24;
+  const phraseH = plated ? h * 0.2 : h * 0.28;
+  const topFit = layoutPhrase(ctx, top, maxW, phraseH, style, leading);
+  const botFit = layoutPhrase(ctx, bottom, maxW, phraseH, style, leading);
+  const topSize = topFit.size;
+  const botSize = botFit.size;
+  const topLines = topFit.lines;
+  const botLines = botFit.lines;
 
-  const leading = plated ? 1.08 : 1.16;
   const gap = plated
-    ? Math.max(style.paths ? 64 : 40, style.size * 0.55)
-    : Math.max(style.paths ? 110 : 56, style.size * (style.paths ? 1.2 : 0.85));
+    ? Math.max(style.paths ? 56 : 36, Math.min(topSize, botSize) * 0.42)
+    : Math.max(style.paths ? 96 : 48, Math.min(topSize, botSize) * (style.paths ? 0.9 : 0.7));
   const topBlock = topLines.length * topSize * leading;
   const botBlock = botLines.length * botSize * leading;
   const total = topBlock + gap + botBlock;
@@ -750,14 +840,17 @@ export async function renderAnagramCard(
   const topGlyphs: Glyph[] = [];
   const drawLine = (line: string, yy: number, size: number) => {
     applyFont(ctx, style, size);
+    const halo = plated
+      ? { color: rgba(bone.fg, 0.9), width: Math.max(7, Math.min(16, size * 0.12)) }
+      : undefined;
     if (style.look === "press") {
       ctx.save();
-      ctx.fillStyle = "rgba(26, 23, 20, 0.16)";
+      ctx.fillStyle = rgba(soot.surface, 0.16);
       drawRun(ctx, line, centerX + 2, yy + 2.5, style.tracking);
       ctx.restore();
     }
     ctx.fillStyle = style.ink;
-    return drawRun(ctx, line, centerX, yy, style.tracking);
+    return drawRun(ctx, line, centerX, yy, style.tracking, halo);
   };
 
   for (const line of topLines) {
@@ -779,10 +872,10 @@ export async function renderAnagramCard(
 
   if (sign) {
     ctx.save();
-    ctx.fillStyle = "#d4a24c";
+    ctx.fillStyle = inks.gold;
     ctx.globalAlpha = plated ? 0.9 : 0.92;
     ctx.textBaseline = "middle";
-    ctx.shadowColor = "rgba(212, 162, 76, 0.35)";
+    ctx.shadowColor = rgba(inks.gold, 0.35);
     ctx.shadowBlur = 8;
     if (plated) {
       ctx.textAlign = "center";

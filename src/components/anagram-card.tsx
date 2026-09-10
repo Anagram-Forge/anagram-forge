@@ -7,21 +7,15 @@ import { Button } from "@/components/ui/button";
 import {
   CARD_FONTS,
   DEFAULT_CARD_STYLE,
-  DOODLES,
   INK_SWATCHES,
-  LOOK_PRESETS,
-  PAPER_SWATCHES,
   PATH_SWATCHES,
   POSTCARD,
-  POSTCARD_LOOKS,
   VINTAGE_STAMP,
   displayRack,
   ensureSignatureFont,
   nearestWeight,
   renderAnagramCard,
   type CardStyle,
-  type DoodleId,
-  type PostcardLook,
 } from "@/lib/anagram/poster";
 import { DOOR_PATH, tryDoor, type DoorUnlock } from "@/lib/side-door";
 import { cn } from "@/lib/utils";
@@ -104,7 +98,7 @@ const WEIGHTS: { value: CardStyle["weight"]; label: string }[] = [
   { value: 500, label: "Medium" },
   { value: 600, label: "Semibold" },
   { value: 700, label: "Bold" },
-  { value: 900, label: "Black" },
+  { value: 800, label: "Extrabold" },
 ];
 
 export function AnagramCardButton({
@@ -129,7 +123,12 @@ export function AnagramCardButton({
   const [open, setOpen] = useState(false);
   const [src, setSrc] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
-  const [style, setStyle] = useState<CardStyle>(DEFAULT_CARD_STYLE);
+  const [style, setStyle] = useState<CardStyle>(() => {
+    if (typeof document !== "undefined" && document.documentElement.classList.contains("easy-read")) {
+      return { ...DEFAULT_CARD_STYLE, font: "atkinson", uppercase: false, tracking: 1 };
+    }
+    return DEFAULT_CARD_STYLE;
+  });
   const from = displayRack(source);
   const to = picks.join(" ");
   const face = CARD_FONTS.find((f) => f.id === style.font) ?? CARD_FONTS[0];
@@ -269,9 +268,7 @@ export function AnagramCardButton({
                 <X className="size-4" />
               </button>
             </div>
-            <p className="mt-1 text-xs text-subtle">
-              4×6 in · 300 dpi. Rearrange the chips, pick a stock, print at actual size.
-            </p>
+            <p className="mt-1 text-xs text-subtle">4×6 in · 300 dpi. Print at actual size.</p>
             <div className="mt-3">
               <PickChips picks={picks} onReorder={onReorder} onRemove={onRemove} />
             </div>
@@ -291,57 +288,33 @@ export function AnagramCardButton({
               </div>
             ) : null}
 
-            <div className="mt-4 grid grid-cols-3 gap-2">
-              {POSTCARD_LOOKS.map((look) => (
-                <button
-                  key={look.id}
-                  type="button"
-                  onClick={() => patch({ ...LOOK_PRESETS[look.id], look: look.id as PostcardLook })}
-                  className={cn(
-                    "rounded-md border px-2 py-2 text-left",
-                    style.look === look.id ? "border-fg bg-raised" : "border-border hover:border-muted",
-                  )}
-                >
-                  <span className="block text-sm text-fg">{look.label}</span>
-                  <span className="mt-0.5 block text-[11px] text-subtle">{look.note}</span>
-                </button>
-              ))}
-            </div>
-
-            {style.look === "vintage" ? (
-              <div className="mt-3 grid grid-cols-3 gap-2">
-                {DOODLES.map((d) => (
+            <div className="mt-4">
+              <p className="text-xs text-subtle">Type</p>
+              <div className="mt-2 flex flex-wrap items-baseline gap-x-6 gap-y-2">
+                {CARD_FONTS.map((f) => (
                   <button
-                    key={d.id}
+                    key={f.id}
                     type="button"
-                    onClick={() => patch({ doodle: d.id as DoodleId })}
+                    onClick={() => patch({ font: f.id as CardStyle["font"] })}
                     className={cn(
-                      "rounded-md border px-2 py-2 text-left",
-                      style.doodle === d.id ? "border-fg bg-raised" : "border-border hover:border-muted",
+                      "border-b pb-0.5 text-lg leading-none",
+                      style.font === f.id
+                        ? "border-accent text-fg"
+                        : "border-transparent text-muted hover:text-fg",
                     )}
+                    style={{
+                      fontFamily: `"${f.family}", ${f.fallback}`,
+                      fontWeight: 600,
+                    }}
                   >
-                    <span className="block text-sm text-fg">{d.label}</span>
-                    <span className="mt-0.5 block text-[11px] text-subtle">{d.note}</span>
+                    {f.label}
                   </button>
                 ))}
               </div>
-            ) : null}
+              <p className="mt-1.5 text-xs text-subtle">{face.note}</p>
+            </div>
 
             <div className="mt-4 grid gap-3 sm:grid-cols-2">
-              <label className="block">
-                <span className="text-xs text-subtle">Font</span>
-                <select
-                  value={style.font}
-                  onChange={(e) => patch({ font: e.target.value as CardStyle["font"] })}
-                  className="mt-1 h-10 w-full rounded-md border border-field-border bg-field px-2 text-sm text-fg"
-                >
-                  {CARD_FONTS.map((f) => (
-                    <option key={f.id} value={f.id}>
-                      {f.label}
-                    </option>
-                  ))}
-                </select>
-              </label>
               <label className="block">
                 <span className="text-xs text-subtle">Weight</span>
                 <select
@@ -356,11 +329,45 @@ export function AnagramCardButton({
                   ))}
                 </select>
               </label>
+              <div className="flex flex-wrap items-end gap-2 pb-0.5">
+                <button
+                  type="button"
+                  onClick={() => patch({ italic: !style.italic })}
+                  disabled={!face.italic}
+                  className={cn(
+                    "h-10 rounded-sm px-3 text-xs",
+                    style.italic ? "bg-raised text-fg" : "text-muted hover:text-fg",
+                    !face.italic && "opacity-40",
+                  )}
+                >
+                  Italic
+                </button>
+                <button
+                  type="button"
+                  onClick={() => patch({ uppercase: !style.uppercase })}
+                  className={cn(
+                    "h-10 rounded-sm px-3 text-xs",
+                    style.uppercase ? "bg-raised text-fg" : "text-muted hover:text-fg",
+                  )}
+                >
+                  All caps
+                </button>
+                <button
+                  type="button"
+                  onClick={() => patch({ paths: !style.paths })}
+                  className={cn(
+                    "h-10 rounded-sm px-3 text-xs",
+                    style.paths ? "bg-raised text-fg" : "text-muted hover:text-fg",
+                  )}
+                >
+                  Letter paths
+                </button>
+              </div>
               <label className="block sm:col-span-2">
                 <span className="text-xs text-subtle">Size · {style.size}px</span>
                 <input
                   type="range"
-                  min={24}
+                  min={48}
                   max={350}
                   value={style.size}
                   onChange={(e) => patch({ size: Number(e.target.value) })}
@@ -378,52 +385,12 @@ export function AnagramCardButton({
                   className="mt-2 w-full accent-accent"
                 />
               </label>
-              <div className="flex flex-wrap items-center gap-2">
-                <button
-                  type="button"
-                  onClick={() => patch({ italic: !style.italic })}
-                  disabled={!face.italic}
-                  className={cn(
-                    "h-9 rounded-sm px-3 text-xs",
-                    style.italic ? "bg-raised text-fg" : "text-muted hover:text-fg",
-                    !face.italic && "opacity-40",
-                  )}
-                >
-                  Italic
-                </button>
-                <button
-                  type="button"
-                  onClick={() => patch({ uppercase: !style.uppercase })}
-                  className={cn(
-                    "h-9 rounded-sm px-3 text-xs",
-                    style.uppercase ? "bg-raised text-fg" : "text-muted hover:text-fg",
-                  )}
-                >
-                  All caps
-                </button>
-                <button
-                  type="button"
-                  onClick={() => patch({ paths: !style.paths })}
-                  className={cn(
-                    "h-9 rounded-sm px-3 text-xs",
-                    style.paths ? "bg-raised text-fg" : "text-muted hover:text-fg",
-                  )}
-                >
-                  Letter paths
-                </button>
-              </div>
-              <div className="flex flex-wrap items-center gap-4">
+              <div className="flex flex-wrap items-center gap-4 sm:col-span-2">
                 <Swatches
                   label="Ink"
                   value={style.ink}
                   options={INK_SWATCHES}
                   onChange={(ink) => patch({ ink })}
-                />
-                <Swatches
-                  label="Paper"
-                  value={style.paper}
-                  options={PAPER_SWATCHES}
-                  onChange={(paper) => patch({ paper })}
                 />
                 {style.paths && (
                   <Swatches

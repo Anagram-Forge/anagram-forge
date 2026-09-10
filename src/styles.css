@@ -1,8 +1,15 @@
-@import url("https://fonts.googleapis.com/css2?family=Atkinson+Hyperlegible:ital,wght@0,400;0,700;1,400;1,700&family=Fraunces:ital,opsz,wght@0,9..144,500;0,9..144,600;0,9..144,700;1,9..144,600&family=Great+Vibes&family=IBM+Plex+Mono:wght@500&family=Lexend:wght@400;500;600;700;800&family=Source+Sans+3:ital,wght@0,400;0,500;0,600;1,400&display=swap");
+@import url("https://fonts.googleapis.com/css2?family=Atkinson+Hyperlegible+Next:ital,wght@0,400..700;1,400..700&family=Fraunces:ital,opsz,wght@0,9..144,500;0,9..144,600;0,9..144,700;1,9..144,600&family=Great+Vibes&family=IBM+Plex+Mono:wght@500&family=Lexend:wght@400;500;600;700;800&family=Source+Sans+3:ital,wght@0,400;0,500;0,600;1,400&family=Source+Serif+4:ital,opsz,wght@0,8..60,400..800;1,8..60,400..700&display=swap");
 @import "tailwindcss";
 @import "tw-animate-css";
 
 @theme {
+  --color-soot: #0c0b0a;
+  --color-bone: #ebe4d6;
+  --color-gold: #d4a24c;
+  --color-iron: #c45c4a;
+  --color-ember: #ff6a1a;
+  --color-gold-hot: #ffe08a;
+
   --color-bg: #0c0b0a;
   --color-surface: #141210;
   --color-raised: #1c1916;
@@ -101,10 +108,10 @@ html.easy-read body {
 
 .way-shimmer {
   font-family: "Great Vibes", cursive;
-  color: #d4a24c;
+  color: var(--color-gold);
   text-decoration: none;
   letter-spacing: 0.03em;
-  text-shadow: 0 0 8px rgba(212, 162, 76, 0.35);
+  text-shadow: 0 0 8px color-mix(in srgb, var(--color-gold) 35%, transparent);
   animation: letters-ph 3.6s ease-in-out infinite;
 }
 
@@ -117,15 +124,15 @@ html.easy-read body {
 
 .door-sign {
   font-family: "Great Vibes", cursive;
-  color: var(--color-accent);
+  color: var(--color-gold);
   text-decoration: none;
   letter-spacing: 0.02em;
-  text-shadow: 0 0 8px rgba(212, 162, 76, 0.25);
+  text-shadow: 0 0 8px color-mix(in srgb, var(--color-gold) 25%, transparent);
   animation: door-sign 4.2s ease-in-out infinite;
 }
 
 .door-sign:hover {
-  color: #ffe08a;
+  color: var(--color-gold-hot);
 }
 
 @keyframes door-sign {
@@ -161,7 +168,7 @@ html.easy-read body {
   45% {
     opacity: 0.55;
     filter: brightness(1.8);
-    text-shadow: 0 0 10px rgba(212, 162, 76, 0.55);
+    text-shadow: 0 0 10px color-mix(in srgb, var(--color-gold) 55%, transparent);
   }
 }
 

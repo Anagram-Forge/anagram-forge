@@ -1,9 +1,10 @@
 import { useCallback, useEffect, useRef, useState } from "react";
+import { bone, gold, inks, sparkCycle } from "@/lib/palette";
 import { pingStats } from "@/lib/stats";
 import { hitsAnvil, parkedHammerPos, strikePing, warmRing } from "@/lib/forge-ring";
 
 const SIZE = 30;
-const COLORS = ["#fff6d0", "#ffe08a", "#ffb347", "#ff6a1a", "#d4a24c", "#ff4500", "#fff"];
+const COLORS = sparkCycle;
 const WORDS = ["iron", "sharpens", "iron"] as const;
 const RARE = ["crucible", "furnace", "gold"] as const;
 const DEMO: Array<"metal" | "iron" | "gold"> = ["metal", "iron", "gold"];
@@ -107,7 +108,7 @@ export function ForgeHammer() {
         ctx.textAlign = "center";
         ctx.textBaseline = "middle";
         if (a > 0.45) {
-          ctx.shadowColor = "#ffe08a";
+          ctx.shadowColor = gold.hot;
           ctx.shadowBlur = 5;
         }
         ctx.fillText(b.word, 0, 0);
@@ -122,7 +123,7 @@ export function ForgeHammer() {
         ctx.lineTo(b.x - Math.cos(ang) * b.h, b.y - Math.sin(ang) * b.h);
         ctx.stroke();
         if (a > 0.6 && Math.random() > 0.7) {
-          ctx.fillStyle = "#fff6d0";
+          ctx.fillStyle = bone.fg;
           ctx.globalAlpha = (a - 0.5) * 0.8;
           ctx.beginPath();
           ctx.arc(b.x, b.y, 1.2, 0, Math.PI * 2);
