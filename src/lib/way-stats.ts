@@ -10,6 +10,9 @@ type Box = {
 const ram = { visits: 0, days: {} as Record<string, number> };
 const lastHit = new Map<string, number>();
 const COOL_MS = 60_000;
+/** Bump to zero the public count (test visits). */
+const WAY_EPOCH = "2026-09-11";
+let ramEpoch = "";
 
 function ipOf(request: Request) {
   return (
@@ -38,6 +41,27 @@ async function box(): Promise<Box | null> {
   return null;
 }
 
+async function resetStore(store: Box) {
+  const days = lastDays(14);
+  await store.put("way", "0");
+  await Promise.all(days.map((day) => store.put(`day:way:${day}`, "0")));
+  await store.put("way:epoch", WAY_EPOCH);
+}
+
+async function ready(store: Box | null): Promise<Box | null> {
+  if (!store) {
+    if (ramEpoch !== WAY_EPOCH) {
+      ram.visits = 0;
+      ram.days = {};
+      ramEpoch = WAY_EPOCH;
+    }
+    return null;
+  }
+  const epoch = await store.get("way:epoch");
+  if (epoch !== WAY_EPOCH) await resetStore(store);
+  return store;
+}
+
 /** Count a real view of The Way. Caller must already have an open door. */
 export async function bumpWayVisit(request: Request): Promise<void> {
   if (isCrawler(request)) return;
@@ -52,7 +76,7 @@ export async function bumpWayVisit(request: Request): Promise<void> {
       if (t < cut) lastHit.delete(k);
     }
   }
-  const store = await box();
+  const store = await ready(await box());
   const day = todayNY();
   if (!store) {
     ram.visits += 1;
@@ -65,7 +89,7 @@ export async function bumpWayVisit(request: Request): Promise<void> {
 }
 
 export async function readWayStats(): Promise<{ visits: number; series: WayDay[] }> {
-  const store = await box();
+  const store = await ready(await box());
   const days = lastDays(14);
   if (!store) {
     return {

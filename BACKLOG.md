@@ -34,7 +34,6 @@ Cloudflare Web Analytics with **bot filtering** when we want “how many humans,
 ## Solid maybe
 
 - **Other languages** — Spanish first if ever. Generalize the 26-letter rack, new word list, language scores. UI stays English until the solver isn’t lying. Not CJK/Arabic/Hebrew.
-- Drop `FORGE_ADMIN` once `keeper` is the live steward handle
 - CSV of a rack’s finds
 - 404 that’s an anagram joke (“the letters are missing”) — **shipped.** Optional: match the hero type, “use these letters” button
 - Anvil silhouette (user will tweak)

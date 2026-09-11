@@ -151,26 +151,9 @@ export async function setChallenge(next: {
   return { ok: true, challenge };
 }
 
-async function envAdmin(): Promise<string> {
-  const fromProcess = typeof process !== "undefined" ? process.env.FORGE_ADMIN?.trim() : "";
-  if (fromProcess) return fromProcess;
-  try {
-    const mod = await import("cloudflare:workers");
-    const env = (mod as { env?: Record<string, unknown> }).env;
-    const v = env?.FORGE_ADMIN;
-    if (typeof v === "string" && v.trim() && v.trim() !== "FORGE_ADMIN") return v.trim();
-  } catch {
-    /* preview */
-  }
-  return "";
-}
-
 export async function isAdminHandle(handle: string | null | undefined): Promise<boolean> {
   if (!handle) return false;
-  const names = new Set(["keeper"]);
-  const extra = await envAdmin();
-  if (extra) names.add(extra.toLowerCase());
-  if (names.has(handle.toLowerCase())) return true;
+  if (handle.toLowerCase() === "keeper") return true;
   return !isCloudflareWorker();
 }
 

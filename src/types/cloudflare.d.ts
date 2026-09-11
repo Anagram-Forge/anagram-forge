@@ -8,7 +8,6 @@ declare module "cloudflare:workers" {
   export const env: Record<string, unknown> & {
     EMAIL?: { send: (message: unknown) => Promise<void> };
     SPONSOR_TO?: string;
-    FORGE_ADMIN?: string;
     DOOR_HASH?: string;
     STATS?: {
       get: (key: string) => Promise<string | null>;
