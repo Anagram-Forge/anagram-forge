@@ -6,6 +6,11 @@ Not started. Pick one when we want it.
 
 Title, description, share card, sitemap, speed. A lesson, then maybe three tags. Do this before chasing rankings.
 
+- **No hidden text.** A secret block for Google or AI is cloaking. It does not rank, and it can get the page ignored. Meta description already exists; it only changes the snippet, it does not put us on page one.
+- **One visible homepage sentence** when we do this. Same words for people and crawlers. Two sentences max. Not a keyword dump.
+- Skip `llms.txt` until that sentence is live.
+- Then: per-page title + description, sitemap. Pages people actually search (“unscramble a name”, “anagram solver”) matter more than extra tags.
+
 ## Accessibility (ADA)
 
 Aa / easier type exists. Still owed: contrast, focus rings, keyboard, screen readers as their own pass.
