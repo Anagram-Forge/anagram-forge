@@ -2,8 +2,7 @@ import { useEffect, useRef, useState } from "react";
 import { cn } from "@/lib/utils";
 import { Tip } from "@/components/tip";
 
-const MESSAGE =
-  "Turn from your sin and come to Christ. Nothing else in this life outranks that.";
+const MESSAGE = "Repent ye! for the kingdom of heaven is at hand!";
 
 const PANEL = 300;
 const TAB = 36;
