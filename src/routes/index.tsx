@@ -374,15 +374,16 @@ function Home() {
               spellCheck={false}
               className="h-12 rounded-lg border-border bg-bg/40 pl-10 pr-11 font-mono text-base tracking-wide"
             />
-            {letters ? (
+            {letters || mustRaw ? (
               <button
                 type="button"
-                aria-label="Clear letters"
+                aria-label="Clear letters and must contain"
                 onClick={() => {
                   setLetters("");
+                  setMustRaw("");
                   setPicks([]);
                   setTileOrder(null);
-                  pushSearch({ q: "" });
+                  pushSearch({ q: "", inc: "" });
                 }}
                 className="absolute right-1 top-1/2 flex size-9 -translate-y-1/2 items-center justify-center rounded-md text-subtle hover:bg-surface hover:text-fg"
               >
