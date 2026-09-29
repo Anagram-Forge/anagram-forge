@@ -1,5 +1,5 @@
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
-import { Check, ChevronDown, Copy, Search } from "lucide-react";
+import { Check, ChevronDown, Copy, Search, X } from "lucide-react";
 import { useEffect, useMemo, useState, type ReactNode } from "react";
 import { toast } from "sonner";
 import { AppHeader } from "@/components/app-header";
@@ -372,8 +372,23 @@ function Home() {
               autoCapitalize="none"
               autoCorrect="off"
               spellCheck={false}
-              className="h-12 rounded-lg border-border bg-bg/40 pl-10 pr-4 font-mono text-base tracking-wide"
+              className="h-12 rounded-lg border-border bg-bg/40 pl-10 pr-11 font-mono text-base tracking-wide"
             />
+            {letters ? (
+              <button
+                type="button"
+                aria-label="Clear letters"
+                onClick={() => {
+                  setLetters("");
+                  setPicks([]);
+                  setTileOrder(null);
+                  pushSearch({ q: "" });
+                }}
+                className="absolute right-1 top-1/2 flex size-9 -translate-y-1/2 items-center justify-center rounded-md text-subtle hover:bg-surface hover:text-fg"
+              >
+                <X className="size-3.5" />
+              </button>
+            ) : null}
           </label>
           <div className="mt-6">
             {parsed.letters || parsed.blanks ? (
