@@ -2,3 +2,5 @@ User-agent: *
 Disallow: /w
 Disallow: /the-way
 Disallow: /api/forge/door
+
+Sitemap: https://anagramforge.com/sitemap.xml

@@ -5,7 +5,7 @@ const body = JSON.stringify(
   {
     version: 1,
     include: ["/*"],
-    exclude: ["/assets/*", "/dict/*", "/favicon.svg", "/og.jpg", "/__grok/*"],
+    exclude: ["/assets/*", "/dict/*", "/favicon.svg", "/og.jpg", "/og-image.png", "/robots.txt", "/sitemap.xml", "/__grok/*"],
   },
   null,
   2,
