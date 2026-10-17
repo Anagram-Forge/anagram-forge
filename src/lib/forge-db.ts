@@ -345,40 +345,59 @@ function asFind(r: Record<string, unknown>): Find {
 
 let keeperVotesChecked = false;
 
-/** One pass: if keeper’s finds have exactly two votes, those were the test votes. */
+function countOf(row: Record<string, unknown> | undefined): number {
+  if (!row) return 0;
+  if (row.c != null) return Number(row.c) || 0;
+  const values = Object.values(row);
+  return values.length === 1 ? Number(values[0]) || 0 : 0;
+}
+
+/**
+ * One pass after deploy. The two test votes on keeper’s find are removed
+ * only when they are the whole set: two vote rows, or a votes column of 2
+ * with no rows. Anything else is left alone.
+ */
 async function clearKeeperTestVotes() {
   if (keeperVotesChecked) return;
   const store = await kv();
   const db = await d1();
   if (!store || !db) return;
-  const flag = "cleanup:keeper-votes:v1";
+  const flag = "cleanup:keeper-votes:v2";
   try {
     if (await store.get(flag)) {
       keeperVotesChecked = true;
       return;
     }
-    const row = await db
+    const counted = await db
       .prepare(
         `SELECT COUNT(*) AS c FROM votes v
          JOIN finds f ON f.id = v.find_id
          JOIN users u ON u.id = f.user_id
          WHERE lower(u.handle) = 'keeper'`,
       )
-      .first();
-    const n = Number(row?.c) || 0;
+      .all();
+    const n = countOf(counted.results?.[0]);
+    const finds = await db
+      .prepare(
+        `SELECT f.id, f.votes AS c FROM finds f
+         JOIN users u ON u.id = f.user_id
+         WHERE lower(u.handle) = 'keeper'`,
+      )
+      .all();
+    const column = (finds.results || []).reduce((sum, row) => sum + (Number(row.c) || 0), 0);
     if (n === 2) {
-      const { results } = await db
-        .prepare(
-          `SELECT f.id FROM finds f JOIN users u ON u.id = f.user_id WHERE lower(u.handle) = 'keeper'`,
-        )
-        .all();
-      for (const r of results) {
-        await db.prepare("DELETE FROM votes WHERE find_id = ?").bind(r.id).run();
-        await db.prepare("UPDATE finds SET votes = 0 WHERE id = ?").bind(r.id).run();
+      for (const row of finds.results || []) {
+        await db.prepare("DELETE FROM votes WHERE find_id = ?").bind(row.id).run();
+        await db.prepare("UPDATE finds SET votes = 0 WHERE id = ?").bind(row.id).run();
+      }
+      await store.put(flag, "cleared");
+    } else if (n === 0 && column === 2) {
+      for (const row of finds.results || []) {
+        if (Number(row.c) > 0) await db.prepare("UPDATE finds SET votes = 0 WHERE id = ?").bind(row.id).run();
       }
       await store.put(flag, "cleared");
     } else {
-      await store.put(flag, `left:${n}`);
+      await store.put(flag, `left:${n}:${column}`);
     }
     keeperVotesChecked = true;
   } catch {
