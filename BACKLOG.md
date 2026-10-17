@@ -73,6 +73,19 @@ Suggest the best **complete** anagrams of the typed rack (every letter used, lef
 - UI: a quiet top-3 above the banks. Click → picked, ready for a postcard.
 - First pass can skip when it can’t finish clean.
 
+## Banger board
+
+A leaderboard and a score for **perfect** anagrams that are actually good. Not every solve. A perfect anagram uses the whole rack (nothing left over). A banger also reads like a real phrase.
+
+- Score the find, not the clicks. Plain formula first: every letter used, common words, fewer words, and it is not just the input reshuffled. Apt flips (`eleven plus two` → `twelve plus one`) rank above junk.
+- The browser does not send the score. The server scores the letters and the phrase, or it does not count.
+- Board shows handle, phrase, and score. No email. Signed in to post, so it is not a bot wall.
+- One weekly board fits the challenge. An all-time list is only the high scores, not a dump of every try.
+- Votes can break a tie. They do not replace the score.
+- Taste is the hard part. Steward can pin a real banger the formula missed. Color is not the only signal.
+- Sits with finds. Not a new site, not a points grind.
+
+
 ## Card looks (pick of 3)
 
 1. **Vintage postcard** — aged stock, stamp, hairline border, handwritten feel
