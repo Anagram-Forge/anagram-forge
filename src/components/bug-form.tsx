@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useRef, useState, type FormEvent, type KeyboardEvent } from "react";
 import { toast } from "sonner";
 import { TypewriterClerk } from "@/components/typewriter-clerk";
+import { TurnstileBox } from "@/components/turnstile-box";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 
@@ -25,6 +26,8 @@ export function BugForm() {
   const [fileName, setFileName] = useState("");
   const [fileError, setFileError] = useState("");
   const [image, setImage] = useState<{ name: string; type: string; data: string } | null>(null);
+  const [captcha, setCaptcha] = useState({ required: true, token: "" });
+  const [captchaKey, setCaptchaKey] = useState(0);
 
   useEffect(() => {
     return () => {
@@ -41,7 +44,10 @@ export function BugForm() {
     tapTimer.current = window.setTimeout(() => setTapping(false), 140);
   }
 
-  const canSend = useMemo(() => Number(answer) === challenge.sum, [answer, challenge.sum]);
+  const canSend = useMemo(
+    () => Number(answer) === challenge.sum && captcha.token.length > 0,
+    [answer, captcha.token, challenge.sum],
+  );
 
   async function onFile(file: File | undefined) {
     if (!file) {
@@ -109,9 +115,13 @@ export function BugForm() {
           email: String(data.get("email") || "").trim(),
           message,
           image,
+          "cf-turnstile-response": captcha.token,
         }),
       });
-      if (!res.ok) throw new Error("send failed");
+      if (!res.ok) {
+        const data = (await res.json().catch(() => ({}))) as { reason?: string };
+        throw new Error(data.reason || "send failed");
+      }
       if (kind === "feature") await new Promise((r) => window.setTimeout(r, 1100));
       setStatus("sent");
       form.reset();
@@ -121,9 +131,11 @@ export function BugForm() {
       setFileName("");
       setFileError("");
       setDraft("");
-    } catch {
+    } catch (err) {
       setStatus("error");
-      toast("Could not send. Try again in a moment.");
+      setCaptchaKey((n) => n + 1);
+      setCaptcha({ required: true, token: "" });
+      toast(err instanceof Error && err.message !== "send failed" ? err.message : "Could not send. Try again in a moment.");
     }
   }
 
@@ -204,6 +216,7 @@ export function BugForm() {
           required
         />
       </label>
+      <TurnstileBox key={captchaKey} onChange={setCaptcha} />
       <div className="flex flex-wrap items-center gap-3 pt-1">
         <Button type="submit" size="sm" disabled={!canSend || Boolean(fileError) || status === "sending"}>
           {status === "sending" ? "Sending…" : "Send report"}

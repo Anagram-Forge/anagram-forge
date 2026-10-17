@@ -1,4 +1,5 @@
 import { createFileRoute } from "@tanstack/react-router";
+import { envGet, rejectTurnstile } from "@/lib/turnstile";
 
 type Payload = {
   name?: string;
@@ -6,12 +7,8 @@ type Payload = {
   company?: string;
   budget?: string;
   message?: string;
+  "cf-turnstile-response"?: string;
 };
-
-function envGet(key: string): string {
-  const fromProcess = typeof process !== "undefined" ? process.env[key] : undefined;
-  return (fromProcess || "").trim();
-}
 
 export const Route = createFileRoute("/api/sponsor")({
   server: {
@@ -23,13 +20,15 @@ export const Route = createFileRoute("/api/sponsor")({
         } catch {
           return Response.json({ ok: false }, { status: 400 });
         }
+        const captcha = await rejectTurnstile(request, String(data["cf-turnstile-response"] || ""));
+        if (captcha) return captcha;
         const name = String(data.name || "").trim();
         const email = String(data.email || "").trim();
         if (!name || !email || !email.includes("@")) {
           return Response.json({ ok: false }, { status: 400 });
         }
 
-        const url = envGet("MAIL_WORKER_URL");
+        const url = await envGet("MAIL_WORKER_URL");
         if (!url) return Response.json({ ok: false, reason: "mailto" }, { status: 503 });
 
         try {
@@ -37,7 +36,7 @@ export const Route = createFileRoute("/api/sponsor")({
             method: "POST",
             headers: {
               "content-type": "application/json",
-              "x-mail-key": envGet("MAIL_KEY"),
+              "x-mail-key": await envGet("MAIL_KEY"),
             },
             body: JSON.stringify({
               name,

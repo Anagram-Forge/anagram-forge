@@ -1,5 +1,7 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { deleteOwn, dropSession, isAdminHandle, login, register, userFromToken } from "@/lib/forge-db";
+import { deleteOwn, dropSession, isAdminHandle, login, passwordMatches, register, userFromToken } from "@/lib/forge-db";
+import { SIGN_IN_FAIL, loginBlocked, loginCleared, loginFailed } from "@/lib/login-guard";
+import { clientIp } from "@/lib/turnstile";
 
 function cookieOf(request: Request): string | null {
   const raw = request.headers.get("cookie") || "";
@@ -34,13 +36,41 @@ export const Route = createFileRoute("/api/forge/session")({
         if (body.action === "wipe") {
           const user = await userFromToken(cookieOf(request));
           if (!user) return Response.json({ ok: false, reason: "Sign in first." }, { status: 401 });
+          const ip = clientIp(request);
+          if (await loginBlocked(ip, user.handle)) {
+            return Response.json({ ok: false, reason: "Password doesn’t match." }, { status: 429 });
+          }
+          const ok = await passwordMatches(user.id, String(body.password || ""));
+          if (!ok) {
+            await loginFailed(ip, user.handle);
+            return Response.json({ ok: false, reason: "Password doesn’t match." }, { status: 400 });
+          }
+          await loginCleared(ip, user.handle);
           await deleteOwn(user.id);
           return new Response(JSON.stringify({ ok: true }), {
             headers: { "content-type": "application/json", "set-cookie": clearCookie() },
           });
         }
-        const action = body.action === "register" ? register : login;
-        const result = await action(String(body.handle || ""), String(body.password || ""));
+        const ip = clientIp(request);
+        const handle = String(body.handle || "");
+        if (body.action !== "register") {
+          if (await loginBlocked(ip, handle)) {
+            return Response.json({ ok: false, reason: SIGN_IN_FAIL }, { status: 429 });
+          }
+          const result = await login(handle, String(body.password || ""));
+          if (!result.ok) {
+            if (result.reason === SIGN_IN_FAIL) await loginFailed(ip, handle);
+            return Response.json({ ok: false, reason: result.reason }, { status: 400 });
+          }
+          await loginCleared(ip, handle);
+          return new Response(JSON.stringify({ ok: true, handle: result.handle }), {
+            headers: {
+              "content-type": "application/json",
+              "set-cookie": setCookie(result.token, request),
+            },
+          });
+        }
+        const result = await register(handle, String(body.password || ""));
         if (!result.ok) return Response.json(result, { status: 400 });
         return new Response(JSON.stringify({ ok: true, handle: result.handle }), {
           headers: {

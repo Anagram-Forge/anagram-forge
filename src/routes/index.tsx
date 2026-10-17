@@ -261,17 +261,21 @@ function Home() {
       (result.kind === "words" && result.hits.length > 0) ||
       (result.kind === "phrase" && result.hits.length > 0);
     if (!found) return;
-    const key = `af-anagram:${mode}:${parsed.letters}`;
+    const word =
+      result.kind === "words" ? result.hits[0]?.word : result.kind === "phrase" ? result.hits[0]?.words[0] : "";
+    if (!word) return;
+    const rack = `${parsed.letters}${"?".repeat(parsed.blanks)}`;
+    const key = `af-anagram:${mode}:${rack}`;
     try {
       if (sessionStorage.getItem(key)) return;
       sessionStorage.setItem(key, "1");
     } catch {
       return;
     }
-    void pingStats("anagram").then((s) => {
+    void pingStats({ kind: "anagram", rack, word }).then((s) => {
       if (s) window.dispatchEvent(new CustomEvent("af-stats", { detail: s }));
     });
-  }, [result, mode, parsed.letters]);
+  }, [result, mode, parsed.letters, parsed.blanks]);
 
   const grouped = result?.kind === "words" && sort === "length" ? groupByLength(result.hits) : [];
   const flatWords = result?.kind === "words" && sort !== "length" ? result.hits : [];

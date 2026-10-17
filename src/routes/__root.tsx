@@ -3,6 +3,7 @@ import { ForgeHammer } from "@/components/forge-hammer";
 import { ForgeSky } from "@/components/forge-sky";
 import { inks } from "@/lib/palette";
 import { shareMeta } from "@/lib/site-meta";
+import { CSP } from "@/lib/csp";
 import { AuthProvider } from "@/lib/auth/provider";
 import { MissingPage } from "@/components/missing-page";
 import { PreviewHostBridge } from "@/components/preview-host-bridge";
@@ -13,6 +14,10 @@ const APP_NAME = "Anagram Forge";
 
 export const Route = createRootRoute({
   notFoundComponent: MissingPage,
+  headers: () => {
+    if (!import.meta.env.PROD) return undefined;
+    return { "Content-Security-Policy": CSP };
+  },
   head: ({ matches }) => {
     const path = matches[matches.length - 1]?.pathname || "/";
     const share = shareMeta(path);

@@ -1,7 +1,8 @@
-import { useEffect, useMemo, useRef, useState, type FormEvent } from "react";
+import { useMemo, useRef, useState, type FormEvent } from "react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { TurnstileBox } from "@/components/turnstile-box";
 import { SUPPORT } from "@/lib/support";
 
 type Status = "idle" | "sending" | "sent" | "mailed" | "error";
@@ -17,51 +18,16 @@ export function SponsorForm() {
   const [status, setStatus] = useState<Status>("idle");
   const [challenge, setChallenge] = useState(newChallenge);
   const [answer, setAnswer] = useState("");
-  const [turnstile, setTurnstile] = useState("");
-  const widget = useRef<HTMLDivElement>(null);
-  const key = SUPPORT.turnstileSiteKey;
+  const [captcha, setCaptcha] = useState({ required: true, token: "" });
+  const [captchaKey, setCaptchaKey] = useState(0);
   const connected = Boolean(SUPPORT.formEndpoint || SUPPORT.inbox);
-
-  useEffect(() => {
-    if (!key || !widget.current) return;
-    const w = window as Window & {
-      turnstile?: {
-        render: (el: HTMLElement, opts: Record<string, unknown>) => void;
-      };
-    };
-    function mount() {
-      if (!widget.current || !w.turnstile) return;
-      widget.current.innerHTML = "";
-      w.turnstile.render(widget.current, {
-        sitekey: key,
-        theme: "dark",
-        callback: (token: string) => setTurnstile(token),
-      });
-    }
-    if (w.turnstile) {
-      mount();
-      return;
-    }
-    const existing = document.querySelector<HTMLScriptElement>("script[data-turnstile]");
-    if (existing) {
-      existing.addEventListener("load", mount);
-      return () => existing.removeEventListener("load", mount);
-    }
-    const script = document.createElement("script");
-    script.src = "https://challenges.cloudflare.com/turnstile/v0/api.js?render=explicit";
-    script.async = true;
-    script.dataset.turnstile = "1";
-    script.addEventListener("load", mount);
-    document.head.appendChild(script);
-    return () => script.removeEventListener("load", mount);
-  }, [key]);
 
   const canSend = useMemo(() => {
     if (!connected) return false;
     if (Number(answer) !== challenge.sum) return false;
-    if (key && !turnstile) return false;
+    if (!captcha.token) return false;
     return true;
-  }, [answer, challenge.sum, key, turnstile, connected]);
+  }, [answer, captcha.token, challenge.sum, connected]);
 
   async function onSubmit(e: FormEvent<HTMLFormElement>) {
     e.preventDefault();
@@ -79,7 +45,7 @@ export function SponsorForm() {
       setAnswer("");
       return;
     }
-    if (key && !turnstile) {
+    if (!captcha.token) {
       toast("Complete the captcha first.");
       return;
     }
@@ -90,7 +56,7 @@ export function SponsorForm() {
       company: String(data.get("company") || "").trim(),
       budget: String(data.get("budget") || "").trim(),
       message: String(data.get("message") || "").trim(),
-      "cf-turnstile-response": turnstile,
+      "cf-turnstile-response": captcha.token,
     };
     if (!payload.name || !payload.email) {
       toast("Name and email are required.");
@@ -104,6 +70,7 @@ export function SponsorForm() {
         headers: { "content-type": "application/json", accept: "application/json" },
         body: JSON.stringify(payload),
       });
+      const data = (await api.json().catch(() => ({}))) as { reason?: string };
       if (api.ok) {
         setStatus("sent");
         form.reset();
@@ -111,41 +78,47 @@ export function SponsorForm() {
         setChallenge(newChallenge());
         return;
       }
-      if (SUPPORT.formEndpoint) {
-        const body = new FormData();
-        for (const [k, v] of Object.entries(payload)) body.set(k, v);
-        body.set("_subject", `Sponsor application — ${payload.company || payload.name}`);
-        const res = await fetch(SUPPORT.formEndpoint, {
-          method: "POST",
-          body,
-          headers: { Accept: "application/json" },
-        });
-        if (!res.ok) throw new Error("send failed");
-      } else if (SUPPORT.inbox) {
-        const body = [
-          `Name: ${payload.name}`,
-          `Email: ${payload.email}`,
-          `Company: ${payload.company}`,
-          `Budget: ${payload.budget}`,
-          "",
-          payload.message,
-        ].join("\n");
-        window.location.href = `mailto:${SUPPORT.inbox}?subject=${encodeURIComponent("Sponsor application")}&body=${encodeURIComponent(body)}`;
-        setStatus("mailed");
-        form.reset();
-        setAnswer("");
-        setChallenge(newChallenge());
-        return;
+      if (api.status === 503 && data.reason === "mailto") {
+        if (SUPPORT.formEndpoint) {
+          const body = new FormData();
+          for (const [k, v] of Object.entries(payload)) body.set(k, v);
+          body.set("_subject", `Sponsor application — ${payload.company || payload.name}`);
+          const res = await fetch(SUPPORT.formEndpoint, {
+            method: "POST",
+            body,
+            headers: { Accept: "application/json" },
+          });
+          if (!res.ok) throw new Error("send failed");
+        } else if (SUPPORT.inbox) {
+          const body = [
+            `Name: ${payload.name}`,
+            `Email: ${payload.email}`,
+            `Company: ${payload.company}`,
+            `Budget: ${payload.budget}`,
+            "",
+            payload.message,
+          ].join("\n");
+          window.location.href = `mailto:${SUPPORT.inbox}?subject=${encodeURIComponent("Sponsor application")}&body=${encodeURIComponent(body)}`;
+          setStatus("mailed");
+          form.reset();
+          setAnswer("");
+          setChallenge(newChallenge());
+          return;
+        } else {
+          throw new Error("no inbox");
+        }
       } else {
-        throw new Error("no inbox");
+        throw new Error(data.reason || "send failed");
       }
       setStatus("sent");
       form.reset();
       setAnswer("");
       setChallenge(newChallenge());
-    } catch {
+    } catch (err) {
       setStatus("error");
-      toast("Could not send. Try again or email directly.");
+      setCaptchaKey((n) => n + 1);
+      setCaptcha({ required: true, token: "" });
+      toast(err instanceof Error && err.message !== "send failed" ? err.message : "Could not send. Try again or email directly.");
     }
   }
 
@@ -231,7 +204,7 @@ export function SponsorForm() {
           required
         />
       </label>
-      {key ? <div ref={widget} className="pt-1" /> : null}
+      <TurnstileBox key={captchaKey} onChange={setCaptcha} />
       <div className="flex flex-wrap items-center gap-3 pt-1">
         <Button type="submit" size="sm" disabled={!canSend || status === "sending"}>
           {status === "sending" ? "Sending…" : "Send application"}

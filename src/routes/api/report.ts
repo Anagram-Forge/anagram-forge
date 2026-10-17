@@ -1,4 +1,5 @@
 import { createFileRoute } from "@tanstack/react-router";
+import { envGet, publicSiteKey, rejectTurnstile } from "@/lib/turnstile";
 
 type Payload = {
   kind?: string;
@@ -8,26 +9,26 @@ type Payload = {
   image?: { name?: string; type?: string; data?: string };
 };
 
-function envGet(key: string): string {
-  const fromProcess = typeof process !== "undefined" ? process.env[key] : undefined;
-  return (fromProcess || "").trim();
-}
-
 export const Route = createFileRoute("/api/report")({
   server: {
     handlers: {
+      GET: async () => {
+        return Response.json({ siteKey: await publicSiteKey() });
+      },
       POST: async ({ request }) => {
-        let data: Payload;
+        let data: Payload & { "cf-turnstile-response"?: string };
         try {
-          data = (await request.json()) as Payload;
+          data = (await request.json()) as Payload & { "cf-turnstile-response"?: string };
         } catch {
           return Response.json({ ok: false }, { status: 400 });
         }
+        const captcha = await rejectTurnstile(request, String(data["cf-turnstile-response"] || ""));
+        if (captcha) return captcha;
         const message = String(data.message || "").trim();
         if (!message) return Response.json({ ok: false }, { status: 400 });
         const kind = data.kind === "feature" ? "feature" : "bug";
 
-        const url = envGet("MAIL_WORKER_URL");
+        const url = await envGet("MAIL_WORKER_URL");
         if (!url) return Response.json({ ok: false }, { status: 503 });
 
         try {
@@ -35,7 +36,7 @@ export const Route = createFileRoute("/api/report")({
             method: "POST",
             headers: {
               "content-type": "application/json",
-              "x-mail-key": envGet("MAIL_KEY"),
+              "x-mail-key": await envGet("MAIL_KEY"),
             },
             body: JSON.stringify({
               kind,

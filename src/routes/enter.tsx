@@ -17,6 +17,9 @@ function EnterPage() {
   const [err, setErr] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
   const [who, setWho] = useState<string | null>(null);
+  const [wipeOpen, setWipeOpen] = useState(false);
+  const [wipePass, setWipePass] = useState("");
+  const [wipeErr, setWipeErr] = useState<string | null>(null);
 
   useEffect(() => {
     try {
@@ -43,8 +46,7 @@ function EnterPage() {
       });
       const data = (await res.json()) as { ok?: boolean; reason?: string };
       if (!res.ok || !data.ok) {
-        setErr(data.reason || "Couldn’t sign in.");
-        if (data.reason?.includes("Make one")) setMode("up");
+        setErr(data.reason || "Couldn't sign in");
         return;
       }
       try {
@@ -79,8 +81,10 @@ function EnterPage() {
               value={password}
               onChange={(e) => setPassword(e.target.value)}
               autoComplete={mode === "up" ? "new-password" : "current-password"}
+              maxLength={128}
               className="mt-1.5"
             />
+            {mode === "up" ? <span className="mt-1 block text-xs text-subtle">At least 10 characters.</span> : null}
           </label>
           {err ? <p className="text-sm text-danger">{err}</p> : null}
           <Button type="submit" disabled={busy}>
@@ -107,24 +111,55 @@ function EnterPage() {
         {who ? (
           <div className="mt-10 border-t border-border pt-6">
             <p className="text-sm text-muted">Signed in as {who}.</p>
-            <button
-              type="button"
-              className="mt-3 text-xs text-subtle hover:text-danger"
-              onClick={() => {
-                if (!window.confirm("Wipe this handle, its saves, finds, and votes? You can make a new one later.")) return;
-                void (async () => {
-                  await fetch("/api/forge/session", {
-                    method: "POST",
-                    headers: { "content-type": "application/json" },
-                    body: JSON.stringify({ action: "wipe" }),
-                  });
-                  setWho(null);
-                  void navigate({ to: "/" });
-                })();
-              }}
-            >
-              Delete my data
-            </button>
+            {wipeOpen ? (
+              <form
+                className="mt-3 space-y-2"
+                onSubmit={(e) => {
+                  e.preventDefault();
+                  setWipeErr(null);
+                  void (async () => {
+                    const res = await fetch("/api/forge/session", {
+                      method: "POST",
+                      headers: { "content-type": "application/json" },
+                      body: JSON.stringify({ action: "wipe", password: wipePass }),
+                    });
+                    const data = (await res.json()) as { ok?: boolean; reason?: string };
+                    if (!res.ok || !data.ok) {
+                      setWipeErr(data.reason || "Password doesn’t match.");
+                      return;
+                    }
+                    setWho(null);
+                    setWipeOpen(false);
+                    void navigate({ to: "/" });
+                  })();
+                }}
+              >
+                <p className="text-xs text-subtle">This wipes the handle, its saves, finds, and votes.</p>
+                <Input
+                  type="password"
+                  value={wipePass}
+                  onChange={(e) => setWipePass(e.target.value)}
+                  autoComplete="current-password"
+                  maxLength={128}
+                  aria-label="Current password"
+                />
+                {wipeErr ? <p className="text-sm text-danger">{wipeErr}</p> : null}
+                <button type="submit" className="text-xs text-subtle hover:text-danger">
+                  Delete my data
+                </button>
+              </form>
+            ) : (
+              <button
+                type="button"
+                className="mt-3 text-xs text-subtle hover:text-danger"
+                onClick={() => {
+                  setWipeOpen(true);
+                  setWipeErr(null);
+                }}
+              >
+                Delete my data
+              </button>
+            )}
           </div>
         ) : null}
       </main>

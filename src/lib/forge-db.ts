@@ -3,7 +3,10 @@ import { lastDays, type DayRow } from "@/lib/stat-day";
 import { readWayStats } from "@/lib/way-stats";
 import { onlyLetters } from "@/lib/anagram/letters";
 import { handleAllowed } from "@/lib/handle-guard";
+import { passwordIssue } from "@/lib/password";
+import { cleanMode, rackStored } from "@/lib/rack-clean";
 import { isCloudflareWorker } from "@/lib/runtime";
+import { timingSafeEqual } from "node:crypto";
 
 export type User = { id: string; handle: string; passHash: string };
 export type Find = {
@@ -210,12 +213,22 @@ async function sha(pass: string, salt: string): Promise<string> {
   return [...new Uint8Array(buf)].map((b) => b.toString(16).padStart(2, "0")).join("");
 }
 
+function hashEq(a: string, b: string): boolean {
+  const left = Buffer.from(a);
+  const right = Buffer.from(b);
+  if (left.length !== right.length) return false;
+  return timingSafeEqual(left, right);
+}
+
+const SIGN_IN_FAIL = "Couldn't sign in";
+
 export async function register(handle: string, password: string): Promise<{ ok: true; token: string; handle: string } | { ok: false; reason: string }> {
   const h = handle.trim().slice(0, 24);
   if (!/^[a-zA-Z0-9_]{3,24}$/.test(h)) return { ok: false, reason: "Handle: 3–24 letters, numbers, underscore." };
   if (!handleAllowed(h)) return { ok: false, reason: "That handle isn’t allowed." };
+  const issue = passwordIssue(password);
+  if (issue) return { ok: false, reason: issue };
   const pass = password.trim();
-  if (pass.length < 8) return { ok: false, reason: "Password needs 8 characters." };
   const db = await d1();
   const missing = needDb(db);
   if (missing) return missing;
@@ -235,6 +248,7 @@ export async function register(handle: string, password: string): Promise<{ ok: 
 }
 
 export async function login(handle: string, password: string): Promise<{ ok: true; token: string; handle: string } | { ok: false; reason: string }> {
+  if (password.length > 128) return { ok: false, reason: SIGN_IN_FAIL };
   const h = handle.trim();
   const pass = password.trim();
   const db = await d1();
@@ -250,12 +264,27 @@ export async function login(handle: string, password: string): Promise<{ ok: tru
   } else {
     user = ram.users.find((u) => u.handle.toLowerCase() === h.toLowerCase()) ?? null;
   }
-  if (!user) return { ok: false, reason: "No handle by that name. Make one?" };
-  if (await isBanned(user.handle, db)) return { ok: false, reason: "That handle isn’t allowed." };
-  const hash = await sha(pass, user.id);
-  if (hash !== user.passHash) return { ok: false, reason: "Password doesn’t match." };
+  const hash = await sha(pass, user?.id ?? "00000000-0000-0000-0000-000000000000");
+  if (!user || !hashEq(hash, user.passHash)) return { ok: false, reason: SIGN_IN_FAIL };
+  if (await isBanned(user.handle, db)) return { ok: false, reason: SIGN_IN_FAIL };
   const token = await makeSession(user.id, db);
   return { ok: true, token, handle: user.handle };
+}
+
+export async function passwordMatches(userId: string, password: string): Promise<boolean> {
+  if (password.length > 128) return false;
+  const pass = password.trim();
+  const db = await d1();
+  let user: User | null = null;
+  if (db) {
+    const row = await db.prepare("SELECT id, handle, pass_hash FROM users WHERE id = ?").bind(userId).first();
+    if (row) user = { id: String(row.id), handle: String(row.handle), passHash: String(row.pass_hash) };
+  } else {
+    user = ram.users.find((u) => u.id === userId) ?? null;
+  }
+  if (!user) return false;
+  const hash = await sha(pass, user.id);
+  return hashEq(hash, user.passHash);
 }
 
 async function makeSession(userId: string, db: Box | null): Promise<string> {
@@ -314,7 +343,51 @@ function asFind(r: Record<string, unknown>): Find {
   };
 }
 
+let keeperVotesChecked = false;
+
+/** One pass: if keeper’s finds have exactly two votes, those were the test votes. */
+async function clearKeeperTestVotes() {
+  if (keeperVotesChecked) return;
+  const store = await kv();
+  const db = await d1();
+  if (!store || !db) return;
+  const flag = "cleanup:keeper-votes:v1";
+  try {
+    if (await store.get(flag)) {
+      keeperVotesChecked = true;
+      return;
+    }
+    const row = await db
+      .prepare(
+        `SELECT COUNT(*) AS c FROM votes v
+         JOIN finds f ON f.id = v.find_id
+         JOIN users u ON u.id = f.user_id
+         WHERE lower(u.handle) = 'keeper'`,
+      )
+      .first();
+    const n = Number(row?.c) || 0;
+    if (n === 2) {
+      const { results } = await db
+        .prepare(
+          `SELECT f.id FROM finds f JOIN users u ON u.id = f.user_id WHERE lower(u.handle) = 'keeper'`,
+        )
+        .all();
+      for (const r of results) {
+        await db.prepare("DELETE FROM votes WHERE find_id = ?").bind(r.id).run();
+        await db.prepare("UPDATE finds SET votes = 0 WHERE id = ?").bind(r.id).run();
+      }
+      await store.put(flag, "cleared");
+    } else {
+      await store.put(flag, `left:${n}`);
+    }
+    keeperVotesChecked = true;
+  } catch {
+    /* try again on the next read */
+  }
+}
+
 export async function listFinds(weekId?: string, includeHidden = false): Promise<Find[]> {
+  await clearKeeperTestVotes();
   const current = weekId ?? (await getChallenge()).id;
   const db = await d1();
   if (db) {
@@ -709,10 +782,10 @@ export async function addSave(
   userId: string,
   input: { letters: string; mode: string; label?: string },
 ): Promise<{ ok: true; save: SavedRack } | { ok: false; reason: string }> {
-  const letters = input.letters.trim().slice(0, 80);
-  if (onlyLetters(letters).length < 2) return { ok: false, reason: "Need a rack first." };
-  const mode = (input.mode || "from-rack").slice(0, 20);
-  const label = (input.label || letters).trim().slice(0, 80);
+  const letters = rackStored(input.letters);
+  if (letters.length < 2) return { ok: false, reason: "Need a rack first." };
+  const mode = cleanMode(input.mode);
+  const label = letters.slice(0, 80);
   const db = await d1();
   if (db) {
     const n = await db.prepare("SELECT COUNT(*) AS c FROM saves WHERE user_id = ?").bind(userId).first();
