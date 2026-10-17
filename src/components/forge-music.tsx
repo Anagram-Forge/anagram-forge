@@ -16,7 +16,7 @@ import { cn } from "@/lib/utils";
 const LINGER = 2000;
 
 export function ForgeMusicToggle() {
-  const [snap, setSnap] = useState<Snap>({ on: false, id: "emberlight", volume: 0.32, at: 0, dur: 0 });
+  const [snap, setSnap] = useState<Snap>({ on: false, id: "emberlight", volume: 0.35, at: 0, dur: 0 });
   const [armed, setArmed] = useState(false);
   const [hover, setHover] = useState(false);
   const hold = useRef(0);
