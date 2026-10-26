@@ -21,13 +21,10 @@ Note: first click plays (no panel). Hover after that for a tiny mixer — skip, 
 
 ## Security checkup
 
-Cadence, not panic. About every 90 days (GitHub PAT window).
+Cadence, not panic. About every 90 days.
 
-- **Audit 2026-08-23** — PAT still in old chat; grep public repo; mail worker hostname; WHOIS; rotate anything pasted
 - `DOOR_HASH` (and later `DOOR_HASH_*`) live only in Cloudflare Variables and secrets — never git
-- Mail worker still on `*.workers.dev` — visitors never see it; optional custom domain
-- R2 bucket `anagram-forge-media` holds AlkaKrab beds (not git). Roll the R2 API token; it was pasted in chat.
-- Rotate any token that was ever pasted in chat
+- `STEWARD_HANDLE` is a Worker secret. The name is not in the repo.
 - WHOIS privacy (Cloudflare Registrar)
 - GitHub org stays boring (no legal name / personal email)
 - Grep the public repo for mail addresses, keys, tokens

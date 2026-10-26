@@ -2,6 +2,6 @@ name = "anagram-forge-mail"
 main = "src/index.js"
 compatibility_date = "2026-08-18"
 
-# Destination is the verified Gmail, set as Worker secret MAIL_TO (not in git).
+# Inbox is the Worker secret MAIL_TO. Not a name in this repo.
 [[send_email]]
 name = "EMAIL"

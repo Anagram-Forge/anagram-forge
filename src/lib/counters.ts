@@ -2,6 +2,7 @@ import { canSpell, countsOf } from "@/lib/anagram/letters";
 import { cleanRack } from "@/lib/rack-clean";
 import { isCloudflareWorker } from "@/lib/runtime";
 import { envGet } from "@/lib/turnstile";
+import { visitorKey } from "@/lib/visitor-key";
 import { todayNY } from "@/lib/stat-day";
 
 export type Counts = { visits: number; anagrams: number; strikes: number };
@@ -116,9 +117,10 @@ async function bumpHour(store: Box | null, key: string) {
 }
 
 export async function bumpVisit(store: Box | null, ip: string): Promise<Counts> {
+  const who = visitorKey(ip);
   const now = Date.now();
   const cur = await readCounts(store);
-  const key = `rl:v:${ip}`;
+  const key = `rl:v:${who}`;
   if (await tooSoon(store, key, VISIT_GAP, now)) return cur;
   await markTime(store, key, now, 120);
   cur.visits += 1;
@@ -182,18 +184,19 @@ export async function bumpAnagram(
   }
   if (!known) return cur;
 
+  const who = visitorKey(ip);
   const now = Date.now();
   const hour = Math.floor(now / 3_600_000);
-  const hourKey = `rl:ah:${ip}:${hour}`;
+  const hourKey = `rl:ah:${who}:${hour}`;
   if ((await hourCount(store, hourKey)) >= ANAGRAM_HOUR) return cur;
-  if (await tooSoon(store, `rl:a:${ip}`, ANAGRAM_GAP, now)) return cur;
+  if (await tooSoon(store, `rl:a:${who}`, ANAGRAM_GAP, now)) return cur;
   const sig = `${rack.letters.split("").sort().join("")}:${rack.blanks}`;
-  const dayKey = `rl:ar:${ip}:${sig}`;
+  const dayKey = `rl:ar:${who}:${sig}`;
   if (store) {
     if (await store.get(dayKey)) return cur;
   } else if (ram.seen.has(dayKey)) return cur;
 
-  await markTime(store, `rl:a:${ip}`, now, 120);
+  await markTime(store, `rl:a:${who}`, now, 120);
   await bumpHour(store, hourKey);
   if (store) await store.put(dayKey, "1", { expirationTtl: 86_400 });
   else ram.seen.set(dayKey, now);
@@ -243,7 +246,8 @@ export async function mintStrikeTicket(store: Box | null, ip: string): Promise<s
   const secret = await macSecret(store);
   const exp = Date.now() + 60_000;
   const nonce = crypto.randomUUID().replace(/-/g, "");
-  const mac = await hmac(secret, `${ip}|${exp}|${nonce}`);
+  const who = visitorKey(ip);
+  const mac = await hmac(secret, `${who}|${exp}|${nonce}`);
   if (store) await store.put(`tk:${nonce}`, "open", { expirationTtl: 120 });
   else ram.seen.set(`tk:${nonce}`, 1);
   return `${exp}.${nonce}.${mac}`;
@@ -259,7 +263,8 @@ export async function bumpStrike(store: Box | null, ip: string, ticket: string):
   if (!Number.isFinite(exp) || exp < now || exp > now + 120_000) return cur;
   if (!/^[a-f0-9]{32}$/.test(nonce) || !/^[a-f0-9]{64}$/.test(mac)) return cur;
   const secret = await macSecret(store);
-  const expect = await hmac(secret, `${ip}|${exp}|${nonce}`);
+  const who = visitorKey(ip);
+  const expect = await hmac(secret, `${who}|${exp}|${nonce}`);
   if (!hexEq(expect, mac)) return cur;
   const nonceKey = `tk:${nonce}`;
   if (store) {
@@ -271,10 +276,10 @@ export async function bumpStrike(store: Box | null, ip: string, ticket: string):
   }
 
   const hour = Math.floor(now / 3_600_000);
-  const hourKey = `rl:sh:${ip}:${hour}`;
+  const hourKey = `rl:sh:${who}:${hour}`;
   if ((await hourCount(store, hourKey)) >= STRIKE_HOUR) return cur;
-  if (await tooSoon(store, `rl:s:${ip}`, STRIKE_GAP, now)) return cur;
-  await markTime(store, `rl:s:${ip}`, now, 120);
+  if (await tooSoon(store, `rl:s:${who}`, STRIKE_GAP, now)) return cur;
+  await markTime(store, `rl:s:${who}`, now, 120);
   await bumpHour(store, hourKey);
   cur.strikes += 1;
   await writeCounts(store, cur);

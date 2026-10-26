@@ -3,6 +3,9 @@ compatibility_date = "2026-08-18"
 compatibility_flags = ["nodejs_compat"]
 pages_build_output_dir = "dist"
 
+# Resource ids for this Cloudflare project. They are environment-specific,
+# not account tokens. Pages uses this file as the binding source of truth,
+# so a placeholder here would drop the live database on the next deploy.
 [[kv_namespaces]]
 binding = "STATS"
 id = "2a504adec2eb4b6cbc029a2537a1ce17"

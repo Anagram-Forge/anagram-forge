@@ -3,6 +3,7 @@ import { createFileRoute } from "@tanstack/react-router";
 import { doorCookie, readDoorIds } from "@/lib/door-cookie";
 import { DOOR_LEDGER } from "@/lib/door-ledger";
 import { bumpWayVisit } from "@/lib/way-stats";
+import { visitorKey } from "@/lib/visitor-key";
 
 /**
  * Gates are env secrets, not code.
@@ -112,7 +113,7 @@ export const Route = createFileRoute("/api/forge/door")({
         );
       },
       POST: async ({ request }) => {
-        if (throttled(ipOf(request))) return Response.json({ ok: false }, { status: 429 });
+        if (throttled(visitorKey(ipOf(request)))) return Response.json({ ok: false }, { status: 429 });
         let body: { source?: string; picks?: string[] };
         try {
           body = (await request.json()) as { source?: string; picks?: string[] };

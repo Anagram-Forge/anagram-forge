@@ -1,5 +1,6 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { addFind, banHandle, claimReport, deleteFind, getFind, isAdminHandle, listFinds, setFindHidden, userFromToken, vote } from "@/lib/forge-db";
+import { visitorKey } from "@/lib/visitor-key";
 
 function cookieOf(request: Request): string | null {
   const raw = request.headers.get("cookie") || "";
@@ -38,7 +39,7 @@ export const Route = createFileRoute("/api/forge/finds")({
         if (body.report) {
           const find = await getFind(String(body.report));
           if (!find) return Response.json({ ok: false, reason: "Missing." }, { status: 400 });
-          const ip = ipOf(request);
+          const ip = visitorKey(ipOf(request));
           const now = Date.now();
           if (now - (lastReport.get(ip) ?? 0) < 45_000) return Response.json({ ok: true, dup: true });
           lastReport.set(ip, now);

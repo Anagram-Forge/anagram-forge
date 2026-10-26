@@ -1,3 +1,5 @@
+import { visitorKey } from "@/lib/visitor-key";
+
 /** App-level lock after repeated sign-in failures. Cloudflare still rate-limits the route. */
 
 export const SIGN_IN_FAIL = "Couldn't sign in";
@@ -18,7 +20,10 @@ export function recordFail(state: FailState | null, now: number): FailState {
 }
 
 export function failKey(kind: "ip" | "handle", value: string): string {
-  const clean = value.trim().toLowerCase().replace(/[^a-z0-9:._-]/g, "").slice(0, 64);
+  const clean =
+    kind === "ip"
+      ? visitorKey(value)
+      : value.trim().toLowerCase().replace(/[^a-z0-9:._-]/g, "").slice(0, 64);
   return `fail:${kind}:${clean || "none"}`;
 }
 

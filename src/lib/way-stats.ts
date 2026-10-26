@@ -1,4 +1,5 @@
 import { lastDays, todayNY } from "@/lib/stat-day";
+import { visitorKey } from "@/lib/visitor-key";
 
 export type WayDay = { day: string; visits: number };
 
@@ -65,7 +66,7 @@ async function ready(store: Box | null): Promise<Box | null> {
 /** Count a real view of The Way. Caller must already have an open door. */
 export async function bumpWayVisit(request: Request): Promise<void> {
   if (isCrawler(request)) return;
-  const ip = ipOf(request);
+  const ip = visitorKey(ipOf(request));
   const now = Date.now();
   const prev = lastHit.get(ip) || 0;
   if (now - prev < COOL_MS) return;

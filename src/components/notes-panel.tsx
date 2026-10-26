@@ -45,8 +45,9 @@ export function NotesPanel({ onClose }: { onClose: () => void }) {
           <p className="mt-2 text-sm leading-relaxed text-fg">
             We store two numbers: visits, and anagrams that returned a result. No racks unless you
             save or post one. Handles and password hashes live here if you make an account. Forms
-            (sponsor, bugs, screenshots you attach) come to us by email. Cloudflare sees traffic the
-            way a host does; when we look, we exclude bots.
+            (sponsor, bugs, screenshots you attach) come to us by email. When a limit needs a
+            visitor, we keep a short-lived hash of the address, not the address itself, and we don’t
+            write that address to a log. Cloudflare sees traffic the way a host does; when we look, we exclude bots.
           </p>
         </section>
 

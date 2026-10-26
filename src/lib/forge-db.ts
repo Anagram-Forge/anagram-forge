@@ -6,6 +6,7 @@ import { handleAllowed } from "@/lib/handle-guard";
 import { passwordIssue } from "@/lib/password";
 import { cleanMode, rackStored } from "@/lib/rack-clean";
 import { isCloudflareWorker } from "@/lib/runtime";
+import { envGet } from "@/lib/turnstile";
 import { timingSafeEqual } from "node:crypto";
 
 export type User = { id: string; handle: string; passHash: string };
@@ -156,7 +157,8 @@ export async function setChallenge(next: {
 
 export async function isAdminHandle(handle: string | null | undefined): Promise<boolean> {
   if (!handle) return false;
-  if (handle.toLowerCase() === "keeper") return true;
+  const expected = (await envGet("STEWARD_HANDLE")).toLowerCase();
+  if (expected && handle.toLowerCase() === expected) return true;
   return !isCloudflareWorker();
 }
 
@@ -343,7 +345,7 @@ function asFind(r: Record<string, unknown>): Find {
   };
 }
 
-let keeperVotesChecked = false;
+let votesChecked = false;
 
 function countOf(row: Record<string, unknown> | undefined): number {
   if (!row) return 0;
@@ -353,19 +355,25 @@ function countOf(row: Record<string, unknown> | undefined): number {
 }
 
 /**
- * One pass after deploy. The two test votes on keeper’s find are removed
+ * One pass after deploy. Test votes on the steward’s find are removed
  * only when they are the whole set: two vote rows, or a votes column of 2
- * with no rows. Anything else is left alone.
+ * with no rows. Anything else is left alone. The flag name is already
+ * stored in KV. Do not rename it.
  */
-async function clearKeeperTestVotes() {
-  if (keeperVotesChecked) return;
+async function clearStewardTestVotes() {
+  if (votesChecked) return;
   const store = await kv();
   const db = await d1();
   if (!store || !db) return;
   const flag = "cleanup:keeper-votes:v2";
   try {
     if (await store.get(flag)) {
-      keeperVotesChecked = true;
+      votesChecked = true;
+      return;
+    }
+    const steward = (await envGet("STEWARD_HANDLE")).toLowerCase();
+    if (!steward) {
+      votesChecked = true;
       return;
     }
     const counted = await db
@@ -373,16 +381,18 @@ async function clearKeeperTestVotes() {
         `SELECT COUNT(*) AS c FROM votes v
          JOIN finds f ON f.id = v.find_id
          JOIN users u ON u.id = f.user_id
-         WHERE lower(u.handle) = 'keeper'`,
+         WHERE lower(u.handle) = ?`,
       )
+      .bind(steward)
       .all();
     const n = countOf(counted.results?.[0]);
     const finds = await db
       .prepare(
         `SELECT f.id, f.votes AS c FROM finds f
          JOIN users u ON u.id = f.user_id
-         WHERE lower(u.handle) = 'keeper'`,
+         WHERE lower(u.handle) = ?`,
       )
+      .bind(steward)
       .all();
     const column = (finds.results || []).reduce((sum, row) => sum + (Number(row.c) || 0), 0);
     if (n === 2) {
@@ -399,14 +409,14 @@ async function clearKeeperTestVotes() {
     } else {
       await store.put(flag, `left:${n}:${column}`);
     }
-    keeperVotesChecked = true;
+    votesChecked = true;
   } catch {
     /* try again on the next read */
   }
 }
 
 export async function listFinds(weekId?: string, includeHidden = false): Promise<Find[]> {
-  await clearKeeperTestVotes();
+  await clearStewardTestVotes();
   const current = weekId ?? (await getChallenge()).id;
   const db = await d1();
   if (db) {
