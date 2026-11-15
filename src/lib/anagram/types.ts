@@ -1,4 +1,4 @@
-export type SolveMode = "from-rack" | "exact" | "phrase" | "pattern";
+export type SolveMode = "from-rack" | "exact" | "perfect" | "phrase" | "pattern";
 export type SortKey = "length" | "score" | "alpha" | "common" | "rare" | "theme";
 export type DictTier = "common" | "standard" | "full";
 

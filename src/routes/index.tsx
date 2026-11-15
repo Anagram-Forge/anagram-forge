@@ -19,7 +19,7 @@ import { Tip } from "@/components/tip";
 import { dictStats, loadDictionary, wordsForTier, type DictWord, type Loaded } from "@/lib/anagram/dict";
 import { consumePicks, countsOf, canSpell, normalizeLetters, onlyLetters } from "@/lib/anagram/letters";
 import { scrabbleScore } from "@/lib/anagram/scores";
-import { groupByLength, parseMustInclude, solvePhrases, solveWords } from "@/lib/anagram/solver";
+import { groupByLength, parseMustInclude, solvePerfect, solvePhrases, solveWords } from "@/lib/anagram/solver";
 import { tokenizeField } from "@/lib/anagram/spell";
 import { isThemeId, type ThemeId } from "@/lib/anagram/themes";
 import {
@@ -59,6 +59,7 @@ export const Route = createFileRoute("/")({
 const MODES: { id: SolveMode; label: string; hint: string }[] = [
   { id: "from-rack", label: "From rack", hint: "Every word you can spell with these letters" },
   { id: "exact", label: "Exact", hint: "Uses every letter (classic anagram)" },
+  { id: "perfect", label: "Perfect", hint: "One to five words, every letter used. Pairs and triples are the full list." },
   { id: "phrase", label: "Phrases", hint: "Two to five words that consume the rack" },
   { id: "pattern", label: "Pattern", hint: "? is any letter, * is any run" },
 ];
@@ -208,6 +209,23 @@ function Home() {
     const have = picked.have;
     const blanks = picked.blanks;
     const remaining = totalLeft(picked);
+    if (mode === "perfect" && picks.length === 0) {
+      if (parsed.letters.length + parsed.blanks < 2) return { kind: "empty" as const };
+      const r = solvePerfect({
+        pool: solvePool,
+        have: countsOf(parsed.letters),
+        blanks: parsed.blanks,
+        filters: cleanFilters(filters),
+        maxWords,
+        phraseMinLen,
+        commonOnly: dict === "common",
+        mustInclude,
+        theme,
+        themeOnly,
+        sort,
+      });
+      return { kind: "phrase" as const, ...r };
+    }
     if (mode === "phrase" && picks.length === 0) {
       if (parsed.letters.length + parsed.blanks < 4) return { kind: "empty" as const };
       const r = solvePhrases({
@@ -241,7 +259,7 @@ function Home() {
       pool: solvePool,
       have,
       blanks,
-      mode: picks.length > 0 ? "from-rack" : mode === "phrase" ? "from-rack" : mode,
+      mode: picks.length > 0 || mode === "phrase" || mode === "perfect" ? "from-rack" : mode,
       pattern: picks.length > 0 ? "" : pattern,
       filters: cleanFilters(filters),
       sort,
@@ -372,7 +390,7 @@ function Home() {
                 setLetters(e.target.value);
                 pushSearch({ q: e.target.value });
               }}
-              placeholder={mode === "phrase" ? "Yeshua is King" : ""}
+              placeholder={mode === "phrase" || mode === "perfect" ? "Yeshua is King" : ""}
               autoCapitalize="none"
               autoCorrect="off"
               spellCheck={false}
@@ -511,7 +529,9 @@ function Home() {
             <p className="mt-1.5 text-xs text-subtle">
               {mode === "phrase"
                 ? "Lock this as a word in the phrase; leftover letters are solved around it."
-                : "Only keep results that contain this."}
+                : mode === "perfect"
+                  ? "Lock this word. The other words have to use every letter left."
+                  : "Only keep results that contain this."}
             </p>
           </label>
 
@@ -554,7 +574,7 @@ function Home() {
               {parsed.blanks ? ` · ${parsed.blanks} blank${parsed.blanks === 1 ? "" : "s"}` : ""}
               {picks.length > 0 ? ` · ${totalLeft(picked)} left` : ""}
               {parsed.letters.length > 15 && parsed.letters.length < 30
-                ? " · tournament list tops out at 15-letter words — use Phrases or pick leftovers"
+                ? " · tournament list tops out at 15-letter words — use Perfect or Phrases"
                 : ""}
             </p>
             {parsed.letters.length >= 30 ? (
@@ -810,16 +830,18 @@ function Home() {
                   className="font-mono"
                 />
               </Field>
-              {mode === "phrase" && (
+              {(mode === "phrase" || mode === "perfect") && (
                 <>
                   <Field label="Max words">
                     <Input
                       type="number"
-                      min={2}
+                      min={mode === "perfect" ? 1 : 2}
                       max={5}
                       value={maxWords}
                       onChange={(e) =>
-                        setMaxWords(Math.min(5, Math.max(2, Number(e.target.value) || 3)))
+                        setMaxWords(
+                          Math.min(5, Math.max(mode === "perfect" ? 1 : 2, Number(e.target.value) || 3)),
+                        )
                       }
                     />
                   </Field>
@@ -867,7 +889,7 @@ function Home() {
             <Empty
               title="Waiting on a rack"
               body={
-                mode === "phrase"
+                mode === "phrase" || mode === "perfect"
                   ? "Enter a phrase to reshuffle. Try “Yeshua is King”."
                   : "Enter at least two letters. Use ? for a blank. Try “psalm”."
               }
@@ -877,7 +899,7 @@ function Home() {
             <Empty
               title="Waiting on a rack"
               body={
-                mode === "phrase"
+                mode === "phrase" || mode === "perfect"
                   ? "Enter a phrase to reshuffle. Try “Yeshua is King”."
                   : "Enter at least two letters. Use ? for a blank. Try “psalm”."
               }
@@ -921,8 +943,12 @@ function Home() {
             )}
           {result?.kind === "phrase" && result.hits.length === 0 && poolReady && (
             <Empty
-              title="No phrases yet"
-              body="Try more words (up to 5), a lower min word size, or From rack. Names you type are included even if they are not tournament words."
+              title={mode === "perfect" ? "No perfect anagram" : "No phrases yet"}
+              body={
+                mode === "perfect"
+                  ? "Lower the min word size, allow more words, or switch to the Full dictionary."
+                  : "Try more words (up to 5), a lower min word size, or From rack. Names you type are included even if they are not tournament words."
+              }
             />
           )}
 
@@ -976,7 +1002,15 @@ function Home() {
           {result?.kind === "phrase" && result.hits.length > 0 && (
             <div>
               <p className="mb-4 text-sm tabular-nums text-muted">
-                {result.hits.length} phrase{result.hits.length === 1 ? "" : "s"}
+                {result.hits.length}{" "}
+                {mode === "perfect"
+                  ? `perfect anagram${result.hits.length === 1 ? "" : "s"}`
+                  : `phrase${result.hits.length === 1 ? "" : "s"}`}
+                {"depthComplete" in result && result.depthComplete >= 3
+                  ? " · pairs and triples are complete"
+                  : "depthComplete" in result && result.depthComplete === 2
+                    ? " · pairs are complete"
+                    : ""}
                 {result.timedOut ? " · search budget reached" : ""}
                 {result.truncated ? " · capped" : ""}
               </p>

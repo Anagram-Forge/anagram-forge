@@ -1,4 +1,4 @@
-const MODES = new Set(["from-rack", "exact", "phrase", "pattern"]);
+const MODES = new Set(["from-rack", "exact", "perfect", "phrase", "pattern"]);
 
 /** Letters and blank marks only. Everything else is dropped. */
 export function cleanRack(raw: string): { letters: string; blanks: number } | null {
