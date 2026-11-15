@@ -6,9 +6,11 @@ import { cn } from "@/lib/utils";
 export function DefinedWord({
   word,
   className,
+  onSelect,
 }: {
   word: string;
   className?: string;
+  onSelect?: (word: string) => void;
 }) {
   const id = useId();
   const rootRef = useRef<HTMLSpanElement>(null);
@@ -87,11 +89,16 @@ export function DefinedWord({
       <button
         type="button"
         aria-describedby={open ? id : undefined}
+        aria-label={onSelect ? `Keep ${word}` : undefined}
         className={cn(
           "rounded-sm px-0.5 text-left underline decoration-border decoration-dotted underline-offset-4 hover:decoration-muted",
           className,
         )}
         onClick={() => {
+          if (onSelect) {
+            onSelect(word);
+            return;
+          }
           setPinned((p) => !p);
           setOpen(true);
         }}

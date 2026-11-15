@@ -352,6 +352,15 @@ function Home() {
     });
   }
 
+  function toggleMust(word: string) {
+    const w = word.toLowerCase();
+    const cur = parseMustInclude(mustRaw);
+    const next = cur.includes(w) ? cur.filter((x) => x !== w) : [...cur, w];
+    const raw = next.join(" ");
+    setMustRaw(raw);
+    pushSearch({ inc: raw });
+  }
+
   async function copyWords(words: string[]) {
     await navigator.clipboard.writeText(words.join("\n"));
     toast("Copied to clipboard");
@@ -942,14 +951,34 @@ function Home() {
               />
             )}
           {result?.kind === "phrase" && result.hits.length === 0 && poolReady && (
-            <Empty
-              title={mode === "perfect" ? "No perfect anagram" : "No phrases yet"}
-              body={
-                mode === "perfect"
-                  ? "Lower the min word size, allow more words, or switch to the Full dictionary."
-                  : "Try more words (up to 5), a lower min word size, or From rack. Names you type are included even if they are not tournament words."
-              }
-            />
+            <div>
+              {mode === "perfect" && mustInclude.length > 0 && (
+                <p className="mb-4 text-sm text-muted">
+                  Keeping{" "}
+                  {mustInclude.map((w) => (
+                    <button
+                      key={w}
+                      type="button"
+                      onClick={() => toggleMust(w)}
+                      className="mx-1 font-display text-lg text-primary"
+                    >
+                      {w}
+                    </button>
+                  ))}
+                  . Click a word to let it go.
+                </p>
+              )}
+              <Empty
+                title={mode === "perfect" ? "No perfect anagram" : "No phrases yet"}
+                body={
+                  mode === "perfect"
+                    ? mustInclude.length
+                      ? "Nothing uses the letters left."
+                      : "Lower the min word size, allow more words, or switch to the Full dictionary."
+                    : "Try more words (up to 5), a lower min word size, or From rack. Names you type are included even if they are not tournament words."
+                }
+              />
+            </div>
           )}
 
           {result?.kind === "words" && result.hits.length > 0 && (
@@ -1018,6 +1047,8 @@ function Home() {
                 <ReadingSpread
                   hits={result.hits}
                   source={letters}
+                  kept={mustInclude}
+                  onKeep={toggleMust}
                   onCopy={(words) => copyWords([words.join(" ")])}
                   onPick={(words) => {
                     setPicks(words);
@@ -1298,11 +1329,15 @@ const SHELF = ["", "One word", "Two words", "Three words", "Four words", "Five w
 function ReadingSpread({
   hits,
   source,
+  kept,
+  onKeep,
   onCopy,
   onPick,
 }: {
   hits: PhraseHit[];
   source: string;
+  kept: string[];
+  onKeep: (word: string) => void;
   onCopy: (words: string[]) => void;
   onPick: (words: string[]) => void;
 }) {
@@ -1316,6 +1351,11 @@ function ReadingSpread({
 
   return (
     <div className="space-y-8">
+      <p className="text-xs text-subtle">
+        {kept.length
+          ? "Click a kept word to let it go."
+          : "Click a word to keep it. The shelf shows only phrases that use it."}
+      </p>
       {groups.map((g) => (
         <section key={g.n}>
           <h2 className="mb-3 text-xs font-medium uppercase tracking-wide text-subtle">
@@ -1327,6 +1367,8 @@ function ReadingSpread({
                 key={hit.words.join("\0")}
                 hit={hit}
                 source={source}
+                kept={kept}
+                onKeep={onKeep}
                 onCopy={() => onCopy(hit.words)}
                 onPick={() => onPick(hit.words)}
               />
@@ -1341,11 +1383,15 @@ function ReadingSpread({
 function SpreadLine({
   hit,
   source,
+  kept,
+  onKeep,
   onCopy,
   onPick,
 }: {
   hit: PhraseHit;
   source: string;
+  kept: string[];
+  onKeep: (word: string) => void;
   onCopy: () => void;
   onPick: () => void;
 }) {
@@ -1365,9 +1411,10 @@ function SpreadLine({
               {i > 0 ? <span className="text-subtle"> · </span> : null}
               <DefinedWord
                 word={w}
+                onSelect={onKeep}
                 className={cn(
                   "font-display text-xl no-underline decoration-muted underline-offset-4 hover:underline",
-                  locked ? "text-primary" : "text-fg",
+                  locked || kept.includes(w.toLowerCase()) ? "text-primary" : "text-fg",
                 )}
               />
             </span>
