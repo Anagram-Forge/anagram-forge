@@ -403,7 +403,7 @@ function Home() {
               autoCapitalize="none"
               autoCorrect="off"
               spellCheck={false}
-              className="h-12 overflow-x-auto rounded-lg border-border bg-field pl-10 pr-11 font-mono text-base"
+              className="h-12 rounded-lg border-border bg-bg/40 pl-10 pr-11 font-mono text-base"
             />
             {letters || mustRaw ? (
               <button
