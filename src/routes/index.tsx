@@ -222,7 +222,7 @@ function Home() {
         mustInclude,
         theme,
         themeOnly,
-        sort,
+        sort: sort === "length" ? "reads" : sort,
       });
       return { kind: "phrase" as const, ...r };
     }
@@ -507,6 +507,7 @@ function Home() {
                 type="button"
                 onClick={() => {
                   setMode(m.id);
+                  if (m.id !== "perfect" && sort === "reads") setSort("length");
                   pushSearch({ mode: m.id });
                 }}
                 className={cn(
@@ -765,14 +766,19 @@ function Home() {
 
           <div className="mt-4 flex flex-wrap items-center gap-2">
             <span className="text-xs uppercase tracking-wide text-subtle">Sort</span>
-            {SORTS.map((s) => (
+            {(mode === "perfect"
+              ? [{ id: "reads" as SortKey, label: "Reads" }, ...SORTS.filter((s) => s.id !== "length")]
+              : SORTS
+            ).map((s) => (
               <button
                 key={s.id}
                 type="button"
                 onClick={() => setSort(s.id)}
                 className={cn(
                   "h-9 rounded-sm px-3 text-xs",
-                  sort === s.id ? "bg-raised text-fg" : "text-muted hover:text-fg",
+                  (mode === "perfect" && sort === "length" ? "reads" : sort) === s.id
+                    ? "bg-raised text-fg"
+                    : "text-muted hover:text-fg",
                 )}
               >
                 {s.label}
@@ -1354,7 +1360,7 @@ function ReadingSpread({
       <p className="text-xs text-subtle">
         {kept.length
           ? "Click a kept word to let it go."
-          : "Click a word to keep it. The shelf shows only phrases that use it."}
+          : "Click a word to keep it. Lines are ordered by how well they read."}
       </p>
       {groups.map((g) => (
         <section key={g.n}>

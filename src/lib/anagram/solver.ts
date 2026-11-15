@@ -9,6 +9,7 @@ import {
 import { countsOf } from "./letters";
 import type { DictWord } from "./dict";
 import { phraseThemeScore, wordInTheme, type ThemeId } from "./themes";
+import { bestReading } from "./sense";
 import type { Filters, PhraseHit, SolveMode, SortKey, WordHit } from "./types";
 
 const MAX_SINGLE = 800;
@@ -54,7 +55,7 @@ function sortHits(hits: WordHit[], sort: SortKey): WordHit[] {
   if (sort === "alpha") copy.sort((a, b) => a.word.localeCompare(b.word));
   else if (sort === "score")
     copy.sort((a, b) => b.score - a.score || b.word.length - a.word.length || a.word.localeCompare(b.word));
-  else if (sort === "common")
+  else if (sort === "common" || sort === "reads")
     copy.sort((a, b) => b.freq - a.freq || b.word.length - a.word.length || a.word.localeCompare(b.word));
   else if (sort === "rare")
     copy.sort((a, b) => a.freq - b.freq || b.word.length - a.word.length || a.word.localeCompare(b.word));
@@ -563,12 +564,26 @@ export function solvePerfect(opts: {
     walk();
   }
 
+  if (sort === "reads" || sort === "length" || sort === "common") {
+    const freq = new Map<string, number>();
+    for (const dw of opts.pool) {
+      const prev = freq.get(dw.word);
+      if (prev === undefined || dw.freq > prev) freq.set(dw.word, dw.freq);
+    }
+    for (const hit of hits) {
+      const reading = bestReading(hit.words, freq);
+      hit.words = reading.order;
+      hit.sense = reading.score;
+    }
+  }
+
   hits.sort((a, b) => {
     if (a.words.length !== b.words.length) return a.words.length - b.words.length;
     if (sort === "alpha") return a.words.join(" ").localeCompare(b.words.join(" "));
     if (sort === "theme") return (b.themeScore ?? 0) - (a.themeScore ?? 0) || b.score - a.score;
     if (sort === "rare") return a.score - b.score || a.words.join(" ").localeCompare(b.words.join(" "));
-    return b.score - a.score || a.words.join(" ").localeCompare(b.words.join(" "));
+    if (sort === "score") return b.score - a.score || a.words.join(" ").localeCompare(b.words.join(" "));
+    return (b.sense ?? 0) - (a.sense ?? 0) || b.score - a.score;
   });
 
   const depthComplete = blanksLeft > 0 ? 1 : triplesDone ? Math.min(3, Math.max(slots, 1)) : Math.min(2, slots);

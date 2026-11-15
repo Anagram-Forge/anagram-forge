@@ -1,5 +1,5 @@
 export type SolveMode = "from-rack" | "exact" | "perfect" | "phrase" | "pattern";
-export type SortKey = "length" | "score" | "alpha" | "common" | "rare" | "theme";
+export type SortKey = "length" | "score" | "alpha" | "common" | "rare" | "theme" | "reads";
 export type DictTier = "common" | "standard" | "full";
 
 export type Filters = {
@@ -26,6 +26,7 @@ export type PhraseHit = {
   leftover: string;
   locked?: string[];
   themeScore?: number;
+  sense?: number;
 };
 
 export type SolveQuery = {
