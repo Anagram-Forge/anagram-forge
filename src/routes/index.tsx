@@ -1014,22 +1014,36 @@ function Home() {
                 {result.timedOut ? " · search budget reached" : ""}
                 {result.truncated ? " · capped" : ""}
               </p>
-              <ul className="space-y-2">
-                {result.hits.map((hit) => (
-                  <PhraseRow
-                    key={hit.words.join("-")}
-                    hit={hit}
-                    source={letters}
-                    onCopy={() => copyWords([hit.words.join(" ")])}
-                    onPick={() => {
-                      setPicks(hit.words);
-                      requestAnimationFrame(() => {
-                        document.getElementById("picked-tray")?.scrollIntoView({ block: "nearest", behavior: "smooth" });
-                      });
-                    }}
-                  />
-                ))}
-              </ul>
+              {mode === "perfect" ? (
+                <ReadingSpread
+                  hits={result.hits}
+                  source={letters}
+                  onCopy={(words) => copyWords([words.join(" ")])}
+                  onPick={(words) => {
+                    setPicks(words);
+                    requestAnimationFrame(() => {
+                      document.getElementById("picked-tray")?.scrollIntoView({ block: "nearest", behavior: "smooth" });
+                    });
+                  }}
+                />
+              ) : (
+                <ul className="space-y-2">
+                  {result.hits.map((hit) => (
+                    <PhraseRow
+                      key={hit.words.join("-")}
+                      hit={hit}
+                      source={letters}
+                      onCopy={() => copyWords([hit.words.join(" ")])}
+                      onPick={() => {
+                        setPicks(hit.words);
+                        requestAnimationFrame(() => {
+                          document.getElementById("picked-tray")?.scrollIntoView({ block: "nearest", behavior: "smooth" });
+                        });
+                      }}
+                    />
+                  ))}
+                </ul>
+              )}
             </div>
           )}
         </section>
@@ -1275,6 +1289,121 @@ function PhraseRow({
         Rearrange
       </button>
       <PostFindButton phrase={hit.words.join(" ")} quiet />
+    </li>
+  );
+}
+
+const SHELF = ["", "One word", "Two words", "Three words", "Four words", "Five words"];
+
+function ReadingSpread({
+  hits,
+  source,
+  onCopy,
+  onPick,
+}: {
+  hits: PhraseHit[];
+  source: string;
+  onCopy: (words: string[]) => void;
+  onPick: (words: string[]) => void;
+}) {
+  const groups: { n: number; hits: PhraseHit[] }[] = [];
+  for (const hit of hits) {
+    const n = hit.words.length;
+    const last = groups[groups.length - 1];
+    if (last && last.n === n) last.hits.push(hit);
+    else groups.push({ n, hits: [hit] });
+  }
+
+  return (
+    <div className="space-y-8">
+      {groups.map((g) => (
+        <section key={g.n}>
+          <h2 className="mb-3 text-xs font-medium uppercase tracking-wide text-subtle">
+            {SHELF[g.n] ?? `${g.n} words`} · {g.hits.length}
+          </h2>
+          <ul className="sm:columns-2 sm:gap-x-12">
+            {g.hits.map((hit) => (
+              <SpreadLine
+                key={hit.words.join("\0")}
+                hit={hit}
+                source={source}
+                onCopy={() => onCopy(hit.words)}
+                onPick={() => onPick(hit.words)}
+              />
+            ))}
+          </ul>
+        </section>
+      ))}
+    </div>
+  );
+}
+
+function SpreadLine({
+  hit,
+  source,
+  onCopy,
+  onPick,
+}: {
+  hit: PhraseHit;
+  source: string;
+  onCopy: () => void;
+  onPick: () => void;
+}) {
+  const [order, setOrder] = useState(hit.words);
+  useEffect(() => {
+    setOrder(hit.words);
+  }, [hit.words]);
+  const leftover = (hit.leftover || "").replace(/\?/g, "");
+
+  return (
+    <li className="group relative break-inside-avoid border-b border-border/60 py-2.5">
+      <p className="font-display text-xl leading-snug text-fg sm:pr-40">
+        {hit.words.map((w, i) => {
+          const locked = hit.locked?.includes(w);
+          return (
+            <span key={`${w}-${i}`}>
+              {i > 0 ? <span className="text-subtle"> · </span> : null}
+              <DefinedWord
+                word={w}
+                className={cn(
+                  "font-display text-xl no-underline decoration-muted underline-offset-4 hover:underline",
+                  locked ? "text-primary" : "text-fg",
+                )}
+              />
+            </span>
+          );
+        })}
+      </p>
+      <div className="mt-1 flex flex-wrap items-center gap-x-3 gap-y-1 sm:absolute sm:right-0 sm:top-1/2 sm:mt-0 sm:-translate-y-1/2 sm:opacity-0 sm:group-hover:opacity-100 sm:group-focus-within:opacity-100 [@media(hover:none)]:sm:opacity-100">
+        {(hit.themeScore ?? 0) > 0 ? (
+          <span className="tabular-nums text-[10px] uppercase tracking-wide text-muted">
+            {hit.themeScore} theme
+          </span>
+        ) : null}
+        <span className="tabular-nums text-xs text-subtle">{hit.score}</span>
+        <button
+          type="button"
+          onClick={onCopy}
+          className="text-xs text-subtle hover:text-fg"
+          aria-label="Copy phrase"
+        >
+          Copy
+        </button>
+        <AnagramCardButton
+          source={source}
+          picks={order}
+          leftoverAdds={[...leftover]}
+          filled={!leftover}
+          quiet
+          onReorder={setOrder}
+          onAdd={(w) => setOrder((cur) => [...cur, w])}
+          onRemove={(i) => setOrder((cur) => cur.filter((_, j) => j !== i))}
+        />
+        <button type="button" onClick={onPick} className="text-xs text-subtle hover:text-muted">
+          Rearrange
+        </button>
+        <PostFindButton phrase={hit.words.join(" ")} quiet />
+      </div>
     </li>
   );
 }
