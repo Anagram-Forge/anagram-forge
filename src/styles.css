@@ -81,6 +81,10 @@ html.easy-read body {
   [role="button"]:not(:disabled) {
     cursor: pointer;
   }
+  input,
+  textarea {
+    letter-spacing: normal;
+  }
 }
 
 @media (prefers-reduced-motion: reduce) {

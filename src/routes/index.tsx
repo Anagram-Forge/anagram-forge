@@ -385,9 +385,9 @@ function Home() {
           <label className="relative mt-8 block text-left">
             <span className="sr-only">Letters</span>
             <Search className="pointer-events-none absolute left-3.5 top-1/2 z-[1] size-4 -translate-y-1/2 text-subtle" />
-            {!letters && mode !== "phrase" ? (
+            {!letters && mode !== "phrase" && mode !== "perfect" ? (
               <span
-                className="letters-pulse-ph pointer-events-none absolute left-10 top-1/2 -translate-y-1/2 font-mono text-base tracking-wide text-subtle"
+                className="letters-pulse-ph pointer-events-none absolute left-10 top-1/2 -translate-y-1/2 font-mono text-base text-subtle"
                 aria-hidden
               >
                 enter letters
@@ -403,7 +403,7 @@ function Home() {
               autoCapitalize="none"
               autoCorrect="off"
               spellCheck={false}
-              className="h-12 rounded-lg border-border bg-bg/40 pl-10 pr-11 font-mono text-base tracking-wide"
+              className="h-12 overflow-x-auto rounded-lg border-border bg-field pl-10 pr-11 font-mono text-base"
             />
             {letters || mustRaw ? (
               <button
