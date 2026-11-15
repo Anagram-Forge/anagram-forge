@@ -1,9 +1,10 @@
 import { ChevronLeft, ChevronRight, Download, ImageIcon, X } from "lucide-react";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import { Link } from "@tanstack/react-router";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
+import { encodeCardGif, paintCardTrace } from "@/lib/anagram/card-trace";
 import {
   CARD_FONTS,
   DEFAULT_CARD_STYLE,
@@ -14,7 +15,9 @@ import {
   displayRack,
   ensureSignatureFont,
   nearestWeight,
+  paintAnagramCard,
   renderAnagramCard,
+  type CardPath,
   type CardStyle,
 } from "@/lib/anagram/poster";
 import { DOOR_PATH, tryDoor, type DoorUnlock } from "@/lib/side-door";
@@ -122,7 +125,10 @@ export function AnagramCardButton({
 }) {
   const [open, setOpen] = useState(false);
   const [src, setSrc] = useState<string | null>(null);
+  const [pairs, setPairs] = useState<CardPath[]>([]);
   const [busy, setBusy] = useState(false);
+  const stageRef = useRef<HTMLDivElement>(null);
+  const traceRef = useRef<HTMLCanvasElement>(null);
   const [style, setStyle] = useState<CardStyle>(() => {
     if (typeof document !== "undefined" && document.documentElement.classList.contains("easy-read")) {
       return { ...DEFAULT_CARD_STYLE, font: "atkinson", uppercase: false, tracking: 1 };
@@ -158,9 +164,11 @@ export function AnagramCardButton({
     const t = window.setTimeout(() => {
       setBusy(true);
       if (door?.sign) void ensureSignatureFont();
-      renderAnagramCard(from, to, style)
-        .then((url) => {
-          if (live) setSrc(url);
+      paintAnagramCard(from, to, style)
+        .then((card) => {
+          if (!live) return;
+          setSrc(card.url);
+          setPairs(card.pairs);
         })
         .catch(() => {
           if (live) toast("Could not draw the card");
@@ -174,6 +182,38 @@ export function AnagramCardButton({
       window.clearTimeout(t);
     };
   }, [open, from, to, style]);
+
+  useEffect(() => {
+    const canvas = traceRef.current;
+    if (!open || !style.paths || pairs.length === 0) {
+      const ctx = canvas?.getContext("2d");
+      if (ctx && canvas) ctx.clearRect(0, 0, canvas.width, canvas.height);
+      return;
+    }
+    const stage = stageRef.current;
+    if (!canvas || !stage) return;
+    let raf = 0;
+    const start = performance.now();
+    const tick = (now: number) => {
+      const box = stage.getBoundingClientRect();
+      const dpr = Math.min(2, window.devicePixelRatio || 1);
+      const pw = Math.max(1, Math.round(box.width * dpr));
+      const ph = Math.max(1, Math.round(box.height * dpr));
+      if (canvas.width !== pw || canvas.height !== ph) {
+        canvas.width = pw;
+        canvas.height = ph;
+      }
+      const ctx = canvas.getContext("2d");
+      if (ctx && box.width > 0) {
+        ctx.setTransform(1, 0, 0, 1, 0, 0);
+        ctx.clearRect(0, 0, pw, ph);
+        paintCardTrace(ctx, pairs, now - start, style.path, style.look, POSTCARD.w, POSTCARD.h, pw, ph);
+      }
+      raf = requestAnimationFrame(tick);
+    };
+    raf = requestAnimationFrame(tick);
+    return () => cancelAnimationFrame(raf);
+  }, [open, style.paths, style.path, style.look, pairs]);
 
   function patch(next: Partial<CardStyle>) {
     setStyle((cur) => {
@@ -217,6 +257,27 @@ export function AnagramCardButton({
     }
   }
 
+  async function downloadGif() {
+    if (!src || pairs.length === 0) return;
+    setBusy(true);
+    try {
+      const blob = await encodeCardGif(src, pairs, style.path, style.look);
+      const href = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = href;
+      a.download = `${slug(from)}-postcard.gif`;
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      const framed = window.self !== window.top;
+      toast(framed ? "Preview pane often blocks saves. Try the live site." : "Loop saved. The spark walks the letter paths.");
+      window.setTimeout(() => URL.revokeObjectURL(href), 20_000);
+    } catch {
+      toast("Could not draw the loop");
+    } finally {
+      setBusy(false);
+    }
+  }
   async function openPng() {
     setBusy(true);
     try {
@@ -404,6 +465,7 @@ export function AnagramCardButton({
             </div>
 
             <div
+              ref={stageRef}
               className="relative mt-4 overflow-hidden rounded-md border border-border"
               style={{ background: style.paper, aspectRatio: `${POSTCARD.inchW} / ${POSTCARD.inchH}` }}
             >
@@ -414,6 +476,7 @@ export function AnagramCardButton({
                   {busy ? "Drawing…" : "Preview"}
                 </div>
               )}
+              <canvas ref={traceRef} className="pointer-events-none absolute inset-0 h-full w-full" aria-hidden />
               {door && src ? (
                 <Link
                   to={DOOR_PATH}
@@ -437,6 +500,11 @@ export function AnagramCardButton({
               <Button type="button" onClick={download} disabled={!src || busy}>
                 <Download /> Download 4×6 PNG
               </Button>
+              {style.paths && pairs.length > 0 ? (
+                <Button type="button" variant="secondary" onClick={downloadGif} disabled={!src || busy}>
+                  <Download /> Download GIF
+                </Button>
+              ) : null}
               <Button type="button" variant="secondary" onClick={openPng} disabled={!src || busy}>
                 Open PNG
               </Button>
@@ -448,7 +516,11 @@ export function AnagramCardButton({
               </Button>
             </div>
             <p className="mt-2 text-xs text-subtle">
-              Print at 4×6 in, 100%. This preview pane may block the save — Open PNG is the check.
+              {style.paths
+                ? "PNG is the still, for print at 4×6 in, 100%. GIF is the same card, with the spark walking each letter path."
+                : "Print at 4×6 in, 100%. Turn on letter paths to walk them."}
+              {" "}
+              This preview pane may block the save — Open PNG is the check.
             </p>
           </div>
         </div>,

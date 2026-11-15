@@ -89,7 +89,7 @@ export const LOOK_PRESETS: Record<PostcardLook, Partial<CardStyle>> = {
     tracking: 4,
     ink: soot.surface,
     paper: bone.tile,
-    path: inks.iron,
+    path: inks.gold,
     doodle: "sling",
   },
   index: {
@@ -101,7 +101,7 @@ export const LOOK_PRESETS: Record<PostcardLook, Partial<CardStyle>> = {
     tracking: 0,
     ink: soot.surface,
     paper: bone.fg,
-    path: inks.iron,
+    path: inks.gold,
     doodle: "sling",
   },
   press: {
@@ -129,7 +129,7 @@ export const DEFAULT_CARD_STYLE: CardStyle = {
   ink: soot.surface,
   paper: bone.tile,
   paths: true,
-  path: inks.iron,
+  path: inks.gold,
   doodle: "sling",
 };
 
@@ -383,9 +383,20 @@ function pairGlyphs(top: Glyph[], bot: Glyph[]): Array<[Glyph, Glyph]> {
   return pairs;
 }
 
+export type CardPath = { x0: number; y0: number; x1: number; y1: number };
+
+function segmentsOf(pairs: Array<[Glyph, Glyph]>, topSize: number, botSize: number): CardPath[] {
+  return pairs.map(([a, b]) => ({
+    x0: a.x,
+    y0: a.y + topSize * 0.4,
+    x1: b.x,
+    y1: b.y - botSize * 0.42,
+  }));
+}
+
 function drawPaths(
   ctx: CanvasRenderingContext2D,
-  pairs: Array<[Glyph, Glyph]>,
+  segs: CardPath[],
   topSize: number,
   botSize: number,
   color: string,
@@ -397,12 +408,10 @@ function drawPaths(
   ctx.lineJoin = "round";
   ctx.globalAlpha = 0.42;
   ctx.setLineDash([18, 16]);
-  for (const [a, b] of pairs) {
-    const y0 = a.y + topSize * 0.4;
-    const y1 = b.y - botSize * 0.42;
+  for (const s of segs) {
     ctx.beginPath();
-    ctx.moveTo(a.x, y0);
-    ctx.lineTo(b.x, y1);
+    ctx.moveTo(s.x0, s.y0);
+    ctx.lineTo(s.x1, s.y1);
     ctx.stroke();
   }
   ctx.restore();
@@ -772,12 +781,12 @@ function caption(ctx: CanvasRenderingContext2D, w: number, h: number, ink: strin
   ctx.restore();
 }
 
-export async function renderAnagramCard(
+export async function paintAnagramCard(
   from: string,
   to: string,
   style: CardStyle = DEFAULT_CARD_STYLE,
   sign?: string,
-): Promise<string> {
+): Promise<{ url: string; pairs: CardPath[] }> {
   await ensureFont(style);
   if (sign) await ensureSignatureFont();
   const w = POSTCARD.w;
@@ -864,9 +873,8 @@ export async function renderAnagramCard(
     y += botSize * leading;
   }
 
-  if (style.paths) {
-    drawPaths(ctx, pairGlyphs(topGlyphs, botGlyphs), topSize, botSize, style.path);
-  }
+  const segs = segmentsOf(pairGlyphs(topGlyphs, botGlyphs), topSize, botSize);
+  if (style.paths) drawPaths(ctx, segs, topSize, botSize, style.path);
 
   if (!plated) caption(ctx, w, h, style.ink);
 
@@ -890,7 +898,16 @@ export async function renderAnagramCard(
     ctx.restore();
   }
 
-  return canvas.toDataURL("image/png");
+  return { url: canvas.toDataURL("image/png"), pairs: style.paths ? segs : [] };
+}
+
+export async function renderAnagramCard(
+  from: string,
+  to: string,
+  style: CardStyle = DEFAULT_CARD_STYLE,
+  sign?: string,
+): Promise<string> {
+  return (await paintAnagramCard(from, to, style, sign)).url;
 }
 
 export function displayRack(raw: string): string {
