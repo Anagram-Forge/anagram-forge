@@ -2,6 +2,7 @@ import { createFileRoute } from "@tanstack/react-router";
 import { DOOR_LEDGER } from "@/lib/door-ledger";
 import { doorCookie, readDoorIds } from "@/lib/door-cookie";
 import { isAdminHandle, setChallenge, stewardSnapshot, unbanHandle, userFromToken, wipeHandle } from "@/lib/forge-db";
+import { readingLedger } from "@/lib/read-store";
 import { SIGNUP_SITE, SIGNUP_WARN, signupsToday } from "@/lib/signup-guard";
 import { DOOR_PATH } from "@/lib/side-door";
 
@@ -28,6 +29,7 @@ export const Route = createFileRoute("/api/forge/steward")({
           signupsToday: await signupsToday(),
           signupPause: SIGNUP_SITE,
           signupWarn: SIGNUP_WARN,
+          reading: await readingLedger(),
           you: user.handle,
           doors: DOOR_LEDGER,
         });

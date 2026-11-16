@@ -9,13 +9,18 @@ import {
 } from "@/lib/anagram/read-why";
 import { isAdminHandle, userFromToken } from "@/lib/forge-db";
 import {
+  FAIL_NOTE,
   LIMIT_LINE,
   cachedFollow,
   cachedReading,
+  claimFailureNote,
   markRead,
+  noteCall,
+  noteFailure,
   readsLeft,
   storeFollow,
   storeReading,
+  type TokenUse,
 } from "@/lib/read-store";
 import { envGet } from "@/lib/turnstile";
 
@@ -44,7 +49,13 @@ async function digest(value: unknown): Promise<string> {
   return [...new Uint8Array(buf)].map((b) => b.toString(16).padStart(2, "0")).join("");
 }
 
-async function complete(key: string, model: string, system: string, user: string, max: number): Promise<string> {
+async function complete(
+  key: string,
+  model: string,
+  system: string,
+  user: string,
+  max: number,
+): Promise<{ text: string; usage: TokenUse }> {
   const res = await fetch("https://api.x.ai/v1/chat/completions", {
     method: "POST",
     headers: {
@@ -66,8 +77,45 @@ async function complete(key: string, model: string, system: string, user: string
     const detail = await res.text().catch(() => "");
     throw new Error(detail.slice(0, 180) || `xAI ${res.status}`);
   }
-  const data = (await res.json()) as { choices?: { message?: { content?: string } }[] };
-  return data.choices?.[0]?.message?.content || "";
+  const data = (await res.json()) as {
+    choices?: { message?: { content?: string } }[];
+    usage?: { prompt_tokens?: number; completion_tokens?: number; total_tokens?: number };
+  };
+  const prompt = Number(data.usage?.prompt_tokens) || 0;
+  const completion = Number(data.usage?.completion_tokens) || 0;
+  return {
+    text: data.choices?.[0]?.message?.content || "",
+    usage: {
+      prompt,
+      completion,
+      total: Number(data.usage?.total_tokens) || prompt + completion,
+    },
+  };
+}
+
+async function mailFailures(n: number) {
+  try {
+    const url = await envGet("MAIL_WORKER_URL");
+    const key = await envGet("MAIL_KEY");
+    if (!url || !key) return;
+    await fetch(url, {
+      method: "POST",
+      headers: { "content-type": "application/json", "x-mail-key": key },
+      body: JSON.stringify({
+        kind: "note",
+        subject: "Readings failing",
+        message: `${n} readings failed today. The model refused or did not answer.`,
+      }),
+      signal: AbortSignal.timeout(8000),
+    });
+  } catch {
+    /* the reader's answer still stands or fails on its own */
+  }
+}
+
+async function failRead() {
+  const n = await noteFailure();
+  if (n === FAIL_NOTE && (await claimFailureNote())) await mailFailures(n);
 }
 
 async function roomFor(handle: string): Promise<{ unlimited: true } | { left: number } | null> {
@@ -159,12 +207,18 @@ export const Route = createFileRoute("/api/forge/read")({
           if (!(await roomFor(user.handle))) return Response.json({ ok: false, reason: LIMIT_LINE, left: 0 }, { status: 429 });
           try {
             const messages = followMessages({ source, about, notes, lines, question, earlier });
-            const reply = parseFollow(await complete(apiKey, model, messages.system, messages.user, 220));
-            if (!reply) return Response.json({ ok: false, reason: "The reading didn’t come back." }, { status: 502 });
+            const done = await complete(apiKey, model, messages.system, messages.user, 220);
+            await noteCall(user.handle, done.usage);
+            const reply = parseFollow(done.text);
+            if (!reply) {
+              await failRead();
+              return Response.json({ ok: false, reason: "The reading didn’t come back." }, { status: 502 });
+            }
             await storeFollow(cacheKey, reply);
             const room = await charge(user.handle);
             return Response.json({ ok: true, reply, cached: false, ...room });
           } catch (err) {
+            await failRead();
             const msg = err instanceof Error ? err.message : "";
             const reason = /model/i.test(msg)
               ? "That model name was refused. Set XAI_MODEL on the project."
@@ -212,7 +266,13 @@ export const Route = createFileRoute("/api/forge/read")({
 
         try {
           const messages = readMessages({ source, kept, lines, origins, about });
-          const reading = parseReading(await complete(apiKey, model, messages.system, messages.user, 1400), lines);
+          const done = await complete(apiKey, model, messages.system, messages.user, 1400);
+          await noteCall(user.handle, done.usage);
+          if (!done.text.trim()) {
+            await failRead();
+            return Response.json({ ok: false, reason: "The reading didn’t come back." }, { status: 502 });
+          }
+          const reading = parseReading(done.text, lines);
           if (!about) {
             reading.context = "";
             reading.order = [];
@@ -221,6 +281,7 @@ export const Route = createFileRoute("/api/forge/read")({
           const room = await charge(user.handle);
           return Response.json({ ok: true, ...reading, cached: false, ...room });
         } catch (err) {
+          await failRead();
           const msg = err instanceof Error ? err.message : "";
           const reason = /model/i.test(msg)
             ? "That model name was refused. Set XAI_MODEL on the project."

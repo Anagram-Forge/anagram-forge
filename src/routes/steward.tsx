@@ -28,6 +28,14 @@ type Snap = {
   signupsToday?: number;
   signupPause?: number;
   signupWarn?: number;
+  reading?: {
+    readingsToday: number;
+    tokensToday: number;
+    tokensKept: number;
+    failuresToday: number;
+    failureNote: number;
+    handles: { handle: string; today: number; kept: number }[];
+  };
   handles: { handle: string; created: number; finds: number; lastPosted: number }[];
   finds: Find[];
   reported: Find[];
@@ -164,6 +172,43 @@ function StewardPage() {
           {snap.signupsToday ?? 0} new handles today. Pauses at {snap.signupPause ?? "—"}. A warning goes out at{" "}
           {snap.signupWarn ?? "—"}.
         </p>
+        {snap.reading ? (
+          <div className="mt-8">
+            <p className="text-[10px] font-medium uppercase tracking-[0.16em] text-accent">The reading</p>
+            <div className="mt-2 grid grid-cols-2 gap-2 sm:grid-cols-4">
+              {(
+                [
+                  [snap.reading.readingsToday, "calls today"],
+                  [snap.reading.tokensToday, "tokens today"],
+                  [snap.reading.tokensKept, "tokens kept"],
+                  [snap.reading.failuresToday, "failures today"],
+                ] as const
+              ).map(([n, label]) => (
+                <div key={label} className="rounded-md border border-border bg-surface px-3 py-3">
+                  <p className="font-display text-2xl tabular-nums text-fg">{n.toLocaleString()}</p>
+                  <p className="mt-0.5 text-[10px] font-medium uppercase tracking-[0.14em] text-subtle">{label}</p>
+                </div>
+              ))}
+            </div>
+            <p className="mt-2 text-xs text-subtle">
+              A cached answer is not counted. A note goes out at {snap.reading.failureNote} failures.
+            </p>
+            {snap.reading.handles.length ? (
+              <ul className="mt-3 space-y-1 text-sm text-muted">
+                {snap.reading.handles.map((row) => (
+                  <li key={row.handle} className="flex justify-between gap-4">
+                    <span>{row.handle}</span>
+                    <span className="tabular-nums text-subtle">
+                      {row.today.toLocaleString()} today · {row.kept.toLocaleString()} kept
+                    </span>
+                  </li>
+                ))}
+              </ul>
+            ) : (
+              <p className="mt-3 text-sm text-subtle">No model calls yet.</p>
+            )}
+          </div>
+        ) : null}
         <TheWayPulse
           visits={snap.wayVisits || 0}
           series={snap.waySeries || []}
