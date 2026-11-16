@@ -98,8 +98,7 @@ function EnterPage() {
             />
             {mode === "up" ? (
               <span className="mt-1 block text-xs text-subtle">
-                At least 10 characters. A network can make 3 handles a day. The reading costs the site money, and the
-                site doesn’t charge.
+                At least 10 characters. The reading costs the site money, and the site doesn’t charge.
               </span>
             ) : null}
           </label>

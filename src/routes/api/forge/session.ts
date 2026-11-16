@@ -1,8 +1,8 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { deleteOwn, dropSession, isAdminHandle, login, passwordMatches, register, userFromToken } from "@/lib/forge-db";
 import { SIGN_IN_FAIL, loginBlocked, loginCleared, loginFailed } from "@/lib/login-guard";
-import { signupAttempted, signupBlocked, signupCreated } from "@/lib/signup-guard";
-import { clientIp, rejectTurnstile } from "@/lib/turnstile";
+import { signupAttempted, signupBlocked, signupCreated, SIGNUP_SITE } from "@/lib/signup-guard";
+import { clientIp, envGet, rejectTurnstile } from "@/lib/turnstile";
 
 function cookieOf(request: Request): string | null {
   const raw = request.headers.get("cookie") || "";
@@ -17,6 +17,27 @@ function setCookie(token: string, request: Request): string {
 
 function clearCookie(): string {
   return "af_session=; Path=/; HttpOnly; SameSite=Lax; Max-Age=0";
+}
+
+async function mailHandles(alert: "warn" | "cap", total: number) {
+  try {
+    const url = await envGet("MAIL_WORKER_URL");
+    const key = await envGet("MAIL_KEY");
+    if (!url || !key) return;
+    const subject = alert === "cap" ? "Handles paused" : "Handles climbing";
+    const message =
+      alert === "cap"
+        ? `${total} new handles today. New handles are paused until tomorrow.`
+        : `${total} new handles today. The door shuts at ${SIGNUP_SITE}.`;
+    await fetch(url, {
+      method: "POST",
+      headers: { "content-type": "application/json", "x-mail-key": key },
+      body: JSON.stringify({ kind: "note", subject, message }),
+      signal: AbortSignal.timeout(8000),
+    });
+  } catch {
+    /* the account still stands if the note doesn't */
+  }
 }
 
 export const Route = createFileRoute("/api/forge/session")({
@@ -83,7 +104,8 @@ export const Route = createFileRoute("/api/forge/session")({
         await signupAttempted(ip);
         const result = await register(handle, String(body.password || ""));
         if (!result.ok) return Response.json(result, { status: 400 });
-        await signupCreated(ip);
+        const made = await signupCreated(ip);
+        if (made.alert) await mailHandles(made.alert, made.total);
         return new Response(JSON.stringify({ ok: true, handle: result.handle }), {
           headers: {
             "content-type": "application/json",

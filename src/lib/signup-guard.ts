@@ -1,12 +1,17 @@
 import { visitorKey } from "@/lib/visitor-key";
 
-/** Successful handles one network may create in a UTC day. */
+/** Successful handles one network may create in a UTC day. Not shown to the public. */
 export const SIGNUP_DAY = 3;
-/** Captcha-passed tries one network may make in an hour, success or not. */
+/** Captcha-passed tries one network may make in an hour. */
 export const SIGNUP_HOUR = 12;
+/** New handles the whole site may create in a UTC day. */
+export const SIGNUP_SITE = 40;
+/** Mail once when the day crosses this, before the door shuts. */
+export const SIGNUP_WARN = 20;
 
-export const SIGNUP_DAY_MSG = "This network already made 3 handles today. Try again tomorrow.";
+export const SIGNUP_DAY_MSG = "This network can’t make another handle today.";
 export const SIGNUP_HOUR_MSG = "Too many tries from this network. Wait an hour.";
+export const SIGNUP_SITE_MSG = "New handles are paused until tomorrow.";
 
 type Kv = {
   get: (key: string) => Promise<string | null>;
@@ -50,6 +55,8 @@ function dayStamp(): string {
 }
 
 export async function signupBlocked(ip: string): Promise<string | null> {
+  const site = Number((await read(`sup:site:${dayStamp()}`)) || "0") || 0;
+  if (site >= SIGNUP_SITE) return SIGNUP_SITE_MSG;
   const who = id(ip);
   const creates = Number((await read(`sup:day:${who}:${dayStamp()}`)) || "0") || 0;
   if (creates >= SIGNUP_DAY) return SIGNUP_DAY_MSG;
@@ -87,8 +94,25 @@ export async function signupAttempted(ip: string): Promise<void> {
   await write(key, JSON.stringify({ n, start }));
 }
 
-export async function signupCreated(ip: string): Promise<void> {
+export async function signupsToday(): Promise<number> {
+  return Number((await read(`sup:site:${dayStamp()}`)) || "0") || 0;
+}
+
+export async function signupCreated(ip: string): Promise<{ total: number; alert: "warn" | "cap" | null }> {
   const key = `sup:day:${id(ip)}:${dayStamp()}`;
   const n = (Number((await read(key)) || "0") || 0) + 1;
   await write(key, String(n));
+  const siteKey = `sup:site:${dayStamp()}`;
+  const total = (Number((await read(siteKey)) || "0") || 0) + 1;
+  await write(siteKey, String(total));
+  let alert: "warn" | "cap" | null = null;
+  if (total === SIGNUP_WARN && !(await read(`sup:mail:${dayStamp()}:warn`))) {
+    await write(`sup:mail:${dayStamp()}:warn`, "1");
+    alert = "warn";
+  }
+  if (total === SIGNUP_SITE && !(await read(`sup:mail:${dayStamp()}:cap`))) {
+    await write(`sup:mail:${dayStamp()}:cap`, "1");
+    alert = "cap";
+  }
+  return { total, alert };
 }

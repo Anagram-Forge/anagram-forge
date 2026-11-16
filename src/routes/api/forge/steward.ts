@@ -2,6 +2,7 @@ import { createFileRoute } from "@tanstack/react-router";
 import { DOOR_LEDGER } from "@/lib/door-ledger";
 import { doorCookie, readDoorIds } from "@/lib/door-cookie";
 import { isAdminHandle, setChallenge, stewardSnapshot, unbanHandle, userFromToken, wipeHandle } from "@/lib/forge-db";
+import { SIGNUP_SITE, SIGNUP_WARN, signupsToday } from "@/lib/signup-guard";
 import { DOOR_PATH } from "@/lib/side-door";
 
 function cookieOf(request: Request): string | null {
@@ -22,7 +23,14 @@ export const Route = createFileRoute("/api/forge/steward")({
       GET: async ({ request }) => {
         const user = await gate(request);
         if (!user) return new Response("Not found", { status: 404 });
-        return Response.json({ ...(await stewardSnapshot()), you: user.handle, doors: DOOR_LEDGER });
+        return Response.json({
+          ...(await stewardSnapshot()),
+          signupsToday: await signupsToday(),
+          signupPause: SIGNUP_SITE,
+          signupWarn: SIGNUP_WARN,
+          you: user.handle,
+          doors: DOOR_LEDGER,
+        });
       },
       POST: async ({ request }) => {
         const user = await gate(request);

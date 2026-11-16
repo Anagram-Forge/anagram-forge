@@ -122,7 +122,12 @@ export default {
     let text;
     let replyTo = email.includes("@") ? email : "";
 
-    if (kind === "sponsor") {
+    if (data.kind === "note") {
+      if (!message) return json({ ok: false }, 400, request, env);
+      subject = String(data.subject || "Anagram Forge").trim().slice(0, 120) || "Anagram Forge";
+      text = message;
+      replyTo = "";
+    } else if (kind === "sponsor") {
       if (!name || !email.includes("@")) return json({ ok: false }, 400, request, env);
       subject = `Sponsor application — ${String(data.company || name).trim()}`;
       text = [

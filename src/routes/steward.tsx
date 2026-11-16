@@ -25,6 +25,9 @@ type Snap = {
   wayVisits?: number;
   waySeries?: WayDay[];
   doors?: DoorNote[];
+  signupsToday?: number;
+  signupPause?: number;
+  signupWarn?: number;
   handles: { handle: string; created: number; finds: number; lastPosted: number }[];
   finds: Find[];
   reported: Find[];
@@ -157,6 +160,10 @@ function StewardPage() {
           finds={snap.finds.length}
           series={snap.series || []}
         />
+        <p className="mt-3 text-xs text-subtle">
+          {snap.signupsToday ?? 0} new handles today. Pauses at {snap.signupPause ?? "—"}. A warning goes out at{" "}
+          {snap.signupWarn ?? "—"}.
+        </p>
         <TheWayPulse
           visits={snap.wayVisits || 0}
           series={snap.waySeries || []}
