@@ -1,4 +1,4 @@
-import type { ReadNote } from "@/lib/anagram/read-why";
+import type { Reading } from "@/lib/anagram/read-why";
 
 const DAY_CAP = 12;
 const CACHE_MS = 7 * 24 * 60 * 60 * 1000;
@@ -8,7 +8,7 @@ type Kv = {
   put: (key: string, value: string) => Promise<void>;
 };
 
-const memCache = new Map<string, { at: number; notes: ReadNote[] }>();
+const memCache = new Map<string, { at: number; value: string }>();
 const memQuota = new Map<string, number>();
 
 async function kv(): Promise<Kv | null> {
@@ -27,32 +27,53 @@ function dayKey(handle: string): string {
   return `readq:${handle.toLowerCase()}:${day}`;
 }
 
-export async function cachedRead(key: string): Promise<ReadNote[] | null> {
+async function readRaw(key: string): Promise<string | null> {
   const box = await kv();
-  if (box) {
-    const raw = await box.get(`readc:${key}`);
-    if (!raw) return null;
-    try {
-      const parsed = JSON.parse(raw) as { at?: number; notes?: ReadNote[] };
-      if (!parsed.at || Date.now() - parsed.at > CACHE_MS || !Array.isArray(parsed.notes)) return null;
-      return parsed.notes;
-    } catch {
-      return null;
-    }
-  }
+  if (box) return box.get(key);
   const hit = memCache.get(key);
   if (!hit || Date.now() - hit.at > CACHE_MS) return null;
-  return hit.notes;
+  return hit.value;
 }
 
-export async function storeRead(key: string, notes: ReadNote[]): Promise<void> {
-  const body = JSON.stringify({ at: Date.now(), notes });
+async function writeRaw(key: string, value: string): Promise<void> {
   const box = await kv();
   if (box) {
-    await box.put(`readc:${key}`, body);
+    await box.put(key, value);
     return;
   }
-  memCache.set(key, { at: Date.now(), notes });
+  memCache.set(key, { at: Date.now(), value });
+}
+
+export async function cachedReading(key: string): Promise<Reading | null> {
+  const raw = await readRaw(`readc:${key}`);
+  if (!raw) return null;
+  try {
+    const parsed = JSON.parse(raw) as { at?: number; context?: string; notes?: Reading["notes"] };
+    if (!parsed.at || Date.now() - parsed.at > CACHE_MS || !Array.isArray(parsed.notes)) return null;
+    return { context: String(parsed.context || ""), notes: parsed.notes };
+  } catch {
+    return null;
+  }
+}
+
+export async function storeReading(key: string, reading: Reading): Promise<void> {
+  await writeRaw(`readc:${key}`, JSON.stringify({ at: Date.now(), ...reading }));
+}
+
+export async function cachedFollow(key: string): Promise<string | null> {
+  const raw = await readRaw(`readf:${key}`);
+  if (!raw) return null;
+  try {
+    const parsed = JSON.parse(raw) as { at?: number; reply?: string };
+    if (!parsed.at || Date.now() - parsed.at > CACHE_MS || !parsed.reply) return null;
+    return parsed.reply;
+  } catch {
+    return null;
+  }
+}
+
+export async function storeFollow(key: string, reply: string): Promise<void> {
+  await writeRaw(`readf:${key}`, JSON.stringify({ at: Date.now(), reply }));
 }
 
 async function usedToday(handle: string): Promise<number> {
@@ -76,3 +97,5 @@ export async function markRead(handle: string): Promise<number> {
 }
 
 export const READ_CAP = DAY_CAP;
+export const LIMIT_LINE =
+  "You’ve used today’s 12. Each reading costs the site money to run, and the site doesn’t charge, so they open again tomorrow.";

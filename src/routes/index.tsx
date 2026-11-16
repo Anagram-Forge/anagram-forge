@@ -915,6 +915,18 @@ function Home() {
           </div>
         </section>
 
+        {mode === "perfect" ? (
+          <ReadWhy
+            known={handle !== undefined}
+            signedIn={!!handle}
+            source={letters}
+            kept={mustInclude}
+            lines={
+              result?.kind === "phrase" ? result.hits.slice(0, 30).map((hit) => hit.words.join(" ")) : []
+            }
+          />
+        ) : null}
+
         <section className="mt-8 min-h-[11.75rem]">
           {loadError && <p className="text-sm text-danger">{loadError}</p>}
           {!poolReady && !loadError && (
@@ -1066,15 +1078,6 @@ function Home() {
                 {result.timedOut ? " · search budget reached" : ""}
                 {result.truncated ? " · capped" : ""}
               </p>
-              {mode === "perfect" ? (
-                <ReadWhy
-                  known={handle !== undefined}
-                  signedIn={!!handle}
-                  source={letters}
-                  kept={mustInclude}
-                  lines={result.hits.slice(0, 30).map((hit) => hit.words.join(" "))}
-                />
-              ) : null}
               {mode === "perfect" ? (
                 <ReadingSpread
                   hits={result.hits}
