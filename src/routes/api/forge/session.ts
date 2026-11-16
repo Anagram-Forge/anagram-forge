@@ -1,7 +1,8 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { deleteOwn, dropSession, isAdminHandle, login, passwordMatches, register, userFromToken } from "@/lib/forge-db";
 import { SIGN_IN_FAIL, loginBlocked, loginCleared, loginFailed } from "@/lib/login-guard";
-import { clientIp } from "@/lib/turnstile";
+import { signupAttempted, signupBlocked, signupCreated } from "@/lib/signup-guard";
+import { clientIp, rejectTurnstile } from "@/lib/turnstile";
 
 function cookieOf(request: Request): string | null {
   const raw = request.headers.get("cookie") || "";
@@ -27,9 +28,14 @@ export const Route = createFileRoute("/api/forge/session")({
         return Response.json({ handle: user.handle, admin: await isAdminHandle(user.handle) });
       },
       POST: async ({ request }) => {
-        let body: { handle?: string; password?: string; action?: string };
+        let body: { handle?: string; password?: string; action?: string; "cf-turnstile-response"?: string };
         try {
-          body = (await request.json()) as { handle?: string; password?: string; action?: string };
+          body = (await request.json()) as {
+            handle?: string;
+            password?: string;
+            action?: string;
+            "cf-turnstile-response"?: string;
+          };
         } catch {
           return Response.json({ ok: false }, { status: 400 });
         }
@@ -70,8 +76,14 @@ export const Route = createFileRoute("/api/forge/session")({
             },
           });
         }
+        const blocked = await signupBlocked(ip);
+        if (blocked) return Response.json({ ok: false, reason: blocked }, { status: 429 });
+        const captcha = await rejectTurnstile(request, String(body["cf-turnstile-response"] || ""));
+        if (captcha) return captcha;
+        await signupAttempted(ip);
         const result = await register(handle, String(body.password || ""));
         if (!result.ok) return Response.json(result, { status: 400 });
+        await signupCreated(ip);
         return new Response(JSON.stringify({ ok: true, handle: result.handle }), {
           headers: {
             "content-type": "application/json",

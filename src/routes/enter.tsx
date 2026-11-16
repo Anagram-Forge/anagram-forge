@@ -4,6 +4,7 @@ import { AppHeader } from "@/components/app-header";
 import { TwoLetterPanel } from "@/components/two-letter-panel";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { TurnstileBox } from "@/components/turnstile-box";
 import { SupportSlot } from "@/components/support-slot";
 
 export const Route = createFileRoute("/enter")({ component: EnterPage });
@@ -20,6 +21,8 @@ function EnterPage() {
   const [wipeOpen, setWipeOpen] = useState(false);
   const [wipePass, setWipePass] = useState("");
   const [wipeErr, setWipeErr] = useState<string | null>(null);
+  const [captcha, setCaptcha] = useState({ required: true, token: "" });
+  const [captchaKey, setCaptchaKey] = useState(0);
 
   useEffect(() => {
     try {
@@ -42,11 +45,20 @@ function EnterPage() {
       const res = await fetch("/api/forge/session", {
         method: "POST",
         headers: { "content-type": "application/json" },
-        body: JSON.stringify({ handle, password, action: mode === "up" ? "register" : "login" }),
+        body: JSON.stringify({
+          handle,
+          password,
+          action: mode === "up" ? "register" : "login",
+          "cf-turnstile-response": mode === "up" ? captcha.token : "",
+        }),
       });
       const data = (await res.json()) as { ok?: boolean; reason?: string };
       if (!res.ok || !data.ok) {
         setErr(data.reason || "Couldn't sign in");
+        if (mode === "up") {
+          setCaptcha({ required: true, token: "" });
+          setCaptchaKey((n) => n + 1);
+        }
         return;
       }
       try {
@@ -84,10 +96,16 @@ function EnterPage() {
               maxLength={128}
               className="mt-1.5"
             />
-            {mode === "up" ? <span className="mt-1 block text-xs text-subtle">At least 10 characters.</span> : null}
+            {mode === "up" ? (
+              <span className="mt-1 block text-xs text-subtle">
+                At least 10 characters. A network can make 3 handles a day. The reading costs the site money, and the
+                site doesn’t charge.
+              </span>
+            ) : null}
           </label>
+          {mode === "up" ? <TurnstileBox key={captchaKey} onChange={setCaptcha} /> : null}
           {err ? <p className="text-sm text-danger">{err}</p> : null}
-          <Button type="submit" disabled={busy}>
+          <Button type="submit" disabled={busy || (mode === "up" && !captcha.token)}>
             {mode === "up" ? "Create handle" : "Enter"}
           </Button>
         </form>
