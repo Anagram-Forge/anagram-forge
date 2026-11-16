@@ -16,6 +16,7 @@ export function ReadWhy({
   kept,
   lines,
   onRanked,
+  onNoted,
 }: {
   known: boolean;
   signedIn: boolean;
@@ -23,6 +24,7 @@ export function ReadWhy({
   kept: string[];
   lines: string[];
   onRanked: (order: string[]) => void;
+  onNoted: (notes: Note[]) => void;
 }) {
   const [about, setAbout] = useState("");
   const [context, setContext] = useState("");
@@ -41,15 +43,18 @@ export function ReadWhy({
     setThread([]);
     setErr(null);
     onRanked([]);
-  }, [source, lineKey, onRanked]);
+    onNoted([]);
+  }, [source, lineKey, onRanked, onNoted]);
 
   useEffect(() => {
     if (!signedIn) return;
     let live = true;
     void fetch("/api/forge/read")
       .then((r) => r.json())
-      .then((d: { left?: number }) => {
-        if (live && typeof d.left === "number") setLeft(d.left);
+      .then((d: { left?: number; unlimited?: boolean }) => {
+        if (!live) return;
+        if (d.unlimited) setLeft(null);
+        else if (typeof d.left === "number") setLeft(d.left);
       })
       .catch(() => undefined);
     return () => {
@@ -72,6 +77,7 @@ export function ReadWhy({
         notes?: Note[];
         context?: string;
         left?: number;
+        unlimited?: boolean;
         order?: string[];
       };
       if (!res.ok || !data.ok) {
@@ -83,7 +89,9 @@ export function ReadWhy({
       setContext(data.context || "");
       setThread([]);
       onRanked(data.order || []);
-      if (typeof data.left === "number") setLeft(data.left);
+      onNoted(data.notes || []);
+      if (data.unlimited) setLeft(null);
+      else if (typeof data.left === "number") setLeft(data.left);
     } catch {
       setErr("The reading didn’t come back.");
     } finally {
@@ -100,9 +108,9 @@ export function ReadWhy({
       const res = await fetch("/api/forge/read", {
         method: "POST",
         headers: { "content-type": "application/json" },
-        body: JSON.stringify({ source, about, notes, question: q, earlier: thread }),
+        body: JSON.stringify({ source, about, notes, lines, question: q, earlier: thread }),
       });
-      const data = (await res.json()) as { ok?: boolean; reason?: string; reply?: string; left?: number };
+      const data = (await res.json()) as { ok?: boolean; reason?: string; reply?: string; left?: number; unlimited?: boolean };
       if (!res.ok || !data.ok || !data.reply) {
         if (typeof data.left === "number") setLeft(data.left);
         setErr(data.reason || "The reading didn’t come back.");
@@ -110,7 +118,8 @@ export function ReadWhy({
       }
       setThread((cur) => [...cur, { q, a: data.reply as string }]);
       setQuestion("");
-      if (typeof data.left === "number") setLeft(data.left);
+      if (data.unlimited) setLeft(null);
+      else if (typeof data.left === "number") setLeft(data.left);
     } catch {
       setErr("The reading didn’t come back.");
     } finally {
@@ -169,14 +178,7 @@ export function ReadWhy({
               {notes.length === 0 ? (
                 <p className="mt-4 text-sm text-muted">Nothing here clearly speaks to the phrase.</p>
               ) : (
-                <ul className="mt-4 space-y-3">
-                  {notes.map((note) => (
-                    <li key={note.line}>
-                      <p className="font-display text-lg text-fg">{note.line}</p>
-                      <p className="mt-0.5 text-sm text-muted">{note.why}</p>
-                    </li>
-                  ))}
-                </ul>
+                <p className="mt-4 text-sm text-muted">The closest lines are marked below.</p>
               )}
               {thread.map((turn, i) => (
                 <div key={`${i}-${turn.q}`} className="mt-4">

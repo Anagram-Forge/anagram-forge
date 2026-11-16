@@ -141,6 +141,7 @@ function Home() {
   const [tileOrder, setTileOrder] = useState<number[] | null>(null);
   const [handle, setHandle] = useState<string | null | undefined>(undefined);
   const [readingOrder, setReadingOrder] = useState<string[]>([]);
+  const [readingNotes, setReadingNotes] = useState<{ line: string; why: string }[]>([]);
 
   useEffect(() => {
     setSkyLetters(letters, picks.join(" "));
@@ -924,6 +925,7 @@ function Home() {
             kept={mustInclude}
             lines={result?.kind === "phrase" ? result.hits.map((hit) => hit.words.join(" ")) : []}
             onRanked={setReadingOrder}
+            onNoted={setReadingNotes}
           />
         ) : null}
 
@@ -1082,6 +1084,7 @@ function Home() {
                 <ReadingSpread
                   hits={result.hits}
                   order={readingOrder}
+                  notes={readingNotes}
                   source={letters}
                   kept={mustInclude}
                   onKeep={toggleMust}
@@ -1365,6 +1368,7 @@ const SHELF = ["", "One word", "Two words", "Three words", "Four words", "Five w
 function ReadingSpread({
   hits,
   order,
+  notes,
   source,
   kept,
   onKeep,
@@ -1373,12 +1377,14 @@ function ReadingSpread({
 }: {
   hits: PhraseHit[];
   order: string[];
+  notes: { line: string; why: string }[];
   source: string;
   kept: string[];
   onKeep: (word: string) => void;
   onCopy: (words: string[]) => void;
   onPick: (words: string[]) => void;
 }) {
+  const why = new Map(notes.map((note) => [note.line.toLowerCase(), note.why]));
   const rank = new Map(order.map((line, i) => [line.toLowerCase(), i]));
   const ranked = rank.size
     ? hits
@@ -1416,6 +1422,7 @@ function ReadingSpread({
               <SpreadLine
                 key={hit.words.join("\0")}
                 hit={hit}
+                why={why.get(hit.words.join(" ").toLowerCase())}
                 source={source}
                 kept={kept}
                 onKeep={onKeep}
@@ -1436,6 +1443,7 @@ function ReadingSpread({
               <SpreadLine
                 key={hit.words.join("\0")}
                 hit={hit}
+                why={why.get(hit.words.join(" ").toLowerCase())}
                 source={source}
                 kept={kept}
                 onKeep={onKeep}
@@ -1452,6 +1460,7 @@ function ReadingSpread({
 
 function SpreadLine({
   hit,
+  why,
   source,
   kept,
   onKeep,
@@ -1459,6 +1468,7 @@ function SpreadLine({
   onPick,
 }: {
   hit: PhraseHit;
+  why?: string;
   source: string;
   kept: string[];
   onKeep: (word: string) => void;
@@ -1491,6 +1501,7 @@ function SpreadLine({
           );
         })}
       </p>
+      {why ? <p className="mt-1 max-w-xl text-sm leading-snug text-muted sm:pr-40">{why}</p> : null}
       <div className="mt-1 flex flex-wrap items-center gap-x-3 gap-y-1 sm:absolute sm:right-0 sm:top-1/2 sm:mt-0 sm:-translate-y-1/2 sm:opacity-0 sm:group-hover:opacity-100 sm:group-focus-within:opacity-100 [@media(hover:none)]:sm:opacity-100">
         {(hit.themeScore ?? 0) > 0 ? (
           <span className="tabular-nums text-[10px] uppercase tracking-wide text-muted">

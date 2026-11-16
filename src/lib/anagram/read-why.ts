@@ -1,7 +1,7 @@
 export type ReadNote = { line: string; why: string };
 export type Reading = { context: string; notes: ReadNote[]; order: string[] };
 
-const MAX_NOTES = 10;
+const MAX_NOTES = 3;
 const MAX_WHY = 240;
 const MAX_CONTEXT = 240;
 const MAX_ORDER = 80;
@@ -22,7 +22,8 @@ export function readMessages(input: {
       "You judge whether a perfect anagram says something true about the source phrase.",
       "Reply with JSON only: {\"context\":\"...\",\"notes\":[{\"line\":\"...\",\"why\":\"...\"}],\"order\":[\"...\"]}",
       "Rules:",
-      "- Use at most 10 notes. Fewer is better.",
+      "- Use at most 3 notes, the strongest three, most relevant first. Fewer if fewer fit.",
+      "- The first entries of order are those notes, in the same order.",
       "- order lists every candidate with a real tie to the reader note, most relevant first. Copy each line exactly. Omit lines with no tie. At most 80.",
       "- If the reader wrote no note, order must be an empty array.",
       "- The line must be copied exactly from the candidate list.",
@@ -50,12 +51,13 @@ export function followMessages(input: {
   source: string;
   about: string;
   notes: ReadNote[];
+  lines: string[];
   question: string;
   earlier: { q: string; a: string }[];
 }): { system: string; user: string } {
-  const lines =
+  const chosen =
     input.notes.length === 0
-      ? "No lines were chosen."
+      ? "No lines were marked."
       : input.notes.map((n) => `${n.line} — ${n.why}`).join("\n");
   const earlier =
     input.earlier.length === 0
@@ -65,16 +67,20 @@ export function followMessages(input: {
     system: [
       "You are answering a follow-up about one anagram reading.",
       "Reply with JSON only: {\"reply\":\"...\"}",
-      "Stay on this phrase, the reader note, and the lines already chosen.",
+      "Any candidate line is in bounds, including ones you did not mark.",
+      "If they name a candidate, say why it fits the reader note or why it does not. Word order does not matter.",
       "Do not invent history. Do not add a date, place, or fact that is not in the reader note.",
-      "One or two sentences. If the question leaves that subject, reply is exactly: That sits outside this phrase.",
+      "One or two sentences. If the question is not about this phrase, the note, or these candidates, reply is exactly: That sits outside this phrase.",
     ].join("\n"),
     user: [
       `Source: ${input.source}`,
       input.about ? `Reader note: ${input.about}` : "Reader note: none",
       "",
-      "Lines already chosen:",
-      lines,
+      "Marked:",
+      chosen,
+      "",
+      "Candidates:",
+      input.lines.length ? input.lines.map((line) => `- ${line}`).join("\n") : "none",
       earlier ? `\nEarlier:\n${earlier}\n` : "",
       `Question: ${input.question}`,
     ].join("\n"),

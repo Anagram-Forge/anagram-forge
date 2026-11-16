@@ -7,7 +7,7 @@ import {
   readMessages,
   type ReadNote,
 } from "@/lib/anagram/read-why";
-import { userFromToken } from "@/lib/forge-db";
+import { isAdminHandle, userFromToken } from "@/lib/forge-db";
 import {
   LIMIT_LINE,
   cachedFollow,
@@ -70,12 +70,25 @@ async function complete(key: string, model: string, system: string, user: string
   return data.choices?.[0]?.message?.content || "";
 }
 
+async function roomFor(handle: string): Promise<{ unlimited: true } | { left: number } | null> {
+  if (await isAdminHandle(handle)) return { unlimited: true };
+  const left = await readsLeft(handle);
+  if (left <= 0) return null;
+  return { left };
+}
+
+async function charge(handle: string): Promise<{ unlimited: true } | { left: number }> {
+  if (await isAdminHandle(handle)) return { unlimited: true };
+  return { left: await markRead(handle) };
+}
+
 export const Route = createFileRoute("/api/forge/read")({
   server: {
     handlers: {
       GET: async ({ request }) => {
         const user = await userFromToken(cookieOf(request));
         if (!user) return Response.json({ ok: false, signedIn: false });
+        if (await isAdminHandle(user.handle)) return Response.json({ ok: true, signedIn: true, unlimited: true });
         return Response.json({ ok: true, signedIn: true, left: await readsLeft(user.handle) });
       },
       POST: async ({ request }) => {
@@ -124,7 +137,7 @@ export const Route = createFileRoute("/api/forge/read")({
                   return line && why ? { line, why } : null;
                 })
                 .filter((item): item is ReadNote => !!item)
-                .slice(0, 10)
+                .slice(0, 3)
             : [];
           const earlier = Array.isArray(body.earlier)
             ? body.earlier
@@ -137,18 +150,20 @@ export const Route = createFileRoute("/api/forge/read")({
                 .filter((item): item is { q: string; a: string } => !!item)
                 .slice(-4)
             : [];
-          const cacheKey = await digest({ source: source.toLowerCase(), about, notes, earlier, question });
+          const cacheKey = await digest({ source: source.toLowerCase(), about, notes, lines, earlier, question });
           const cached = await cachedFollow(cacheKey);
-          if (cached) return Response.json({ ok: true, reply: cached, cached: true, left: await readsLeft(user.handle) });
-          const left = await readsLeft(user.handle);
-          if (left <= 0) return Response.json({ ok: false, reason: LIMIT_LINE, left: 0 }, { status: 429 });
+          if (cached) {
+            const room = (await isAdminHandle(user.handle)) ? { unlimited: true as const } : { left: await readsLeft(user.handle) };
+            return Response.json({ ok: true, reply: cached, cached: true, ...room });
+          }
+          if (!(await roomFor(user.handle))) return Response.json({ ok: false, reason: LIMIT_LINE, left: 0 }, { status: 429 });
           try {
-            const messages = followMessages({ source, about, notes, question, earlier });
+            const messages = followMessages({ source, about, notes, lines, question, earlier });
             const reply = parseFollow(await complete(apiKey, model, messages.system, messages.user, 220));
             if (!reply) return Response.json({ ok: false, reason: "The reading didn’t come back." }, { status: 502 });
             await storeFollow(cacheKey, reply);
-            const remain = await markRead(user.handle);
-            return Response.json({ ok: true, reply, cached: false, left: remain });
+            const room = await charge(user.handle);
+            return Response.json({ ok: true, reply, cached: false, ...room });
           } catch (err) {
             const msg = err instanceof Error ? err.message : "";
             const reason = /model/i.test(msg)
@@ -171,11 +186,10 @@ export const Route = createFileRoute("/api/forge/read")({
             notes: cached.notes,
             order: about ? cached.order || [] : [],
             cached: true,
-            left: await readsLeft(user.handle),
+            ...((await isAdminHandle(user.handle)) ? { unlimited: true } : { left: await readsLeft(user.handle) }),
           });
         }
-        const left = await readsLeft(user.handle);
-        if (left <= 0) return Response.json({ ok: false, reason: LIMIT_LINE, left: 0 }, { status: 429 });
+        if (!(await roomFor(user.handle))) return Response.json({ ok: false, reason: LIMIT_LINE, left: 0 }, { status: 429 });
 
         const words = [...kept, ...source.split(/\s+/).map(cleanWord)]
           .filter((w, i, all) => w.length >= 2 && all.indexOf(w) === i)
@@ -204,8 +218,8 @@ export const Route = createFileRoute("/api/forge/read")({
             reading.order = [];
           }
           await storeReading(cacheKey, reading);
-          const remain = await markRead(user.handle);
-          return Response.json({ ok: true, ...reading, cached: false, left: remain });
+          const room = await charge(user.handle);
+          return Response.json({ ok: true, ...reading, cached: false, ...room });
         } catch (err) {
           const msg = err instanceof Error ? err.message : "";
           const reason = /model/i.test(msg)
