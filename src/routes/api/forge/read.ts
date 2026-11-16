@@ -103,7 +103,7 @@ export const Route = createFileRoute("/api/forge/read")({
           ? [...new Set(body.kept.map((w) => cleanWord(String(w))).filter((w) => w.length >= 2))].slice(0, 5)
           : [];
         const lines = Array.isArray(body.lines)
-          ? [...new Set(body.lines.map((w) => cleanLine(String(w))).filter(Boolean))].slice(0, 30)
+          ? [...new Set(body.lines.map((w) => cleanLine(String(w))).filter(Boolean))].slice(0, 240)
           : [];
         if (!source) return Response.json({ ok: false, reason: "Nothing to read yet." }, { status: 400 });
 
@@ -169,6 +169,7 @@ export const Route = createFileRoute("/api/forge/read")({
             ok: true,
             context: about ? cached.context : "",
             notes: cached.notes,
+            order: about ? cached.order || [] : [],
             cached: true,
             left: await readsLeft(user.handle),
           });
@@ -197,8 +198,11 @@ export const Route = createFileRoute("/api/forge/read")({
 
         try {
           const messages = readMessages({ source, kept, lines, origins, about });
-          const reading = parseReading(await complete(apiKey, model, messages.system, messages.user, 700), lines);
-          if (!about) reading.context = "";
+          const reading = parseReading(await complete(apiKey, model, messages.system, messages.user, 1400), lines);
+          if (!about) {
+            reading.context = "";
+            reading.order = [];
+          }
           await storeReading(cacheKey, reading);
           const remain = await markRead(user.handle);
           return Response.json({ ok: true, ...reading, cached: false, left: remain });

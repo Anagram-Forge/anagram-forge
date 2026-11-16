@@ -1,9 +1,10 @@
 export type ReadNote = { line: string; why: string };
-export type Reading = { context: string; notes: ReadNote[] };
+export type Reading = { context: string; notes: ReadNote[]; order: string[] };
 
 const MAX_NOTES = 10;
 const MAX_WHY = 240;
 const MAX_CONTEXT = 240;
+const MAX_ORDER = 80;
 
 export function readMessages(input: {
   source: string;
@@ -19,9 +20,11 @@ export function readMessages(input: {
   return {
     system: [
       "You judge whether a perfect anagram says something true about the source phrase.",
-      "Reply with JSON only: {\"context\":\"...\",\"notes\":[{\"line\":\"...\",\"why\":\"...\"}]}",
+      "Reply with JSON only: {\"context\":\"...\",\"notes\":[{\"line\":\"...\",\"why\":\"...\"}],\"order\":[\"...\"]}",
       "Rules:",
       "- Use at most 10 notes. Fewer is better.",
+      "- order lists every candidate with a real tie to the reader note, most relevant first. Copy each line exactly. Omit lines with no tie. At most 80.",
+      "- If the reader wrote no note, order must be an empty array.",
       "- The line must be copied exactly from the candidate list.",
       "- Do not invent history or etymology. Use an origin only if it is written in the notes.",
       "- If the reader wrote a note, context is one sentence that stays inside that note. Do not add a date, place, or fact that the note does not contain.",
@@ -81,14 +84,14 @@ export function followMessages(input: {
 export function parseReading(raw: string, allowed: string[]): Reading {
   const start = raw.indexOf("{");
   const end = raw.lastIndexOf("}");
-  if (start < 0 || end <= start) return { context: "", notes: [] };
+  if (start < 0 || end <= start) return { context: "", notes: [], order: [] };
   let parsed: unknown;
   try {
     parsed = JSON.parse(raw.slice(start, end + 1));
   } catch {
-    return { context: "", notes: [] };
+    return { context: "", notes: [], order: [] };
   }
-  const body = parsed as { context?: unknown; notes?: unknown };
+  const body = parsed as { context?: unknown; notes?: unknown; order?: unknown };
   const context = String(body.context || "").replace(/\s+/g, " ").trim().slice(0, MAX_CONTEXT);
   const notes = Array.isArray(body.notes) ? body.notes : [];
   const ok = new Set(allowed.map((line) => line.toLowerCase()));
@@ -104,7 +107,19 @@ export function parseReading(raw: string, allowed: string[]): Reading {
     out.push({ line, why: why.slice(0, MAX_WHY) });
     if (out.length >= MAX_NOTES) break;
   }
-  return { context, notes: out };
+  const order: string[] = [];
+  const ordered = new Set<string>();
+  const rawOrder = Array.isArray(body.order) ? body.order : [];
+  for (const item of rawOrder) {
+    const line = String(item || "").replace(/\s+/g, " ").trim();
+    const key = line.toLowerCase();
+    if (!ok.has(key) || ordered.has(key)) continue;
+    ordered.add(key);
+    const exact = allowed.find((row) => row.toLowerCase() === key) || line;
+    order.push(exact);
+    if (order.length >= MAX_ORDER) break;
+  }
+  return { context, notes: out, order };
 }
 
 export function parseFollow(raw: string): string {

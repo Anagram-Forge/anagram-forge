@@ -140,6 +140,7 @@ function Home() {
   const [collapsed, setCollapsed] = useState<Set<number>>(() => new Set());
   const [tileOrder, setTileOrder] = useState<number[] | null>(null);
   const [handle, setHandle] = useState<string | null | undefined>(undefined);
+  const [readingOrder, setReadingOrder] = useState<string[]>([]);
 
   useEffect(() => {
     setSkyLetters(letters, picks.join(" "));
@@ -921,9 +922,8 @@ function Home() {
             signedIn={!!handle}
             source={letters}
             kept={mustInclude}
-            lines={
-              result?.kind === "phrase" ? result.hits.slice(0, 30).map((hit) => hit.words.join(" ")) : []
-            }
+            lines={result?.kind === "phrase" ? result.hits.map((hit) => hit.words.join(" ")) : []}
+            onRanked={setReadingOrder}
           />
         ) : null}
 
@@ -1081,6 +1081,7 @@ function Home() {
               {mode === "perfect" ? (
                 <ReadingSpread
                   hits={result.hits}
+                  order={readingOrder}
                   source={letters}
                   kept={mustInclude}
                   onKeep={toggleMust}
@@ -1363,6 +1364,7 @@ const SHELF = ["", "One word", "Two words", "Three words", "Four words", "Five w
 
 function ReadingSpread({
   hits,
+  order,
   source,
   kept,
   onKeep,
@@ -1370,14 +1372,25 @@ function ReadingSpread({
   onPick,
 }: {
   hits: PhraseHit[];
+  order: string[];
   source: string;
   kept: string[];
   onKeep: (word: string) => void;
   onCopy: (words: string[]) => void;
   onPick: (words: string[]) => void;
 }) {
+  const rank = new Map(order.map((line, i) => [line.toLowerCase(), i]));
+  const ranked = rank.size
+    ? hits
+        .filter((hit) => rank.has(hit.words.join(" ").toLowerCase()))
+        .sort(
+          (a, b) =>
+            (rank.get(a.words.join(" ").toLowerCase()) ?? 0) - (rank.get(b.words.join(" ").toLowerCase()) ?? 0),
+        )
+    : [];
+  const rest = rank.size ? hits.filter((hit) => !rank.has(hit.words.join(" ").toLowerCase())) : hits;
   const groups: { n: number; hits: PhraseHit[] }[] = [];
-  for (const hit of hits) {
+  for (const hit of rest) {
     const n = hit.words.length;
     const last = groups[groups.length - 1];
     if (last && last.n === n) last.hits.push(hit);
@@ -1387,10 +1400,32 @@ function ReadingSpread({
   return (
     <div className="space-y-8">
       <p className="text-xs text-subtle">
-        {kept.length
-          ? "Click a kept word to let it go."
-          : "Click a word to keep it. Lines are ordered by how well they read."}
+        {ranked.length
+          ? "The note pulls the closest lines up. The rest stay by how well they read."
+          : kept.length
+            ? "Click a kept word to let it go."
+            : "Click a word to keep it. Lines are ordered by how well they read."}
       </p>
+      {ranked.length ? (
+        <section>
+          <h2 className="mb-3 text-xs font-medium uppercase tracking-wide text-subtle">
+            Closest to the note · {ranked.length}
+          </h2>
+          <ul className="sm:columns-2 sm:gap-x-12">
+            {ranked.map((hit) => (
+              <SpreadLine
+                key={hit.words.join("\0")}
+                hit={hit}
+                source={source}
+                kept={kept}
+                onKeep={onKeep}
+                onCopy={() => onCopy(hit.words)}
+                onPick={() => onPick(hit.words)}
+              />
+            ))}
+          </ul>
+        </section>
+      ) : null}
       {groups.map((g) => (
         <section key={g.n}>
           <h2 className="mb-3 text-xs font-medium uppercase tracking-wide text-subtle">

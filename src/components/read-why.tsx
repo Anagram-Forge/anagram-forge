@@ -15,12 +15,14 @@ export function ReadWhy({
   source,
   kept,
   lines,
+  onRanked,
 }: {
   known: boolean;
   signedIn: boolean;
   source: string;
   kept: string[];
   lines: string[];
+  onRanked: (order: string[]) => void;
 }) {
   const [about, setAbout] = useState("");
   const [context, setContext] = useState("");
@@ -38,7 +40,8 @@ export function ReadWhy({
     setNotes(null);
     setThread([]);
     setErr(null);
-  }, [source, lineKey]);
+    onRanked([]);
+  }, [source, lineKey, onRanked]);
 
   useEffect(() => {
     if (!signedIn) return;
@@ -69,6 +72,7 @@ export function ReadWhy({
         notes?: Note[];
         context?: string;
         left?: number;
+        order?: string[];
       };
       if (!res.ok || !data.ok) {
         if (typeof data.left === "number") setLeft(data.left);
@@ -78,6 +82,7 @@ export function ReadWhy({
       setNotes(data.notes || []);
       setContext(data.context || "");
       setThread([]);
+      onRanked(data.order || []);
       if (typeof data.left === "number") setLeft(data.left);
     } catch {
       setErr("The reading didn’t come back.");

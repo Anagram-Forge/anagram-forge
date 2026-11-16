@@ -50,7 +50,7 @@ export async function cachedReading(key: string): Promise<Reading | null> {
   try {
     const parsed = JSON.parse(raw) as { at?: number; context?: string; notes?: Reading["notes"] };
     if (!parsed.at || Date.now() - parsed.at > CACHE_MS || !Array.isArray(parsed.notes)) return null;
-    return { context: String(parsed.context || ""), notes: parsed.notes };
+    return { context: String(parsed.context || ""), notes: parsed.notes, order: Array.isArray((parsed as { order?: unknown }).order) ? (parsed as { order: string[] }).order : [] };
   } catch {
     return null;
   }
