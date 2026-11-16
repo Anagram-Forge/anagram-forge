@@ -28,6 +28,7 @@ import { Route as ApiForgeBedRouteImport } from './routes/api/forge/bed'
 import { Route as ApiForgeChallengeRouteImport } from './routes/api/forge/challenge'
 import { Route as ApiForgeDoorRouteImport } from './routes/api/forge/door'
 import { Route as ApiForgeFindsRouteImport } from './routes/api/forge/finds'
+import { Route as ApiForgeReadRouteImport } from './routes/api/forge/read'
 import { Route as ApiForgeSavesRouteImport } from './routes/api/forge/saves'
 import { Route as ApiForgeSessionRouteImport } from './routes/api/forge/session'
 import { Route as ApiForgeStewardRouteImport } from './routes/api/forge/steward'
@@ -127,6 +128,11 @@ const ApiForgeFindsRoute = ApiForgeFindsRouteImport.update({
   path: '/api/forge/finds',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ApiForgeReadRoute = ApiForgeReadRouteImport.update({
+  id: '/api/forge/read',
+  path: '/api/forge/read',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const ApiForgeSavesRoute = ApiForgeSavesRouteImport.update({
   id: '/api/forge/saves',
   path: '/api/forge/saves',
@@ -163,6 +169,7 @@ export interface FileRoutesByFullPath {
   '/api/forge/challenge': typeof ApiForgeChallengeRoute
   '/api/forge/door': typeof ApiForgeDoorRoute
   '/api/forge/finds': typeof ApiForgeFindsRoute
+  '/api/forge/read': typeof ApiForgeReadRoute
   '/api/forge/saves': typeof ApiForgeSavesRoute
   '/api/forge/session': typeof ApiForgeSessionRoute
   '/api/forge/steward': typeof ApiForgeStewardRoute
@@ -187,6 +194,7 @@ export interface FileRoutesByTo {
   '/api/forge/challenge': typeof ApiForgeChallengeRoute
   '/api/forge/door': typeof ApiForgeDoorRoute
   '/api/forge/finds': typeof ApiForgeFindsRoute
+  '/api/forge/read': typeof ApiForgeReadRoute
   '/api/forge/saves': typeof ApiForgeSavesRoute
   '/api/forge/session': typeof ApiForgeSessionRoute
   '/api/forge/steward': typeof ApiForgeStewardRoute
@@ -212,6 +220,7 @@ export interface FileRoutesById {
   '/api/forge/challenge': typeof ApiForgeChallengeRoute
   '/api/forge/door': typeof ApiForgeDoorRoute
   '/api/forge/finds': typeof ApiForgeFindsRoute
+  '/api/forge/read': typeof ApiForgeReadRoute
   '/api/forge/saves': typeof ApiForgeSavesRoute
   '/api/forge/session': typeof ApiForgeSessionRoute
   '/api/forge/steward': typeof ApiForgeStewardRoute
@@ -238,6 +247,7 @@ export interface FileRouteTypes {
     | '/api/forge/challenge'
     | '/api/forge/door'
     | '/api/forge/finds'
+    | '/api/forge/read'
     | '/api/forge/saves'
     | '/api/forge/session'
     | '/api/forge/steward'
@@ -262,6 +272,7 @@ export interface FileRouteTypes {
     | '/api/forge/challenge'
     | '/api/forge/door'
     | '/api/forge/finds'
+    | '/api/forge/read'
     | '/api/forge/saves'
     | '/api/forge/session'
     | '/api/forge/steward'
@@ -286,6 +297,7 @@ export interface FileRouteTypes {
     | '/api/forge/challenge'
     | '/api/forge/door'
     | '/api/forge/finds'
+    | '/api/forge/read'
     | '/api/forge/saves'
     | '/api/forge/session'
     | '/api/forge/steward'
@@ -311,6 +323,7 @@ export interface RootRouteChildren {
   ApiForgeChallengeRoute: typeof ApiForgeChallengeRoute
   ApiForgeDoorRoute: typeof ApiForgeDoorRoute
   ApiForgeFindsRoute: typeof ApiForgeFindsRoute
+  ApiForgeReadRoute: typeof ApiForgeReadRoute
   ApiForgeSavesRoute: typeof ApiForgeSavesRoute
   ApiForgeSessionRoute: typeof ApiForgeSessionRoute
   ApiForgeStewardRoute: typeof ApiForgeStewardRoute
@@ -451,6 +464,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiForgeFindsRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/api/forge/read': {
+      id: '/api/forge/read'
+      path: '/api/forge/read'
+      fullPath: '/api/forge/read'
+      preLoaderRoute: typeof ApiForgeReadRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/api/forge/saves': {
       id: '/api/forge/saves'
       path: '/api/forge/saves'
@@ -495,6 +515,7 @@ const rootRouteChildren: RootRouteChildren = {
   ApiForgeChallengeRoute: ApiForgeChallengeRoute,
   ApiForgeDoorRoute: ApiForgeDoorRoute,
   ApiForgeFindsRoute: ApiForgeFindsRoute,
+  ApiForgeReadRoute: ApiForgeReadRoute,
   ApiForgeSavesRoute: ApiForgeSavesRoute,
   ApiForgeSessionRoute: ApiForgeSessionRoute,
   ApiForgeStewardRoute: ApiForgeStewardRoute,

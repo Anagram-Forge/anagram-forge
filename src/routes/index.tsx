@@ -34,6 +34,7 @@ import {
 import { pingStats } from "@/lib/stats";
 import { cn } from "@/lib/utils";
 import { setSkyLetters } from "@/components/forge-sky";
+import { ReadWhy } from "@/components/read-why";
 
 type Search = {
   q?: string;
@@ -138,11 +139,27 @@ function Home() {
   const [joinLeft, setJoinLeft] = useState("");
   const [collapsed, setCollapsed] = useState<Set<number>>(() => new Set());
   const [tileOrder, setTileOrder] = useState<number[] | null>(null);
+  const [handle, setHandle] = useState<string | null | undefined>(undefined);
 
   useEffect(() => {
     setSkyLetters(letters, picks.join(" "));
     return () => setSkyLetters("");
   }, [letters, picks]);
+
+  useEffect(() => {
+    let live = true;
+    void fetch("/api/forge/session")
+      .then((r) => r.json())
+      .then((d: { handle?: string | null }) => {
+        if (live) setHandle(d.handle ?? null);
+      })
+      .catch(() => {
+        if (live) setHandle(null);
+      });
+    return () => {
+      live = false;
+    };
+  }, []);
 
   useEffect(() => {
     let live = true;
@@ -1049,6 +1066,15 @@ function Home() {
                 {result.timedOut ? " · search budget reached" : ""}
                 {result.truncated ? " · capped" : ""}
               </p>
+              {mode === "perfect" ? (
+                <ReadWhy
+                  known={handle !== undefined}
+                  signedIn={!!handle}
+                  source={letters}
+                  kept={mustInclude}
+                  lines={result.hits.slice(0, 30).map((hit) => hit.words.join(" "))}
+                />
+              ) : null}
               {mode === "perfect" ? (
                 <ReadingSpread
                   hits={result.hits}
