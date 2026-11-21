@@ -1,5 +1,5 @@
 import { Link } from "@tanstack/react-router";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 
 type Note = { line: string; why: string };
 type Turn = { q: string; a: string };
@@ -15,6 +15,7 @@ export function ReadWhy({
   source,
   kept,
   lines,
+  onRock,
   onRanked,
   onNoted,
 }: {
@@ -23,6 +24,7 @@ export function ReadWhy({
   source: string;
   kept: string[];
   lines: string[];
+  onRock?: () => string[] | void;
   onRanked: (order: string[]) => void;
   onNoted: (notes: Note[]) => void;
 }) {
@@ -34,10 +36,13 @@ export function ReadWhy({
   const [err, setErr] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
   const [left, setLeft] = useState<number | null>(null);
+  const askedLines = useRef<string | null>(null);
 
   const lineKey = lines.join("\n");
 
   useEffect(() => {
+    if (askedLines.current !== null && lineKey === askedLines.current) return;
+    askedLines.current = null;
     setContext("");
     setNotes(null);
     setThread([]);
@@ -63,13 +68,16 @@ export function ReadWhy({
   }, [signedIn]);
 
   async function ask() {
+    const fresh = onRock?.();
+    const askLines = fresh && fresh.length ? fresh : lines;
+    askedLines.current = askLines.join("\n");
     setBusy(true);
     setErr(null);
     try {
       const res = await fetch("/api/forge/read", {
         method: "POST",
         headers: { "content-type": "application/json" },
-        body: JSON.stringify({ source, kept, lines, about }),
+        body: JSON.stringify({ source, kept: fresh ? [] : kept, lines: askLines, about }),
       });
       const data = (await res.json()) as {
         ok?: boolean;
@@ -154,7 +162,7 @@ export function ReadWhy({
                   <button
                     type="button"
                     onClick={() => void ask()}
-                    disabled={busy || lines.length === 0 || shut}
+                    disabled={busy || (lines.length === 0 && kept.length === 0) || shut}
                     className="h-10 rounded-md border border-border bg-raised px-3 text-sm text-fg disabled:opacity-40"
                   >
                     {busy ? "Holding…" : "rOcK iS tHiS tRuE"}
@@ -167,7 +175,7 @@ export function ReadWhy({
                     Create an account to ask
                   </Link>
                 ) : null}
-                {signedIn && lines.length === 0 ? (
+                {signedIn && lines.length === 0 && kept.length === 0 ? (
                   <p className="mt-3 text-sm text-subtle">The lines have to be on the page first.</p>
                 ) : null}
               </div>

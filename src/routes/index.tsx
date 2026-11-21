@@ -924,6 +924,25 @@ function Home() {
             source={letters}
             kept={mustInclude}
             lines={result?.kind === "phrase" ? result.hits.map((hit) => hit.words.join(" ")) : []}
+            onRock={() => {
+              if (mustInclude.length === 0 || !poolReady) return;
+              setMustRaw("");
+              pushSearch({ inc: "" });
+              const r = solvePerfect({
+                pool: solvePool,
+                have: countsOf(parsed.letters),
+                blanks: parsed.blanks,
+                filters: cleanFilters(filters),
+                maxWords,
+                phraseMinLen,
+                commonOnly: dict === "common",
+                mustInclude: [],
+                theme,
+                themeOnly,
+                sort: sort === "length" ? "reads" : sort,
+              });
+              return r.hits.map((hit) => hit.words.join(" "));
+            }}
             onRanked={setReadingOrder}
             onNoted={setReadingNotes}
           />
