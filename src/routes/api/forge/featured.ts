@@ -10,32 +10,8 @@ function reply(result: Result) {
   return Response.json({ ok: true, now: result.now, prev: result.prev }, { headers: noStore });
 }
 
-/** Read the body but stop once it passes the cap. */
-async function readCapped(request: Request): Promise<Uint8Array | null> {
-  const declared = Number(request.headers.get("content-length") || "0");
-  if (declared > FEATURED_MAX_BYTES) return null;
-  if (!request.body) return new Uint8Array();
-  const reader = request.body.getReader();
-  const parts: Uint8Array[] = [];
-  let total = 0;
-  for (;;) {
-    const { done, value } = await reader.read();
-    if (done) break;
-    total += value.byteLength;
-    if (total > FEATURED_MAX_BYTES) {
-      await reader.cancel();
-      return null;
-    }
-    parts.push(value);
-  }
-  const out = new Uint8Array(total);
-  let at = 0;
-  for (const p of parts) {
-    out.set(p, at);
-    at += p.byteLength;
-  }
-  return out;
-}
+/** Poster cap plus room for the settings and caption fields. */
+const FORM_MAX = FEATURED_MAX_BYTES + 16 * 1024;
 
 export const Route = createFileRoute("/api/forge/featured")({
   server: {
@@ -55,7 +31,7 @@ export const Route = createFileRoute("/api/forge/featured")({
       },
       /**
        * Owner only.
-       *   image/png body           → feature it (?caption=…)
+       *   multipart/form-data      → feature it: poster (transparent PNG), settings (JSON), caption
        *   {"action":"revert"}       → swap with the earlier render
        *   {"action":"remove"}       → take the card down (revert brings it back)
        */
@@ -63,10 +39,34 @@ export const Route = createFileRoute("/api/forge/featured")({
         if (!sameOrigin(request)) return new Response("Not found", { status: 404 });
         if (!(await ownerOf(request))) return new Response("Not found", { status: 404 });
         const type = (request.headers.get("content-type") || "").split(";")[0].trim().toLowerCase();
-        if (type === "image/png") {
-          const bytes = await readCapped(request);
-          if (!bytes) return reply({ ok: false, reason: "Image is over 2 MB.", status: 413 });
-          return reply(await setFeatured(bytes, new URL(request.url).searchParams.get("caption")));
+        if (type === "multipart/form-data") {
+          // Workers buffer form bodies, so insist on a declared size under the cap first.
+          const declared = Number(request.headers.get("content-length") || "0");
+          if (!declared) return reply({ ok: false, reason: "Missing size.", status: 411 });
+          if (declared > FORM_MAX) return reply({ ok: false, reason: "Image is over 2 MB.", status: 413 });
+          let form: FormData;
+          try {
+            form = await request.formData();
+          } catch {
+            return reply({ ok: false, reason: "Bad upload.", status: 400 });
+          }
+          const poster = form.get("poster");
+          const rawSettings = form.get("settings");
+          if (!poster || typeof poster === "string" || poster.type !== "image/png") {
+            return reply({ ok: false, reason: "Send a PNG.", status: 415 });
+          }
+          if (poster.size > FEATURED_MAX_BYTES) return reply({ ok: false, reason: "Image is over 2 MB.", status: 413 });
+          if (typeof rawSettings !== "string" || rawSettings.length > 4096) {
+            return reply({ ok: false, reason: "Those cipher settings didn’t check out.", status: 400 });
+          }
+          let settings: unknown;
+          try {
+            settings = JSON.parse(rawSettings);
+          } catch {
+            return reply({ ok: false, reason: "Those cipher settings didn’t check out.", status: 400 });
+          }
+          const bytes = new Uint8Array(await poster.arrayBuffer());
+          return reply(await setFeatured(bytes, typeof form.get("caption") === "string" ? form.get("caption") : "", settings));
         }
         if (type === "application/json") {
           let body: { action?: string };

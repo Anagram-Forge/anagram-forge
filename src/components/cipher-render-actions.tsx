@@ -1,30 +1,58 @@
 import { useEffect, useId, useState, type RefObject } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { FEATURED_DEFAULT_CAPTION, FEATURED_MAX_BYTES } from "@/lib/featured-png";
-import { soot } from "@/lib/palette";
+import { FLOAT_ZOOM, transparentFrame, type CipherHandle } from "@/lib/cipher-engine";
+import {
+  FEATURED_DEFAULT_CAPTION,
+  FEATURED_MAX_BYTES,
+  easternStamp,
+  type CipherSettings,
+} from "@/lib/featured-png";
 
 type Featured = { id: string; caption: string; at: number };
 
-/** Copy the canvas onto a solid background, optionally scaled down to maxW. */
-function renderPng(cv: HTMLCanvasElement, maxW?: number): Promise<Blob | null> {
-  const scale = maxW && cv.width > maxW ? maxW / cv.width : 1;
-  const out = document.createElement("canvas");
-  out.width = Math.max(1, Math.round(cv.width * scale));
-  out.height = Math.max(1, Math.round(cv.height * scale));
-  const ctx = out.getContext("2d");
-  if (!ctx) return Promise.resolve(null);
-  ctx.fillStyle = soot.bg;
-  ctx.fillRect(0, 0, out.width, out.height);
-  ctx.imageSmoothingQuality = "high";
-  ctx.drawImage(cv, 0, 0, out.width, out.height);
-  return new Promise((resolve) => out.toBlob((b) => resolve(b), "image/png"));
+/** The home page floater draws in a square, so the poster is a square too. */
+const POSTER_CSS = 400;
+
+function toBlob(cv: HTMLCanvasElement): Promise<Blob | null> {
+  return new Promise((resolve) => cv.toBlob((b) => resolve(b), "image/png"));
 }
 
-/** Featured renders stay under the upload cap: try smaller widths until one fits. */
-async function featurePng(cv: HTMLCanvasElement): Promise<Blob | null> {
-  for (const w of [1600, 1200, 900, 640]) {
-    const blob = await renderPng(cv, w);
+/** Trim fully transparent edges, keeping a little air around the letters. */
+function cropToInk(cv: HTMLCanvasElement, pad: number): HTMLCanvasElement {
+  const ctx = cv.getContext("2d");
+  if (!ctx || !cv.width || !cv.height) return cv;
+  const { data, width, height } = ctx.getImageData(0, 0, cv.width, cv.height);
+  let x0 = width,
+    y0 = height,
+    x1 = -1,
+    y1 = -1;
+  for (let y = 0; y < height; y++) {
+    for (let x = 0; x < width; x++) {
+      if (data[(y * width + x) * 4 + 3] > 2) {
+        if (x < x0) x0 = x;
+        if (x > x1) x1 = x;
+        if (y < y0) y0 = y;
+        if (y > y1) y1 = y;
+      }
+    }
+  }
+  if (x1 < 0) return cv;
+  x0 = Math.max(0, x0 - pad);
+  y0 = Math.max(0, y0 - pad);
+  x1 = Math.min(width - 1, x1 + pad);
+  y1 = Math.min(height - 1, y1 + pad);
+  const out = document.createElement("canvas");
+  out.width = x1 - x0 + 1;
+  out.height = y1 - y0 + 1;
+  out.getContext("2d")?.drawImage(cv, x0, y0, out.width, out.height, 0, 0, out.width, out.height);
+  return out;
+}
+
+/** Transparent poster under the upload cap: lower the pixel ratio until it fits. */
+async function posterPng(h: CipherHandle): Promise<Blob | null> {
+  for (const dpr of [2, 1.5, 1]) {
+    const blob = await toBlob(transparentFrame(h.props(), h.view(), POSTER_CSS, POSTER_CSS, dpr, FLOAT_ZOOM));
     if (blob && blob.size <= FEATURED_MAX_BYTES) return blob;
   }
   return null;
@@ -36,7 +64,13 @@ function stamp() {
   return `${d.getFullYear()}-${p(d.getMonth() + 1)}-${p(d.getDate())}-${p(d.getHours())}${p(d.getMinutes())}`;
 }
 
-export function CipherRenderActions({ canvas }: { canvas: RefObject<HTMLCanvasElement | null> }) {
+export function CipherRenderActions({
+  handle,
+  getSettings,
+}: {
+  handle: RefObject<CipherHandle | null>;
+  getSettings: () => CipherSettings | null;
+}) {
   const [owner, setOwner] = useState(false);
   const [now, setNow] = useState<Featured | null>(null);
   const [prev, setPrev] = useState<Featured | null>(null);
@@ -72,9 +106,11 @@ export function CipherRenderActions({ canvas }: { canvas: RefObject<HTMLCanvasEl
   }, []);
 
   async function save() {
-    const cv = canvas.current;
-    if (!cv) return;
-    const blob = await renderPng(cv);
+    const h = handle.current;
+    if (!h) return;
+    const dpr = Math.min(3, Math.max(2, window.devicePixelRatio || 1));
+    const frame = transparentFrame(h.props(), h.view(), h.canvas.clientWidth, h.canvas.clientHeight, dpr);
+    const blob = await toBlob(cropToInk(frame, Math.round(24 * dpr)));
     if (!blob) {
       setMsg("Couldn’t make the image.");
       return;
@@ -87,26 +123,26 @@ export function CipherRenderActions({ canvas }: { canvas: RefObject<HTMLCanvasEl
     a.click();
     a.remove();
     setTimeout(() => URL.revokeObjectURL(url), 2000);
-    setMsg("Image saved.");
+    setMsg("Image saved, with a clear background.");
   }
 
   async function feature() {
-    const cv = canvas.current;
-    if (!cv) return;
+    const h = handle.current;
+    const settings = getSettings();
+    if (!h || !settings) return;
     setBusy(true);
     setMsg("Putting it on the home page…");
     try {
-      const blob = await featurePng(cv);
+      const blob = await posterPng(h);
       if (!blob) {
         setMsg("The image came out over 2 MB.");
         return;
       }
-      const cap = caption.trim() || FEATURED_DEFAULT_CAPTION;
-      const res = await fetch(`/api/forge/featured?caption=${encodeURIComponent(cap)}`, {
-        method: "POST",
-        headers: { "content-type": "image/png" },
-        body: blob,
-      });
+      const form = new FormData();
+      form.append("poster", new File([blob], "poster.png", { type: "image/png" }));
+      form.append("settings", JSON.stringify(settings));
+      form.append("caption", caption.trim() || FEATURED_DEFAULT_CAPTION);
+      const res = await fetch("/api/forge/featured", { method: "POST", body: form });
       const data = (await res.json().catch(() => ({}))) as { ok?: boolean; reason?: string; now?: Featured; prev?: Featured | null };
       if (!res.ok || !data.ok) {
         setMsg(data.reason || "Couldn’t feature it.");
@@ -114,7 +150,7 @@ export function CipherRenderActions({ canvas }: { canvas: RefObject<HTMLCanvasEl
       }
       setNow(data.now ?? null);
       setPrev(data.prev ?? null);
-      setMsg("This render is on the home page now.");
+      setMsg("This render is on the home page now, moving as it is here.");
     } finally {
       setBusy(false);
     }
@@ -135,7 +171,7 @@ export function CipherRenderActions({ canvas }: { canvas: RefObject<HTMLCanvasEl
       }
       setNow(data.now ?? null);
       setPrev(data.prev ?? null);
-      setMsg(action === "remove" ? "Card taken down. Go back brings it back." : "Home page card switched to the earlier render.");
+      setMsg(action === "remove" ? "Taken off the home page. Go back brings it back." : "Home page switched to the earlier render.");
     } finally {
       setBusy(false);
     }
@@ -168,11 +204,11 @@ export function CipherRenderActions({ canvas }: { canvas: RefObject<HTMLCanvasEl
             />
           </div>
           <p className="text-sm text-muted">
-            {now ? `On the home page: “${now.caption}”, since ${new Date(now.at).toLocaleString()}.` : "Nothing on the home page."}
+            {now ? `On the home page: “${now.caption}”, since ${easternStamp(now.at)}.` : "Nothing on the home page."}
           </p>
           <div className="flex flex-wrap gap-3">
             <Button variant="secondary" size="sm" onClick={() => void act("remove")} disabled={busy || !now}>
-              Take card down
+              Take it down
             </Button>
             <Button variant="secondary" size="sm" onClick={() => void act("revert")} disabled={busy || !prev}>
               Go back to earlier render

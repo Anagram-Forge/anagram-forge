@@ -1,6 +1,8 @@
 import {
   FEATURED_MAX_BYTES,
   cleanCaption,
+  cleanCipherSettings,
+  type CipherSettings,
   featuredKeys,
   featuredScope,
   isFeaturedId,
@@ -8,7 +10,7 @@ import {
   pngSize,
 } from "@/lib/featured-png";
 
-export type Featured = { id: string; caption: string; at: number; w: number; h: number };
+export type Featured = { id: string; caption: string; at: number; w: number; h: number; settings?: CipherSettings };
 
 type Kv = {
   get: (key: string) => Promise<string | null>;
@@ -45,7 +47,8 @@ function parse(raw: string | null): Featured | null {
   try {
     const f = JSON.parse(raw) as Featured;
     if (!isFeaturedId(f.id)) return null;
-    return { id: f.id, caption: cleanCaption(f.caption), at: Number(f.at) || 0, w: Number(f.w) || 0, h: Number(f.h) || 0 };
+    const settings = cleanCipherSettings(f.settings) ?? undefined;
+    return { id: f.id, caption: cleanCaption(f.caption), at: Number(f.at) || 0, w: Number(f.w) || 0, h: Number(f.h) || 0, settings };
   } catch {
     return null;
   }
@@ -92,13 +95,15 @@ export async function featuredImage(id: string): Promise<{ body: ReadableStream 
 
 export type Result = { ok: true; now: Featured | null; prev: Featured | null } | { ok: false; reason: string; status: number };
 
-export async function setFeatured(bytes: Uint8Array, caption: unknown): Promise<Result> {
+export async function setFeatured(bytes: Uint8Array, caption: unknown, rawSettings: unknown): Promise<Result> {
+  const settings = cleanCipherSettings(rawSettings);
+  if (!settings) return { ok: false, reason: "Those cipher settings didn’t check out.", status: 400 };
   if (bytes.byteLength > FEATURED_MAX_BYTES) return { ok: false, reason: "Image is over 2 MB.", status: 413 };
   if (!isPng(bytes)) return { ok: false, reason: "That isn’t a PNG.", status: 415 };
   const size = pngSize(bytes);
   if (!size) return { ok: false, reason: "That PNG’s size looks wrong.", status: 415 };
   const rand = [...crypto.getRandomValues(new Uint8Array(8))].map((b) => "abcdefghijklmnopqrstuvwxyz0123456789"[b % 36]).join("");
-  const next: Featured = { id: `${Date.now()}-${rand}`, caption: cleanCaption(caption), at: Date.now(), ...size };
+  const next: Featured = { id: `${Date.now()}-${rand}`, caption: cleanCaption(caption), at: Date.now(), ...size, settings };
   const s = await stores();
   if (s) await s.r2.put(KEYS.object(next.id), bytes, { httpMetadata: { contentType: "image/png" } });
   else ram.r2.set(KEYS.object(next.id), bytes);
