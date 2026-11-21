@@ -1,4 +1,6 @@
 let hit: HTMLAudioElement | null = null;
+let tick: HTMLAudioElement | null = null;
+let tickStop = 0;
 
 export function warmRing() {
   if (typeof window === "undefined") return;
@@ -9,13 +11,37 @@ export function warmRing() {
   }
 }
 
-export function strikePing() {
+function playHit(volume: number) {
   warmRing();
   if (!hit) return;
+  hit.volume = volume;
   hit.currentTime = 0;
   void hit.play().catch(() => {
     /* autoplay until a gesture — drag counts */
   });
+}
+
+export function strikePing() {
+  playHit(0.85);
+}
+
+/** A kept word. Quieter than the hammer. */
+export function keepPing() {
+  playHit(0.45);
+}
+
+/** The definition card. Same recording, only the tick. */
+export function tapTick() {
+  if (typeof window === "undefined") return;
+  if (!tick) {
+    tick = new Audio("/sounds/anvil-hit.mp3");
+    tick.preload = "auto";
+  }
+  tick.volume = 0.16;
+  tick.currentTime = 0;
+  void tick.play().catch(() => {});
+  window.clearTimeout(tickStop);
+  tickStop = window.setTimeout(() => tick?.pause(), 70);
 }
 
 export function hitsAnvil(hammer: DOMRect) {
