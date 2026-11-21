@@ -8,10 +8,7 @@ import { loadDoors } from "@/lib/side-door";
 
 export const Route = createFileRoute("/w")({
   head: () => ({
-    meta: [
-      { name: "robots", content: "noindex, nofollow" },
-      { title: "Anagram Forge" },
-    ],
+    meta: [{ name: "robots", content: "noindex, nofollow" }, { title: "Anagram Forge" }],
   }),
   component: DoorPage,
 });
@@ -47,7 +44,9 @@ function DoorPage() {
       <main className="mx-auto max-w-2xl px-4 py-12 sm:px-6">
         {doors.map((page) => (
           <section key={page.id} className="mb-12">
-            <p className="text-[10px] font-medium uppercase tracking-[0.16em] text-accent">Side quests</p>
+            <p className="text-[10px] font-medium uppercase tracking-[0.16em] text-accent">
+              Side quests
+            </p>
             <h1 className="mt-2 font-display text-4xl text-fg sm:text-5xl">{page.title}</h1>
             <p className="mt-3 max-w-md text-base text-muted">{page.blurb}</p>
             <ol className="mt-10 space-y-3">
@@ -69,13 +68,23 @@ function DoorPage() {
                   >
                     {q.kicker}
                   </p>
-                  <p className={`mt-1 font-display text-xl ${q.open ? "text-fg" : "text-muted"}`}>{q.title}</p>
-                  <p className={`mt-1 text-sm ${q.open ? "text-muted" : "text-subtle"}`}>{q.note}</p>
+                  <p className={`mt-1 font-display text-xl ${q.open ? "text-fg" : "text-muted"}`}>
+                    {q.title}
+                  </p>
+                  <p className={`mt-1 text-sm ${q.open ? "text-muted" : "text-subtle"}`}>
+                    {q.note}
+                  </p>
                 </li>
               ))}
             </ol>
           </section>
         ))}
+        <Link
+          to="/the-way"
+          className="mb-3 mr-3 inline-flex h-11 items-center rounded-md border border-accent/60 bg-raised px-4 text-sm text-fg hover:bg-surface"
+        >
+          The Way · cipher
+        </Link>
         <Link
           to="/"
           className="inline-flex h-11 items-center rounded-md border border-border bg-raised px-4 text-sm text-fg hover:bg-surface"
