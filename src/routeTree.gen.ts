@@ -27,7 +27,10 @@ import { Route as ApiForgeArchiveRouteImport } from './routes/api/forge/archive'
 import { Route as ApiForgeBedRouteImport } from './routes/api/forge/bed'
 import { Route as ApiForgeChallengeRouteImport } from './routes/api/forge/challenge'
 import { Route as ApiForgeDoorRouteImport } from './routes/api/forge/door'
+import { Route as ApiForgeFeaturedRouteImport } from './routes/api/forge/featured'
+import { Route as ApiForgeFeaturedImageRouteImport } from './routes/api/forge/featured-image'
 import { Route as ApiForgeFindsRouteImport } from './routes/api/forge/finds'
+import { Route as ApiForgeGrokDefineRouteImport } from './routes/api/forge/grok-define'
 import { Route as ApiForgeReadRouteImport } from './routes/api/forge/read'
 import { Route as ApiForgeSavesRouteImport } from './routes/api/forge/saves'
 import { Route as ApiForgeSessionRouteImport } from './routes/api/forge/session'
@@ -123,9 +126,24 @@ const ApiForgeDoorRoute = ApiForgeDoorRouteImport.update({
   path: '/api/forge/door',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ApiForgeFeaturedRoute = ApiForgeFeaturedRouteImport.update({
+  id: '/api/forge/featured',
+  path: '/api/forge/featured',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiForgeFeaturedImageRoute = ApiForgeFeaturedImageRouteImport.update({
+  id: '/api/forge/featured-image',
+  path: '/api/forge/featured-image',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const ApiForgeFindsRoute = ApiForgeFindsRouteImport.update({
   id: '/api/forge/finds',
   path: '/api/forge/finds',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ApiForgeGrokDefineRoute = ApiForgeGrokDefineRouteImport.update({
+  id: '/api/forge/grok-define',
+  path: '/api/forge/grok-define',
   getParentRoute: () => rootRouteImport,
 } as any)
 const ApiForgeReadRoute = ApiForgeReadRouteImport.update({
@@ -168,7 +186,10 @@ export interface FileRoutesByFullPath {
   '/api/forge/bed': typeof ApiForgeBedRoute
   '/api/forge/challenge': typeof ApiForgeChallengeRoute
   '/api/forge/door': typeof ApiForgeDoorRoute
+  '/api/forge/featured': typeof ApiForgeFeaturedRoute
+  '/api/forge/featured-image': typeof ApiForgeFeaturedImageRoute
   '/api/forge/finds': typeof ApiForgeFindsRoute
+  '/api/forge/grok-define': typeof ApiForgeGrokDefineRoute
   '/api/forge/read': typeof ApiForgeReadRoute
   '/api/forge/saves': typeof ApiForgeSavesRoute
   '/api/forge/session': typeof ApiForgeSessionRoute
@@ -193,7 +214,10 @@ export interface FileRoutesByTo {
   '/api/forge/bed': typeof ApiForgeBedRoute
   '/api/forge/challenge': typeof ApiForgeChallengeRoute
   '/api/forge/door': typeof ApiForgeDoorRoute
+  '/api/forge/featured': typeof ApiForgeFeaturedRoute
+  '/api/forge/featured-image': typeof ApiForgeFeaturedImageRoute
   '/api/forge/finds': typeof ApiForgeFindsRoute
+  '/api/forge/grok-define': typeof ApiForgeGrokDefineRoute
   '/api/forge/read': typeof ApiForgeReadRoute
   '/api/forge/saves': typeof ApiForgeSavesRoute
   '/api/forge/session': typeof ApiForgeSessionRoute
@@ -219,7 +243,10 @@ export interface FileRoutesById {
   '/api/forge/bed': typeof ApiForgeBedRoute
   '/api/forge/challenge': typeof ApiForgeChallengeRoute
   '/api/forge/door': typeof ApiForgeDoorRoute
+  '/api/forge/featured': typeof ApiForgeFeaturedRoute
+  '/api/forge/featured-image': typeof ApiForgeFeaturedImageRoute
   '/api/forge/finds': typeof ApiForgeFindsRoute
+  '/api/forge/grok-define': typeof ApiForgeGrokDefineRoute
   '/api/forge/read': typeof ApiForgeReadRoute
   '/api/forge/saves': typeof ApiForgeSavesRoute
   '/api/forge/session': typeof ApiForgeSessionRoute
@@ -246,7 +273,10 @@ export interface FileRouteTypes {
     | '/api/forge/bed'
     | '/api/forge/challenge'
     | '/api/forge/door'
+    | '/api/forge/featured'
+    | '/api/forge/featured-image'
     | '/api/forge/finds'
+    | '/api/forge/grok-define'
     | '/api/forge/read'
     | '/api/forge/saves'
     | '/api/forge/session'
@@ -271,7 +301,10 @@ export interface FileRouteTypes {
     | '/api/forge/bed'
     | '/api/forge/challenge'
     | '/api/forge/door'
+    | '/api/forge/featured'
+    | '/api/forge/featured-image'
     | '/api/forge/finds'
+    | '/api/forge/grok-define'
     | '/api/forge/read'
     | '/api/forge/saves'
     | '/api/forge/session'
@@ -296,7 +329,10 @@ export interface FileRouteTypes {
     | '/api/forge/bed'
     | '/api/forge/challenge'
     | '/api/forge/door'
+    | '/api/forge/featured'
+    | '/api/forge/featured-image'
     | '/api/forge/finds'
+    | '/api/forge/grok-define'
     | '/api/forge/read'
     | '/api/forge/saves'
     | '/api/forge/session'
@@ -322,7 +358,10 @@ export interface RootRouteChildren {
   ApiForgeBedRoute: typeof ApiForgeBedRoute
   ApiForgeChallengeRoute: typeof ApiForgeChallengeRoute
   ApiForgeDoorRoute: typeof ApiForgeDoorRoute
+  ApiForgeFeaturedRoute: typeof ApiForgeFeaturedRoute
+  ApiForgeFeaturedImageRoute: typeof ApiForgeFeaturedImageRoute
   ApiForgeFindsRoute: typeof ApiForgeFindsRoute
+  ApiForgeGrokDefineRoute: typeof ApiForgeGrokDefineRoute
   ApiForgeReadRoute: typeof ApiForgeReadRoute
   ApiForgeSavesRoute: typeof ApiForgeSavesRoute
   ApiForgeSessionRoute: typeof ApiForgeSessionRoute
@@ -457,11 +496,32 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiForgeDoorRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/api/forge/featured': {
+      id: '/api/forge/featured'
+      path: '/api/forge/featured'
+      fullPath: '/api/forge/featured'
+      preLoaderRoute: typeof ApiForgeFeaturedRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/forge/featured-image': {
+      id: '/api/forge/featured-image'
+      path: '/api/forge/featured-image'
+      fullPath: '/api/forge/featured-image'
+      preLoaderRoute: typeof ApiForgeFeaturedImageRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/api/forge/finds': {
       id: '/api/forge/finds'
       path: '/api/forge/finds'
       fullPath: '/api/forge/finds'
       preLoaderRoute: typeof ApiForgeFindsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/api/forge/grok-define': {
+      id: '/api/forge/grok-define'
+      path: '/api/forge/grok-define'
+      fullPath: '/api/forge/grok-define'
+      preLoaderRoute: typeof ApiForgeGrokDefineRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/api/forge/read': {
@@ -514,7 +574,10 @@ const rootRouteChildren: RootRouteChildren = {
   ApiForgeBedRoute: ApiForgeBedRoute,
   ApiForgeChallengeRoute: ApiForgeChallengeRoute,
   ApiForgeDoorRoute: ApiForgeDoorRoute,
+  ApiForgeFeaturedRoute: ApiForgeFeaturedRoute,
+  ApiForgeFeaturedImageRoute: ApiForgeFeaturedImageRoute,
   ApiForgeFindsRoute: ApiForgeFindsRoute,
+  ApiForgeGrokDefineRoute: ApiForgeGrokDefineRoute,
   ApiForgeReadRoute: ApiForgeReadRoute,
   ApiForgeSavesRoute: ApiForgeSavesRoute,
   ApiForgeSessionRoute: ApiForgeSessionRoute,

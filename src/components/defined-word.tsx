@@ -4,6 +4,12 @@ import { defineWord, fillEtymology, peekDefinition, playPronunciation, type Defi
 import { keepPing, tapTick } from "@/lib/forge-ring";
 import { cn } from "@/lib/utils";
 
+type GrokState =
+  | { state: "idle" }
+  | { state: "asking" }
+  | { state: "error"; reason: string }
+  | { state: "done"; pos: string; text: string; real: boolean };
+
 export function DefinedWord({
   word,
   className,
@@ -25,6 +31,35 @@ export function DefinedWord({
   const hideTimer = useRef<number>(0);
   const showTimer = useRef<number>(0);
   const lastTap = useRef(0);
+  const [grok, setGrok] = useState<GrokState>({ state: "idle" });
+
+  useEffect(() => {
+    setGrok({ state: "idle" });
+  }, [word]);
+
+  async function askGrok() {
+    setGrok({ state: "asking" });
+    try {
+      const res = await fetch("/api/forge/grok-define", {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        credentials: "omit",
+        body: JSON.stringify({ word }),
+      });
+      const data = (await res.json().catch(() => ({}))) as {
+        ok?: boolean;
+        reason?: string;
+        definition?: { pos: string; text: string; real: boolean };
+      };
+      if (!res.ok || !data.ok || !data.definition) {
+        setGrok({ state: "error", reason: data.reason || "Grok didn’t answer this time. Try again later." });
+        return;
+      }
+      setGrok({ state: "done", ...data.definition });
+    } catch {
+      setGrok({ state: "error", reason: "Grok didn’t answer this time. Try again later." });
+    }
+  }
 
   useEffect(() => {
     const mq = window.matchMedia("(pointer: coarse)");
@@ -178,6 +213,35 @@ export function DefinedWord({
           {def === undefined && <span className="mt-1 block text-xs text-subtle">Looking up…</span>}
           {def === null && (
             <span className="mt-1 block text-xs text-muted">No definition on file for this word.</span>
+          )}
+          {def === null && (
+            <span className="mt-2 block" aria-live="polite">
+              {grok.state === "idle" ? (
+                <button
+                  type="button"
+                  className="rounded-sm border border-border bg-surface px-2.5 py-1 text-xs text-fg hover:bg-raised"
+                  onPointerDown={() => setPinned(true)}
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    setPinned(true);
+                    void askGrok();
+                  }}
+                >
+                  Ask Grok
+                </button>
+              ) : null}
+              {grok.state === "asking" ? <span className="block text-xs text-subtle">Asking Grok…</span> : null}
+              {grok.state === "error" ? <span className="block text-xs text-subtle">{grok.reason}</span> : null}
+              {grok.state === "done" ? (
+                <span className="block border-t border-border pt-2">
+                  <span className="block text-[10px] uppercase tracking-wide text-subtle">Grok’s answer</span>
+                  <span className="mt-1 block text-sm leading-snug text-muted">
+                    {grok.pos ? <span className="mr-1.5 text-xs italic text-subtle">{grok.pos}</span> : null}
+                    {grok.text}
+                  </span>
+                </span>
+              ) : null}
+            </span>
           )}
           {def && (
             <>

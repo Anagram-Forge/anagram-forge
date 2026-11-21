@@ -26,3 +26,6 @@ declare module "cloudflare:workers" {
     };
   };
 }
+
+/** Build-time branch name from CF_PAGES_BRANCH (vite define). Empty outside Pages builds. */
+declare const __AF_BRANCH__: string;

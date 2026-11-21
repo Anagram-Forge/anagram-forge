@@ -133,6 +133,8 @@ export default defineConfig(({ command }) => {
     process.env.VITE_AUTH_ENABLED = "false";
   }
   return {
+  // Server code keys the featured render by branch, so previews never touch live keys.
+  define: { __AF_BRANCH__: JSON.stringify(process.env.CF_PAGES_BRANCH || "") },
   server: {
     host: "0.0.0.0",
     port: 8080,

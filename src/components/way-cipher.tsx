@@ -1,7 +1,9 @@
 import { useEffect, useId, useMemo, useRef, useState } from "react";
-import type { PointerEvent as ReactPointerEvent, ReactNode } from "react";
+import type { PointerEvent as ReactPointerEvent, ReactNode, RefObject } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { CipherRenderActions } from "@/components/cipher-render-actions";
+import { FromEnglish } from "@/components/from-english";
 import { soot } from "@/lib/palette";
 import { cn } from "@/lib/utils";
 
@@ -360,8 +362,9 @@ function place(L: Letter[], mode: Mode, t: number, fold: number, gap: number): P
   });
 }
 
-function CipherView(props: ViewProps) {
+function CipherView(props: ViewProps & { canvasRef?: RefObject<HTMLCanvasElement | null> }) {
   const ref = useRef<HTMLCanvasElement | null>(null);
+  const outer = props.canvasRef;
   const live = useRef(props);
   live.current = props;
   const view = useRef({ yaw: 0.6, pitch: 0.35, drag: false, lx: 0, ly: 0, t: 0 });
@@ -376,6 +379,7 @@ function CipherView(props: ViewProps) {
   useEffect(() => {
     const cv = ref.current;
     if (!cv) return;
+    if (outer) outer.current = cv;
     const ctx = cv.getContext("2d");
     if (!ctx) return;
     let raf = 0;
@@ -594,7 +598,7 @@ function CipherView(props: ViewProps) {
     };
     raf = requestAnimationFrame(frame);
     return () => cancelAnimationFrame(raf);
-  }, []);
+  }, [outer]);
 
   const down = (e: ReactPointerEvent<HTMLCanvasElement>) => {
     if (live.current.locked) return;
@@ -858,6 +862,7 @@ export function WayCipher() {
   }));
   const fontOptions = (Object.keys(FONTS) as FontKey[]).map((k) => ({ value: k, label: FONTS[k] }));
   const inputId = useId();
+  const canvasRef = useRef<HTMLCanvasElement | null>(null);
 
   return (
     <div>
@@ -886,6 +891,9 @@ export function WayCipher() {
               className="text-lg"
             />
           </div>
+          <FromEnglish onUse={setText} />
+        </Row>
+        <Row cols={2}>
           <Segmented<Mode>
             label="Shape"
             options={[
@@ -931,7 +939,9 @@ export function WayCipher() {
             colorByLetter={colorByLetter}
             layers={layers}
             font={font}
+            canvasRef={canvasRef}
           />
+          <CipherRenderActions canvas={canvasRef} />
           <Slider
             big
             label="Movement speed (0 freezes everything)"
