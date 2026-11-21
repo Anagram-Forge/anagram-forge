@@ -83,6 +83,16 @@ A leaderboard and a score for **perfect** anagrams that are actually good. Not e
 - Sits with finds. Not a new site, not a points grind.
 
 
+## Their layout
+
+The page is one arrangement. Let a person change how it sits. Card style first, not a theme builder.
+
+- A few layouts, not a free canvas. Cards, a list, maybe a tighter stack. One choice, and it sticks.
+- Card style is the first knob. The result shelves and the note card share it. Same bone and soot. No skins.
+- The solver, the letters, and the rules do not move. Only the arrangement.
+- Saved on the account. A guest keeps the default.
+- One control. Add another only if people use the first.
+
 ## Card looks (pick of 3)
 
 1. **Vintage postcard** — aged stock, stamp, hairline border, handwritten feel
