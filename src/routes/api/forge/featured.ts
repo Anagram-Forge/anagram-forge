@@ -1,7 +1,7 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { FEATURED_MAX_BYTES } from "@/lib/featured-png";
 import { readFeatured, removeFeatured, revertFeatured, setFeatured, type Result } from "@/lib/featured-store";
-import { ownerOf, sameOrigin } from "@/lib/owner-gate";
+import { featuredPublic, ownerOf, sameOrigin } from "@/lib/owner-gate";
 
 const noStore = { "cache-control": "no-store", "x-robots-tag": "noindex, nofollow" };
 
@@ -23,6 +23,10 @@ export const Route = createFileRoute("/api/forge/featured")({
         if (wantsOwner) {
           if (!(await ownerOf(request))) return new Response("Not found", { status: 404 });
           return Response.json({ ok: true, now, prev }, { headers: noStore });
+        }
+        // Off by default: until FEATURED_PUBLIC is on, only the steward can read it.
+        if (!(await featuredPublic()) && !(await ownerOf(request))) {
+          return new Response("Not found", { status: 404, headers: noStore });
         }
         return Response.json(
           { ok: true, featured: now },

@@ -12,7 +12,6 @@ import { AnagramCardButton, PickChips } from "@/components/anagram-card";
 import { PostFindButton } from "@/components/post-find";
 import { SpellLine } from "@/components/spell-line";
 import { SupportSlot } from "@/components/support-slot";
-import { FeaturedFloat } from "@/components/featured-float";
 import { ForgeMotto } from "@/components/forge-motto";
 import { ThemePicker } from "@/components/theme-picker";
 import { addLocalSave } from "@/lib/local-saves";
@@ -1137,7 +1136,6 @@ function Home() {
             </div>
           )}
         </section>
-        <FeaturedFloat />
         <SupportSlot />
       </main>
     </div>

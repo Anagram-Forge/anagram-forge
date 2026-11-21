@@ -1,4 +1,5 @@
 import { isAdminHandle, userFromToken } from "@/lib/forge-db";
+import { envGet } from "@/lib/turnstile";
 
 function sessionOf(request: Request): string | null {
   const raw = request.headers.get("cookie") || "";
@@ -25,4 +26,13 @@ export function sameOrigin(request: Request): boolean {
   } catch {
     return false;
   }
+}
+
+/**
+ * The one switch for showing the featured cipher to everyone. Off unless the
+ * FEATURED_PUBLIC env var is "1" or "true". While off, only the steward can read it.
+ */
+export async function featuredPublic(): Promise<boolean> {
+  const v = (await envGet("FEATURED_PUBLIC")).toLowerCase();
+  return v === "1" || v === "true";
 }

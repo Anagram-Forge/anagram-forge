@@ -2,7 +2,7 @@ import { useCallback, useEffect, useRef, useState, type ComponentType } from "re
 import { createPortal } from "react-dom";
 import type { CipherSettings } from "@/lib/featured-png";
 
-type Featured = { id: string; caption: string; w: number; h: number; settings?: CipherSettings };
+export type FloatFeatured = { id: string; caption: string; w: number; h: number; settings?: CipherSettings };
 type LiveProps = { settings: CipherSettings; size: number; running: boolean; onReady: () => void; onFail: () => void };
 type Pos = { x: number; y: number };
 
@@ -51,12 +51,11 @@ function clearOf(p: Pos, size: number, self: Element | null): Pos {
 }
 
 /**
- * The steward's featured cipher, floating over the home page like the hammer:
+ * The steward's featured cipher, floating over the page like the hammer:
  * drag it anywhere, it drops where let go, Escape or a resize sends it home.
  * No card, no link, no stats, never touches the anvil.
  */
-export function FeaturedFloat() {
-  const [f, setF] = useState<Featured | null>(null);
+export function FeaturedFloat({ featured: f }: { featured: FloatFeatured | null }) {
   const [size, setSize] = useState(200);
   const [pos, setPos] = useState<Pos | null>(null);
   const [parked, setParked] = useState(true);
@@ -75,17 +74,7 @@ export function FeaturedFloat() {
   const lastWidth = useRef(0);
 
   useEffect(() => {
-    let live = true;
-    fetch("/api/forge/featured")
-      .then((r) => (r.ok ? r.json() : null))
-      .then((d: { featured?: Featured | null } | null) => {
-        if (live && d?.featured) setF(d.featured);
-      })
-      .catch(() => {});
     setCalm(lessMotion());
-    return () => {
-      live = false;
-    };
   }, []);
 
   const home = useCallback(() => {
@@ -210,8 +199,8 @@ export function FeaturedFloat() {
 
   return (
     <>
-      {/* The parked spot, in the page flow where the card used to be. */}
-      <div ref={dock} aria-hidden className="mx-auto mt-12" style={{ width: size, height: size + 28 }} />
+      {/* The parked spot, in the page flow. */}
+      <div ref={dock} aria-hidden className="mx-auto mt-4" style={{ width: size, height: size + 28 }} />
       {pos
         ? createPortal(
             <button

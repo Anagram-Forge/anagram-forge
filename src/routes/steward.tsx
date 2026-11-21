@@ -8,6 +8,7 @@ import { Input } from "@/components/ui/input";
 import { WEEK, type Week } from "@/lib/challenge";
 import { StewardPulse, TheWayPulse, type DoorNote } from "@/components/steward-pulse";
 import { ForgeAnvil } from "@/components/forge-anvil";
+import { StewardFeatured } from "@/components/steward-featured";
 import { DOOR_PATH } from "@/lib/side-door";
 import type { Find } from "@/lib/forge-db";
 import type { DayRow } from "@/lib/stat-day";
@@ -215,6 +216,8 @@ function StewardPage() {
           doors={snap.doors}
           onOpen={() => void openWay()}
         />
+
+        <StewardFeatured />
 
         <form onSubmit={saveChallenge} className="mt-10 space-y-3 rounded-md border border-border bg-surface px-4 py-4">
           <p className="text-[10px] font-medium uppercase tracking-[0.16em] text-accent">Challenge</p>
