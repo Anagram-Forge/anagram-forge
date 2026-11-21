@@ -7,7 +7,7 @@ type Turn = { q: string; a: string };
 const COST =
   "This asks Grok, which costs money to run. The site doesn’t charge, so each account gets 12 a day.";
 const SHUT =
-  "You’ve used today’s 12. Each reading costs the site money to run, and the site doesn’t charge, so they open again tomorrow.";
+  "You’ve used today’s 12. Temper costs the site money to run, and the site doesn’t charge, so it opens again tomorrow.";
 
 export function ReadWhy({
   known,
@@ -82,7 +82,7 @@ export function ReadWhy({
       };
       if (!res.ok || !data.ok) {
         if (typeof data.left === "number") setLeft(data.left);
-        setErr(data.reason || "The reading didn’t come back.");
+        setErr(data.reason || "Temper didn’t come back.");
         return;
       }
       setNotes(data.notes || []);
@@ -93,7 +93,7 @@ export function ReadWhy({
       if (data.unlimited) setLeft(null);
       else if (typeof data.left === "number") setLeft(data.left);
     } catch {
-      setErr("The reading didn’t come back.");
+      setErr("Temper didn’t come back.");
     } finally {
       setBusy(false);
     }
@@ -113,7 +113,7 @@ export function ReadWhy({
       const data = (await res.json()) as { ok?: boolean; reason?: string; reply?: string; left?: number; unlimited?: boolean };
       if (!res.ok || !data.ok || !data.reply) {
         if (typeof data.left === "number") setLeft(data.left);
-        setErr(data.reason || "The reading didn’t come back.");
+        setErr(data.reason || "Temper didn’t come back.");
         return;
       }
       setThread((cur) => [...cur, { q, a: data.reply as string }]);
@@ -121,7 +121,7 @@ export function ReadWhy({
       if (data.unlimited) setLeft(null);
       else if (typeof data.left === "number") setLeft(data.left);
     } catch {
-      setErr("The reading didn’t come back.");
+      setErr("Temper didn’t come back.");
     } finally {
       setBusy(false);
     }
@@ -132,7 +132,7 @@ export function ReadWhy({
 
   return (
     <section className="mx-auto mt-8 max-w-2xl rounded-xl border border-border/80 bg-surface/50 p-4 sm:p-6">
-      <h2 className="font-display text-3xl font-medium tracking-tight text-fg">The reading</h2>
+      <h2 className="font-display text-3xl font-medium tracking-tight text-fg">Temper</h2>
       {shut && !asked ? (
         <p className="mt-3 max-w-xl text-sm leading-relaxed text-muted">{SHUT}</p>
       ) : (
@@ -155,9 +155,9 @@ export function ReadWhy({
                     type="button"
                     onClick={() => void ask()}
                     disabled={busy || lines.length === 0 || shut}
-                    className="h-10 rounded-md bg-primary px-3 text-sm text-primary-fg disabled:opacity-40"
+                    className="h-10 rounded-md border border-border bg-raised px-3 text-sm text-fg disabled:opacity-40"
                   >
-                    {busy ? "Reading…" : "Ask which lines fit"}
+                    {busy ? "Holding…" : "rOcK iS tHiS tRuE"}
                   </button>
                 ) : known ? (
                   <Link

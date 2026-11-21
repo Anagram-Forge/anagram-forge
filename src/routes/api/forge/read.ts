@@ -103,8 +103,8 @@ async function mailFailures(n: number) {
       headers: { "content-type": "application/json", "x-mail-key": key },
       body: JSON.stringify({
         kind: "note",
-        subject: "Readings failing",
-        message: `${n} readings failed today. The model refused or did not answer.`,
+        subject: "Temper failing",
+        message: `${n} times today, Temper failed. The model refused or did not answer.`,
       }),
       signal: AbortSignal.timeout(8000),
     });
@@ -170,7 +170,7 @@ export const Route = createFileRoute("/api/forge/read")({
 
         const apiKey = await envGet("XAI_API_KEY");
         if (!apiKey) {
-          return Response.json({ ok: false, reason: "The reading isn’t connected yet." }, { status: 503 });
+          return Response.json({ ok: false, reason: "Temper isn’t connected yet." }, { status: 503 });
         }
         const model = (await envGet("XAI_MODEL")) || MODEL_FALLBACK;
         const question = String(body.question || "").replace(/\s+/g, " ").trim().slice(0, 240);
@@ -212,7 +212,7 @@ export const Route = createFileRoute("/api/forge/read")({
             const reply = parseFollow(done.text);
             if (!reply) {
               await failRead();
-              return Response.json({ ok: false, reason: "The reading didn’t come back." }, { status: 502 });
+              return Response.json({ ok: false, reason: "Temper didn’t come back." }, { status: 502 });
             }
             await storeFollow(cacheKey, reply);
             const room = await charge(user.handle);
@@ -222,7 +222,7 @@ export const Route = createFileRoute("/api/forge/read")({
             const msg = err instanceof Error ? err.message : "";
             const reason = /model/i.test(msg)
               ? "That model name was refused. Set XAI_MODEL on the project."
-              : "The reading didn’t come back.";
+              : "Temper didn’t come back.";
             return Response.json({ ok: false, reason }, { status: 502 });
           }
         }
@@ -270,7 +270,7 @@ export const Route = createFileRoute("/api/forge/read")({
           await noteCall(user.handle, done.usage);
           if (!done.text.trim()) {
             await failRead();
-            return Response.json({ ok: false, reason: "The reading didn’t come back." }, { status: 502 });
+            return Response.json({ ok: false, reason: "Temper didn’t come back." }, { status: 502 });
           }
           const reading = parseReading(done.text, lines);
           if (!about) {
@@ -285,7 +285,7 @@ export const Route = createFileRoute("/api/forge/read")({
           const msg = err instanceof Error ? err.message : "";
           const reason = /model/i.test(msg)
             ? "That model name was refused. Set XAI_MODEL on the project."
-            : "The reading didn’t come back.";
+            : "Temper didn’t come back.";
           return Response.json({ ok: false, reason }, { status: 502 });
         }
       },

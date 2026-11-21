@@ -100,7 +100,7 @@ export async function markRead(handle: string): Promise<number> {
 export const READ_CAP = DAY_CAP;
 export const FAIL_NOTE = 5;
 export const LIMIT_LINE =
-  "You’ve used today’s 12. Each reading costs the site money to run, and the site doesn’t charge, so they open again tomorrow.";
+  "You’ve used today’s 12. Temper costs the site money to run, and the site doesn’t charge, so it opens again tomorrow.";
 
 export type TokenUse = { prompt: number; completion: number; total: number };
 export type ReadLedger = {

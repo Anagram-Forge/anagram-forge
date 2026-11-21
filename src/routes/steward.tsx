@@ -174,7 +174,7 @@ function StewardPage() {
         </p>
         {snap.reading ? (
           <div className="mt-8">
-            <p className="text-[10px] font-medium uppercase tracking-[0.16em] text-accent">The reading</p>
+            <p className="text-[10px] font-medium uppercase tracking-[0.16em] text-accent">Temper</p>
             <div className="mt-2 grid grid-cols-2 gap-2 sm:grid-cols-4">
               {(
                 [
