@@ -1,6 +1,6 @@
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { Check, ChevronDown, Copy, Search, X } from "lucide-react";
-import { useEffect, useMemo, useState, type ReactNode } from "react";
+import { useEffect, useMemo, useState, Fragment, type ReactNode } from "react";
 import { toast } from "sonner";
 import { AppHeader } from "@/components/app-header";
 import { DefinedWord } from "@/components/defined-word";
@@ -405,7 +405,7 @@ function Home() {
       <AppHeader onTwoLetter={() => setTwo(true)} />
       <TwoLetterPanel open={two} onClose={() => setTwo(false)} />
 
-      <main className={cn("mx-auto max-w-5xl px-4 pt-6 sm:px-6", held.length ? "pb-28" : "pb-16")}>
+      <main className="mx-auto max-w-5xl px-4 pb-16 pt-6 sm:px-6">
         <section className="mx-auto max-w-2xl text-center">
           <h1 className="font-display text-5xl font-medium tracking-tight text-fg sm:text-6xl">
             Anagram Forge
@@ -1113,7 +1113,42 @@ function Home() {
                     : ""}
                 {!heldOpen && result.timedOut ? " · search budget reached" : ""}
                 {!heldOpen && result.truncated ? " · capped" : ""}
+                {held.length > 0 ? ` · ${held.length} held` : ""}
               </p>
+              {held.length > 0 ? (
+                <div className="sticky top-0 z-20 mb-6 flex items-center gap-4 border-b border-border bg-bg/95 py-2">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      document.getElementById("held-lines")?.scrollIntoView({ block: "start", behavior: "smooth" });
+                    }}
+                    className="text-sm text-fg"
+                  >
+                    {held.length} held
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setHeldOpen((open) => !open)}
+                    className="text-xs text-subtle hover:text-fg"
+                  >
+                    {heldOpen ? "All lines" : "Only these"}
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => void copyWords(held)}
+                    className="text-xs text-subtle hover:text-fg"
+                  >
+                    Copy
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setHeld([])}
+                    className="ml-auto text-xs text-subtle hover:text-fg"
+                  >
+                    Clear
+                  </button>
+                </div>
+              ) : null}
               {mode === "perfect" ? (
                 <ReadingSpread
                   hits={
@@ -1140,9 +1175,21 @@ function Home() {
                 <ul className="space-y-2">
                   {(heldOpen
                     ? result.hits.filter((hit) => held.includes(hit.words.join(" ").toLowerCase()))
-                    : result.hits
-                  ).map((hit) => (
-                    <PhraseRow
+                    : [
+                        ...result.hits.filter((hit) => held.includes(hit.words.join(" ").toLowerCase())),
+                        ...result.hits.filter((hit) => !held.includes(hit.words.join(" ").toLowerCase())),
+                      ]
+                  ).map((hit, i) => (
+                    <Fragment key={`${hit.words.join("-")}-${i}`}>
+                      {i === 0 && held.length > 0 ? (
+                        <li id="held-lines" className="pt-1 text-xs font-medium uppercase tracking-wide text-subtle">
+                          Held · {held.length}
+                        </li>
+                      ) : null}
+                      {!heldOpen && i === held.length && held.length > 0 ? (
+                        <li className="pt-4 text-xs font-medium uppercase tracking-wide text-subtle">The rest</li>
+                      ) : null}
+                      <PhraseRow
                       key={hit.words.join("-")}
                       hit={hit}
                       source={letters}
@@ -1156,6 +1203,7 @@ function Home() {
                         });
                       }}
                     />
+                    </Fragment>
                   ))}
                 </ul>
               )}
@@ -1164,40 +1212,6 @@ function Home() {
         </section>
         <SupportSlot />
       </main>
-      {held.length > 0 ? (
-        <div className="fixed inset-x-0 bottom-0 z-40 border-t border-border bg-bg/95 px-4 py-3 backdrop-blur-sm">
-          <div className="mx-auto flex max-w-5xl items-center gap-4">
-            <button
-              type="button"
-              onClick={() => {
-                setHeldOpen((open) => !open);
-                if (!heldOpen) {
-                  requestAnimationFrame(() => {
-                    document.getElementById("lines")?.scrollIntoView({ block: "start", behavior: "smooth" });
-                  });
-                }
-              }}
-              className="text-sm text-fg"
-            >
-              {heldOpen ? "Back to the list" : `${held.length} held`}
-            </button>
-            <button
-              type="button"
-              onClick={() => void copyWords(held)}
-              className="text-xs text-subtle hover:text-fg"
-            >
-              Copy
-            </button>
-            <button
-              type="button"
-              onClick={() => setHeld([])}
-              className="ml-auto text-xs text-subtle hover:text-fg"
-            >
-              Clear
-            </button>
-          </div>
-        </div>
-      ) : null}
     </div>
   );
 }
@@ -1488,16 +1502,18 @@ function ReadingSpread({
   onPick: (words: string[]) => void;
 }) {
   const why = new Map(notes.map((note) => [note.line.toLowerCase(), note.why]));
+  const heldHits = hits.filter((hit) => held.includes(hit.words.join(" ").toLowerCase()));
+  const open = hits.filter((hit) => !held.includes(hit.words.join(" ").toLowerCase()));
   const rank = new Map(order.map((line, i) => [line.toLowerCase(), i]));
   const ranked = rank.size
-    ? hits
+    ? open
         .filter((hit) => rank.has(hit.words.join(" ").toLowerCase()))
         .sort(
           (a, b) =>
             (rank.get(a.words.join(" ").toLowerCase()) ?? 0) - (rank.get(b.words.join(" ").toLowerCase()) ?? 0),
         )
     : [];
-  const rest = rank.size ? hits.filter((hit) => !rank.has(hit.words.join(" ").toLowerCase())) : hits;
+  const rest = rank.size ? open.filter((hit) => !rank.has(hit.words.join(" ").toLowerCase())) : open;
   const groups: { n: number; hits: PhraseHit[] }[] = [];
   for (const hit of rest) {
     const n = hit.words.length;
@@ -1515,6 +1531,29 @@ function ReadingSpread({
             ? "Click a kept word to let it go."
             : "Click a word to keep it. Lines are ordered by how well they read."}
       </p>
+      {heldHits.length ? (
+        <section id="held-lines">
+          <h2 className="mb-3 text-xs font-medium uppercase tracking-wide text-subtle">
+            Held · {heldHits.length}
+          </h2>
+          <ul className="sm:columns-2 sm:gap-x-12">
+            {heldHits.map((hit) => (
+              <SpreadLine
+                key={hit.words.join("\0")}
+                hit={hit}
+                why={why.get(hit.words.join(" ").toLowerCase())}
+                source={source}
+                kept={kept}
+                held
+                onHold={() => onHold(hit.words)}
+                onKeep={onKeep}
+                onCopy={() => onCopy(hit.words)}
+                onPick={() => onPick(hit.words)}
+              />
+            ))}
+          </ul>
+        </section>
+      ) : null}
       {ranked.length ? (
         <section>
           <h2 className="mb-3 text-xs font-medium uppercase tracking-wide text-subtle">
