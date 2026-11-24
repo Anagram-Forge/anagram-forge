@@ -142,6 +142,8 @@ function Home() {
   const [handle, setHandle] = useState<string | null | undefined>(undefined);
   const [readingOrder, setReadingOrder] = useState<string[]>([]);
   const [readingNotes, setReadingNotes] = useState<{ line: string; why: string }[]>([]);
+  const [held, setHeld] = useState<string[]>([]);
+  const [heldOpen, setHeldOpen] = useState(false);
 
   useEffect(() => {
     setSkyLetters(letters, picks.join(" "));
@@ -221,7 +223,13 @@ function Home() {
     setPicks([]);
     setCollapsed(new Set());
     setTileOrder(null);
+    setHeld([]);
+    setHeldOpen(false);
   }, [parsed.letters, parsed.blanks]);
+
+  useEffect(() => {
+    if (held.length === 0) setHeldOpen(false);
+  }, [held.length]);
 
   const result = useMemo(() => {
     if (!poolReady) return null;
@@ -371,6 +379,11 @@ function Home() {
     });
   }
 
+  function toggleHeld(words: string[]) {
+    const key = words.join(" ").toLowerCase();
+    setHeld((cur) => (cur.includes(key) ? cur.filter((k) => k !== key) : [...cur, key]));
+  }
+
   function toggleMust(word: string) {
     const w = word.toLowerCase();
     const cur = parseMustInclude(mustRaw);
@@ -392,7 +405,7 @@ function Home() {
       <AppHeader onTwoLetter={() => setTwo(true)} />
       <TwoLetterPanel open={two} onClose={() => setTwo(false)} />
 
-      <main className="mx-auto max-w-5xl px-4 pb-16 pt-6 sm:px-6">
+      <main className={cn("mx-auto max-w-5xl px-4 pt-6 sm:px-6", held.length ? "pb-28" : "pb-16")}>
         <section className="mx-auto max-w-2xl text-center">
           <h1 className="font-display text-5xl font-medium tracking-tight text-fg sm:text-6xl">
             Anagram Forge
@@ -1085,27 +1098,35 @@ function Home() {
           )}
 
           {result?.kind === "phrase" && result.hits.length > 0 && (
-            <div>
+            <div id="lines">
               <p className="mb-4 text-sm tabular-nums text-muted">
-                {result.hits.length}{" "}
-                {mode === "perfect"
-                  ? `perfect anagram${result.hits.length === 1 ? "" : "s"}`
-                  : `phrase${result.hits.length === 1 ? "" : "s"}`}
-                {"depthComplete" in result && result.depthComplete >= 3
+                {heldOpen ? held.length : result.hits.length}{" "}
+                {heldOpen
+                  ? `held line${held.length === 1 ? "" : "s"}`
+                  : mode === "perfect"
+                    ? `perfect anagram${result.hits.length === 1 ? "" : "s"}`
+                    : `phrase${result.hits.length === 1 ? "" : "s"}`}
+                {!heldOpen && "depthComplete" in result && result.depthComplete >= 3
                   ? " · pairs and triples are complete"
-                  : "depthComplete" in result && result.depthComplete === 2
+                  : !heldOpen && "depthComplete" in result && result.depthComplete === 2
                     ? " · pairs are complete"
                     : ""}
-                {result.timedOut ? " · search budget reached" : ""}
-                {result.truncated ? " · capped" : ""}
+                {!heldOpen && result.timedOut ? " · search budget reached" : ""}
+                {!heldOpen && result.truncated ? " · capped" : ""}
               </p>
               {mode === "perfect" ? (
                 <ReadingSpread
-                  hits={result.hits}
-                  order={readingOrder}
-                  notes={readingNotes}
+                  hits={
+                    heldOpen
+                      ? result.hits.filter((hit) => held.includes(hit.words.join(" ").toLowerCase()))
+                      : result.hits
+                  }
+                  order={heldOpen ? [] : readingOrder}
+                  notes={heldOpen ? [] : readingNotes}
                   source={letters}
                   kept={mustInclude}
+                  held={held}
+                  onHold={toggleHeld}
                   onKeep={toggleMust}
                   onCopy={(words) => copyWords([words.join(" ")])}
                   onPick={(words) => {
@@ -1117,11 +1138,16 @@ function Home() {
                 />
               ) : (
                 <ul className="space-y-2">
-                  {result.hits.map((hit) => (
+                  {(heldOpen
+                    ? result.hits.filter((hit) => held.includes(hit.words.join(" ").toLowerCase()))
+                    : result.hits
+                  ).map((hit) => (
                     <PhraseRow
                       key={hit.words.join("-")}
                       hit={hit}
                       source={letters}
+                      held={held.includes(hit.words.join(" ").toLowerCase())}
+                      onHold={() => toggleHeld(hit.words)}
                       onCopy={() => copyWords([hit.words.join(" ")])}
                       onPick={() => {
                         setPicks(hit.words);
@@ -1138,6 +1164,40 @@ function Home() {
         </section>
         <SupportSlot />
       </main>
+      {held.length > 0 ? (
+        <div className="fixed inset-x-0 bottom-0 z-40 border-t border-border bg-bg/95 px-4 py-3 backdrop-blur-sm">
+          <div className="mx-auto flex max-w-5xl items-center gap-4">
+            <button
+              type="button"
+              onClick={() => {
+                setHeldOpen((open) => !open);
+                if (!heldOpen) {
+                  requestAnimationFrame(() => {
+                    document.getElementById("lines")?.scrollIntoView({ block: "start", behavior: "smooth" });
+                  });
+                }
+              }}
+              className="text-sm text-fg"
+            >
+              {heldOpen ? "Back to the list" : `${held.length} held`}
+            </button>
+            <button
+              type="button"
+              onClick={() => void copyWords(held)}
+              className="text-xs text-subtle hover:text-fg"
+            >
+              Copy
+            </button>
+            <button
+              type="button"
+              onClick={() => setHeld([])}
+              className="ml-auto text-xs text-subtle hover:text-fg"
+            >
+              Clear
+            </button>
+          </div>
+        </div>
+      ) : null}
     </div>
   );
 }
@@ -1311,11 +1371,15 @@ function WordRow({
 function PhraseRow({
   hit,
   source,
+  held,
+  onHold,
   onCopy,
   onPick,
 }: {
   hit: PhraseHit;
   source: string;
+  held: boolean;
+  onHold: () => void;
   onCopy: () => void;
   onPick: () => void;
 }) {
@@ -1326,7 +1390,12 @@ function PhraseRow({
   const leftover = (hit.leftover || "").replace(/\?/g, "");
 
   return (
-    <li className="flex items-center gap-3 rounded-lg border border-border bg-surface px-4 py-3">
+    <li
+      className={cn(
+        "flex items-center gap-3 rounded-lg border border-border bg-surface px-4 py-3",
+        held && "shadow-[inset_2px_0_0_#ebe4d6]",
+      )}
+    >
       <p className="flex min-w-0 flex-1 flex-wrap items-center gap-x-2 gap-y-1 font-mono text-sm uppercase tracking-wide text-fg">
         {hit.words.map((w, i) => {
           const locked = hit.locked?.includes(w);
@@ -1349,7 +1418,18 @@ function PhraseRow({
           {hit.themeScore} theme
         </span>
       ) : null}
-      <span className="tabular-nums text-xs text-subtle">{hit.score}</span>
+      <button
+        type="button"
+        onClick={onHold}
+        aria-pressed={held}
+        aria-label={held ? "Let this line go" : "Hold this line"}
+        className={cn(
+          "touch-manipulation px-1 tabular-nums text-xs",
+          held ? "text-fg" : "text-subtle hover:text-fg",
+        )}
+      >
+        {hit.score}
+      </button>
       <Tip label="Copy">
         <button
           type="button"
@@ -1390,6 +1470,8 @@ function ReadingSpread({
   notes,
   source,
   kept,
+  held,
+  onHold,
   onKeep,
   onCopy,
   onPick,
@@ -1399,6 +1481,8 @@ function ReadingSpread({
   notes: { line: string; why: string }[];
   source: string;
   kept: string[];
+  held: string[];
+  onHold: (words: string[]) => void;
   onKeep: (word: string) => void;
   onCopy: (words: string[]) => void;
   onPick: (words: string[]) => void;
@@ -1444,6 +1528,8 @@ function ReadingSpread({
                 why={why.get(hit.words.join(" ").toLowerCase())}
                 source={source}
                 kept={kept}
+                held={held.includes(hit.words.join(" ").toLowerCase())}
+                onHold={() => onHold(hit.words)}
                 onKeep={onKeep}
                 onCopy={() => onCopy(hit.words)}
                 onPick={() => onPick(hit.words)}
@@ -1465,6 +1551,8 @@ function ReadingSpread({
                 why={why.get(hit.words.join(" ").toLowerCase())}
                 source={source}
                 kept={kept}
+                held={held.includes(hit.words.join(" ").toLowerCase())}
+                onHold={() => onHold(hit.words)}
                 onKeep={onKeep}
                 onCopy={() => onCopy(hit.words)}
                 onPick={() => onPick(hit.words)}
@@ -1482,6 +1570,8 @@ function SpreadLine({
   why,
   source,
   kept,
+  held,
+  onHold,
   onKeep,
   onCopy,
   onPick,
@@ -1490,6 +1580,8 @@ function SpreadLine({
   why?: string;
   source: string;
   kept: string[];
+  held: boolean;
+  onHold: () => void;
   onKeep: (word: string) => void;
   onCopy: () => void;
   onPick: () => void;
@@ -1501,7 +1593,12 @@ function SpreadLine({
   const leftover = (hit.leftover || "").replace(/\?/g, "");
 
   return (
-    <li className="group relative break-inside-avoid border-b border-border/60 py-2.5">
+    <li
+      className={cn(
+        "group relative break-inside-avoid border-b border-border/60 py-2.5 pl-3",
+        held && "shadow-[inset_2px_0_0_#ebe4d6]",
+      )}
+    >
       <p className="font-display text-xl leading-snug text-fg sm:pr-40">
         {hit.words.map((w, i) => {
           const locked = hit.locked?.includes(w);
@@ -1521,35 +1618,48 @@ function SpreadLine({
         })}
       </p>
       {why ? <p className="mt-1 max-w-xl text-sm leading-snug text-muted sm:pr-40">{why}</p> : null}
-      <div className="mt-1 flex flex-wrap items-center gap-x-3 gap-y-1 sm:absolute sm:right-0 sm:top-1/2 sm:mt-0 sm:-translate-y-1/2 sm:opacity-0 sm:group-hover:opacity-100 sm:group-focus-within:opacity-100 [@media(hover:none)]:sm:opacity-100">
-        {(hit.themeScore ?? 0) > 0 ? (
-          <span className="tabular-nums text-[10px] uppercase tracking-wide text-muted">
-            {hit.themeScore} theme
-          </span>
-        ) : null}
-        <span className="tabular-nums text-xs text-subtle">{hit.score}</span>
+      <div className="mt-1 flex flex-wrap items-center gap-x-3 gap-y-1">
         <button
           type="button"
-          onClick={onCopy}
-          className="text-xs text-subtle hover:text-fg"
-          aria-label="Copy phrase"
+          onClick={onHold}
+          aria-pressed={held}
+          aria-label={held ? "Let this line go" : "Hold this line"}
+          className={cn(
+            "touch-manipulation px-1 tabular-nums text-xs",
+            held ? "text-fg" : "text-subtle hover:text-fg",
+          )}
         >
-          Copy
+          {hit.score}
         </button>
-        <AnagramCardButton
-          source={source}
-          picks={order}
-          leftoverAdds={[...leftover]}
-          filled={!leftover}
-          quiet
-          onReorder={setOrder}
-          onAdd={(w) => setOrder((cur) => [...cur, w])}
-          onRemove={(i) => setOrder((cur) => cur.filter((_, j) => j !== i))}
-        />
-        <button type="button" onClick={onPick} className="text-xs text-subtle hover:text-muted">
-          Rearrange
-        </button>
-        <PostFindButton phrase={hit.words.join(" ")} quiet />
+        <div className="flex flex-wrap items-center gap-x-3 gap-y-1 sm:opacity-0 sm:group-hover:opacity-100 sm:group-focus-within:opacity-100 [@media(hover:none)]:sm:opacity-100">
+          {(hit.themeScore ?? 0) > 0 ? (
+            <span className="tabular-nums text-[10px] uppercase tracking-wide text-muted">
+              {hit.themeScore} theme
+            </span>
+          ) : null}
+          <button
+            type="button"
+            onClick={onCopy}
+            className="text-xs text-subtle hover:text-fg"
+            aria-label="Copy phrase"
+          >
+            Copy
+          </button>
+          <AnagramCardButton
+            source={source}
+            picks={order}
+            leftoverAdds={[...leftover]}
+            filled={!leftover}
+            quiet
+            onReorder={setOrder}
+            onAdd={(w) => setOrder((cur) => [...cur, w])}
+            onRemove={(i) => setOrder((cur) => cur.filter((_, j) => j !== i))}
+          />
+          <button type="button" onClick={onPick} className="text-xs text-subtle hover:text-muted">
+            Rearrange
+          </button>
+          <PostFindButton phrase={hit.words.join(" ")} quiet />
+        </div>
       </div>
     </li>
   );
