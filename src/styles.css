@@ -110,6 +110,31 @@ html.easy-read body {
   animation: letters-ph 3.6s ease-in-out infinite;
 }
 
+@keyframes held-glow {
+  0%,
+  100% {
+    box-shadow:
+      inset 2px 0 0 var(--color-gold),
+      inset 8px 0 12px color-mix(in srgb, var(--color-gold) 0%, transparent);
+  }
+  50% {
+    box-shadow:
+      inset 2px 0 0 var(--color-gold-hot),
+      inset 10px 0 16px color-mix(in srgb, var(--color-gold) 42%, transparent);
+  }
+}
+
+.held-rule {
+  animation: held-glow 4.8s ease-in-out infinite;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .held-rule {
+    animation: none;
+    box-shadow: inset 2px 0 0 var(--color-gold);
+  }
+}
+
 .way-shimmer {
   font-family: "Great Vibes", cursive;
   color: var(--color-gold);

@@ -1407,7 +1407,7 @@ function PhraseRow({
     <li
       className={cn(
         "flex items-center gap-3 rounded-lg border border-border bg-surface px-4 py-3",
-        held && "shadow-[inset_2px_0_0_#ebe4d6]",
+        held && "held-rule",
       )}
     >
       <p className="flex min-w-0 flex-1 flex-wrap items-center gap-x-2 gap-y-1 font-mono text-sm uppercase tracking-wide text-fg">
@@ -1635,7 +1635,7 @@ function SpreadLine({
     <li
       className={cn(
         "group relative break-inside-avoid border-b border-border/60 py-2.5 pl-3",
-        held && "shadow-[inset_2px_0_0_#ebe4d6]",
+        held && "held-rule",
       )}
     >
       <p className="font-display text-xl leading-snug text-fg sm:pr-40">
