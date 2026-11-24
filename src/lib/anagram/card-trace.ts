@@ -204,35 +204,138 @@ function inkRamp(hex: string): RGB[] {
   const ink = hexRgb(hex);
   const paper = hexRgb(bone.fg);
   const dark = hexRgb(soot.surface);
-  return [ink, mix(ink, paper, 0.35), mix(ink, paper, 0.62), mix(ink, paper, 0.82), mix(ink, dark, 0.45)];
+  const out: RGB[] = [];
+  for (let i = 0; i <= 8; i++) out.push(mix(ink, paper, i / 8));
+  for (let i = 1; i <= 4; i++) out.push(mix(ink, dark, i / 5));
+  return out;
 }
 
-function sampleBase(data: Uint8ClampedArray, w: number, h: number, color: string) {
-  const stride = 18;
-  const ramp = inkRamp(color);
-  const across = Math.ceil(w / stride);
-  const down = Math.ceil(h / stride);
-  const cells = across * down + ramp.length * 12;
-  const out = new Uint8Array(cells * 4);
-  let p = 0;
+function traceClock(segs: CardPath[]) {
+  const clock = schedule(segs);
+  return {
+    travelEnd: Math.max(0, clock.fadeAt - HOLD),
+    fadeAt: clock.fadeAt,
+    fadeEnd: clock.fadeAt + clock.fade,
+    span: clock.span,
+  };
+}
+
+/** More frames while the spark is moving. The hold and the quiet are long frames. */
+function gifFrames(segs: CardPath[]) {
+  const clock = traceClock(segs);
+  const frames: { t: number; delay: number }[] = [];
+  const travel = clock.travelEnd;
+  if (travel > 40) {
+    const n = Math.min(36, Math.max(12, Math.round(travel / 50)));
+    const delay = Math.max(4, Math.round(travel / n / 10));
+    for (let i = 0; i < n; i++) frames.push({ t: (i / n) * travel, delay });
+  }
+  const hold = clock.fadeAt - travel;
+  if (hold > 20) {
+    const delay = Math.max(4, Math.round(hold / 2 / 10));
+    frames.push({ t: travel + hold * 0.35, delay });
+    frames.push({ t: clock.fadeAt - 16, delay });
+  }
+  const fade = clock.fadeEnd - clock.fadeAt;
+  if (fade > 20) {
+    const n = 6;
+    const delay = Math.max(4, Math.round(fade / n / 10));
+    for (let i = 1; i <= n; i++) frames.push({ t: clock.fadeAt + (i / n) * fade, delay });
+  }
+  const quiet = Math.max(0, clock.span - clock.fadeEnd);
+  frames.push({ t: Math.max(0, clock.span - 24), delay: Math.max(4, Math.round((quiet || 40) / 10)) });
+  return frames;
+}
+
+function sampleFrame(
+  data: Uint8ClampedArray,
+  w: number,
+  h: number,
+  stride: number,
+  into: Uint8Array,
+  offset: number,
+) {
+  let p = offset;
   for (let y = 0; y < h; y += stride) {
     for (let x = 0; x < w; x += stride) {
       const i = (y * w + x) * 4;
-      out[p++] = data[i] ?? 0;
-      out[p++] = data[i + 1] ?? 0;
-      out[p++] = data[i + 2] ?? 0;
-      out[p++] = 255;
+      into[p++] = data[i] ?? 0;
+      into[p++] = data[i + 1] ?? 0;
+      into[p++] = data[i + 2] ?? 0;
+      into[p++] = 255;
     }
   }
-  for (const c of ramp) {
-    for (let k = 0; k < 12; k++) {
-      out[p++] = c[0];
-      out[p++] = c[1];
-      out[p++] = c[2];
-      out[p++] = 255;
+  return p;
+}
+
+function clampByte(n: number) {
+  return n < 0 ? 0 : n > 255 ? 255 : Math.round(n);
+}
+
+function nearestIndex(r: number, g: number, b: number, pal: RGB[]) {
+  let k = 0;
+  let best = 1e12;
+  for (let i = 0; i < pal.length; i++) {
+    const c = pal[i]!;
+    const dr = c[0] - r;
+    const dg = c[1] - g;
+    const db = c[2] - b;
+    const d = dr * dr + dg * dg + db * db;
+    if (d < best) {
+      best = d;
+      k = i;
     }
   }
-  return out.subarray(0, p);
+  return k;
+}
+
+/** Floyd–Steinberg, softened so the paper does not speckle. Cache is rgb565 → palette index. */
+function ditherIndexed(
+  data: Uint8ClampedArray,
+  w: number,
+  h: number,
+  pal: RGB[],
+  cache: Int16Array,
+  err: Float32Array,
+) {
+  for (let i = 0, p = 0; i < data.length; i += 4) {
+    err[p++] = data[i] ?? 0;
+    err[p++] = data[i + 1] ?? 0;
+    err[p++] = data[i + 2] ?? 0;
+  }
+  const index = new Uint8Array(w * h);
+  const spread = (x: number, y: number, er: number, eg: number, eb: number, num: number) => {
+    if (x < 0 || x >= w || y >= h) return;
+    const q = (y * w + x) * 3;
+    const s = num / 16;
+    err[q] += er * s;
+    err[q + 1] += eg * s;
+    err[q + 2] += eb * s;
+  };
+  for (let y = 0; y < h; y++) {
+    const ltr = y % 2 === 0;
+    for (let i = 0; i < w; i++) {
+      const x = ltr ? i : w - 1 - i;
+      const dir = ltr ? 1 : -1;
+      const p = (y * w + x) * 3;
+      const r = clampByte(err[p] ?? 0);
+      const g = clampByte(err[p + 1] ?? 0);
+      const b = clampByte(err[p + 2] ?? 0);
+      const key = ((r & 0xf8) << 8) | ((g & 0xfc) << 3) | (b >> 3);
+      let idx = cache[key] ?? -1;
+      if (idx < 0) idx = cache[key] = nearestIndex(r, g, b, pal);
+      index[y * w + x] = idx;
+      const c = pal[idx]!;
+      const er = (r - c[0]) * 0.72;
+      const eg = (g - c[1]) * 0.72;
+      const eb = (b - c[2]) * 0.72;
+      spread(x + dir, y, er, eg, eb, 7);
+      spread(x - dir, y + 1, er, eg, eb, 3);
+      spread(x, y + 1, er, eg, eb, 5);
+      spread(x + dir, y + 1, er, eg, eb, 1);
+    }
+  }
+  return index;
 }
 
 function loadImage(url: string) {
@@ -251,28 +354,54 @@ export async function encodeCardGif(
   look: PostcardLook,
 ): Promise<Blob> {
   const img = await loadImage(pngUrl);
-  const w = 900;
-  const h = 600;
+  const w = 1200;
+  const h = 800;
   const canvas = document.createElement("canvas");
   canvas.width = w;
   canvas.height = h;
   const ctx = canvas.getContext("2d", { willReadFrequently: true });
   if (!ctx) throw new Error("Canvas unavailable");
-  ctx.drawImage(img, 0, 0, w, h);
-  const gifenc = await import("gifenc");
-  const palette = gifenc.quantize(sampleBase(ctx.getImageData(0, 0, w, h).data, w, h, color), 250);
-  const span = traceSpan(segs);
-  const frames = Math.min(48, Math.max(18, Math.round(span / 70)));
-  const delay = Math.max(4, Math.round(span / frames / 10));
-  const gif = gifenc.GIFEncoder();
-  for (let i = 0; i < frames; i++) {
+
+  const frames = gifFrames(segs);
+  const clock = traceClock(segs);
+  const sampleAt = [0, clock.travelEnd * 0.45, clock.travelEnd * 0.82, Math.max(0, clock.fadeAt - 20)];
+  const stride = 3;
+  const cells = Math.ceil(w / stride) * Math.ceil(h / stride);
+  const ramp = inkRamp(color);
+  const samples = new Uint8Array((cells * sampleAt.length + ramp.length * 24) * 4);
+  let filled = 0;
+  const paintAt = (t: number) => {
     ctx.setTransform(1, 0, 0, 1, 0, 0);
     ctx.drawImage(img, 0, 0, w, h);
-    paintCardTrace(ctx, segs, (i / frames) * span, color, look, POSTCARD.w, POSTCARD.h, w, h);
-    const data = ctx.getImageData(0, 0, w, h).data;
-    const index = gifenc.applyPalette(data, palette);
-    gif.writeFrame(index, w, h, { palette, delay, repeat: i === 0 ? 0 : undefined });
-    if (i % 3 === 2) await new Promise((resolve) => setTimeout(resolve, 0));
+    paintCardTrace(ctx, segs, t, color, look, POSTCARD.w, POSTCARD.h, w, h);
+  };
+  for (const t of sampleAt) {
+    paintAt(t);
+    filled = sampleFrame(ctx.getImageData(0, 0, w, h).data, w, h, stride, samples, filled);
+  }
+  for (const c of ramp) {
+    for (let k = 0; k < 24; k++) {
+      samples[filled++] = c[0];
+      samples[filled++] = c[1];
+      samples[filled++] = c[2];
+      samples[filled++] = 255;
+    }
+  }
+
+  const gifenc = await import("gifenc");
+  const palette = gifenc.quantize(samples.subarray(0, filled), 256).map(
+    (c) => [c[0] ?? 0, c[1] ?? 0, c[2] ?? 0] as RGB,
+  );
+  const cache = new Int16Array(65536);
+  cache.fill(-1);
+  const err = new Float32Array(w * h * 3);
+  const gif = gifenc.GIFEncoder();
+  for (let i = 0; i < frames.length; i++) {
+    const frame = frames[i]!;
+    paintAt(frame.t);
+    const index = ditherIndexed(ctx.getImageData(0, 0, w, h).data, w, h, palette, cache, err);
+    gif.writeFrame(index, w, h, { palette, delay: frame.delay, repeat: i === 0 ? 0 : undefined });
+    if (i % 2 === 1) await new Promise((resolve) => setTimeout(resolve, 0));
   }
   gif.finish();
   const bytes = gif.bytes();
