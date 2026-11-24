@@ -11,6 +11,8 @@ declare module "gifenc" {
         palette?: RGB[];
         repeat?: number;
         dispose?: number;
+        transparent?: boolean;
+        transparentIndex?: number;
       },
     ): void;
     finish(): void;
